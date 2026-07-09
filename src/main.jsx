@@ -1154,6 +1154,8 @@ const documentationSections = [
         specifics: [
           'The Overview timeline is visible for all active employees to every role, so everyone can see who is away and when.',
           'Timeline rows are grouped by employee department.',
+          'The Approved, Pending, and Rejected request panels in Overview show only the active user\'s own requests.',
+          'Team or company approval queues are shown only in Approvals & analytics.',
           'Operations users can submit absence requests only for themselves and do not see the Approvals & analytics tab.',
           'Team leads can submit requests for themselves and for employees in their lead department scope, but not for other team leads or management users.',
           'Management can submit and manage requests for all employees.',
@@ -4902,6 +4904,7 @@ function VacationView({
   const visibleRequests = useMemo(() => absenceRequestsForYear(requests, year).filter((request) => (
     calendarPeople.some((person) => person.name === request.employee)
   )), [requests, year, calendarPeople]);
+  const myRequests = visibleRequests.filter((request) => request.employee === activeRole.person);
   const pendingApprovals = visibleRequests.filter((request) => (
     request.status === 'pending' && canApproveAbsenceRequest(request, role, activePerson, people, activeLeadDepartments)
   ));
@@ -5009,7 +5012,7 @@ function VacationView({
 
             <div className="vacation-request-columns">
               {['approved', 'pending', 'rejected'].map((status) => {
-                const items = visibleRequests.filter((request) => request.status === status);
+                const items = myRequests.filter((request) => request.status === status);
                 return (
                   <section className={`vacation-status-panel ${status}`} key={status}>
                     <div className="vacation-status-head">
@@ -5282,6 +5285,7 @@ function VacationTimeline({ people, requests, rules, year, holidayDates }) {
             const monthStart = localDate(new Date(year, month, 1));
             const monthEnd = localDate(new Date(year, month + 1, 0));
             const monthDates = datesBetween(monthStart, monthEnd);
+            const todayIndex = todayYear && TODAY >= monthStart && TODAY <= monthEnd ? monthDates.indexOf(TODAY) : -1;
             return (
               <div className="vacation-month" key={month}>
                 <strong>{new Date(year, month, 1).toLocaleString('en-US', { month: 'short' })}</strong>
@@ -5294,6 +5298,9 @@ function VacationTimeline({ people, requests, rules, year, holidayDates }) {
                     );
                   })}
                 </div>
+                {todayIndex >= 0 && (
+                  <span className="vacation-today-marker" style={{ left: `${todayIndex * 28 + 14}px` }} aria-hidden="true" />
+                )}
                 {groupedPeople.map((group) => (
                   <React.Fragment key={`${group.department}-${month}`}>
                     <div className="vacation-month-row vacation-department-row" aria-hidden="true">

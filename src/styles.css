@@ -2912,7 +2912,7 @@
   }
 
   .vacation-month {
-    @apply grid min-w-max border-r border-[#edf1f4] pt-0;
+    @apply relative grid min-w-max border-r border-[#edf1f4] pt-0;
   }
 
   .vacation-month > strong {
@@ -2958,11 +2958,7 @@
   }
 
   .vacation-month-days span.today {
-    @apply relative text-[#df2424];
-  }
-
-  .vacation-month-days span.today::after {
-    @apply absolute top-1 h-1.5 w-1.5 rounded-full bg-[#df2424] content-[''];
+    @apply text-[#df2424];
   }
 
   .vacation-month-row {
@@ -2992,11 +2988,19 @@
   }
 
   .vacation-month-row i.today {
-    @apply relative my-0;
+    @apply my-0;
   }
 
-  .vacation-month-row i.today::after {
-    @apply absolute bottom-0 left-1/2 top-0 z-20 w-[3px] -translate-x-1/2 rounded-full bg-[#df2424] content-[''];
+  .vacation-today-marker {
+    @apply pointer-events-none absolute bottom-0 top-[42px] z-30 w-0;
+  }
+
+  .vacation-today-marker::before {
+    @apply absolute left-1/2 top-1 h-3.5 w-3.5 -translate-x-1/2 rounded-full bg-[#ff3347] shadow-[0_0_0_7px_rgba(255,51,71,0.13)] content-[''];
+  }
+
+  .vacation-today-marker::after {
+    @apply absolute bottom-0 left-1/2 top-[13px] w-[3px] -translate-x-1/2 rounded-full bg-[#df2424] content-[''];
   }
 
   .vacation-timeline-block {
