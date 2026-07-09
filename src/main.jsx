@@ -998,7 +998,7 @@ const documentationSections = [
       },
       {
         name: 'Employee database',
-        howItWorks: 'The Employees tab shows a compact employee table in the active role scope. The table displays the employee initials, name, department, role level, and employment type. Open setup items and contract end-date alerts are shown as an alert icon next to the employee name instead of as full-width messages. Hover or click the alert icon to review the notices in a small popover. Clicking a table row opens a tabbed employee record with Overview, Documents, Comments, and Archive / delete user sections. The employee edit form is organized into User info, Department and employment, Contract and compliance, and Compensation rows. The employee profile stores personal identity details, street address, post number, city, work email, phone number, private email, department and role level, segmentation tags, contract from/to dates, compliance dates, internal comments, compensation rows for each work arrangement, and active or archived status. The employee employment type is derived from the first compensation row. Documents are separate local document records linked to the employee by name.',
+        howItWorks: 'The Employees tab shows a compact employee table in the active role scope. The table displays the employee initials, name, department, role level, and employment type. Open setup items and contract end-date alerts are shown as an alert icon next to the employee name instead of as full-width messages. Hover or click the alert icon to review the notices in a small popover. Clicking a table row opens a tabbed employee record. Management and team leads see Overview, Documents, Comments, and Archive / delete user sections; Operations users see only Overview and Documents. The employee edit form is organized into User info, Department and employment, Contract and compliance, and Compensation rows. The employee profile stores personal identity details, street address, post number, city, work email, phone number, private email, department and role level, segmentation tags, contract from/to dates, compliance dates, internal comments, compensation rows for each work arrangement, and active or archived status. The employee employment type is derived from the first compensation row. Documents are separate local document records linked to the employee by name.',
         userSteps: [
           'Open Employees, then open the Employees subtab.',
           'Use Status, Department, Level, or Tags in the inline employee filters row to narrow the employee table.',
@@ -1007,14 +1007,14 @@ const documentationSections = [
           'Hover the alert icon beside an employee name to see missing setup items and contract end-date notices. The popover stays visible while the pointer is on the icon or popover, then closes automatically.',
           'Management and team leads can click Add employee, complete the employee form, and save a local profile.',
           'Click an employee row to open the employee record sidebar.',
-          'Use Overview, Documents, Comments, and Archive / delete user at the top of the sidebar to switch between employee details, stored documents, internal comments, and administrative status actions.',
+          'Use the tabs at the top of the sidebar to switch between employee record sections. Management and team leads can open Overview, Documents, Comments, and Archive / delete user; Operations users can open only Overview and Documents.',
           'Management and team leads can edit the profile from the sidebar and save the employee.',
           'In the employee form User info section, enter the full name, then Address, Post number, and City on one row, Personal ID / EMŠO and Tax number on one row, and Work email, Phone number, and Private email on one row.',
           'Then enter department, role level, tags, contract from and contract to dates, medical exam completion date, safety training completion and expiry dates, and compensation rows.',
           'Use Add row in Compensation rows to add another work arrangement. Select the employment type from the Rules list; the pay type and visible compensation fields follow that rule.',
           'Open Documents, click Add document, drop a file onto the upload area or click it to choose a file from the system file picker, enter the document title, choose or create a document type, complete the required document dates, and save the document record.',
-          'Open Comments, enter an internal note, and click Add comment to store it on the employee record.',
-          'Open Archive / delete user to archive an employee as inactive, restore an archived employee, or delete the employee and linked local records.',
+          'Management and team leads can open Comments, enter an internal note, and click Add comment to store it on the employee record.',
+          'Management and team leads can open Archive / delete user to archive an employee as inactive, restore an archived employee, or delete the employee and linked local records.',
         ],
         specifics: [
           'The Status filter defaults to Active users. Choose Archived users to review inactive employee records and historical data, or All users to see both active and archived records.',
@@ -1046,8 +1046,8 @@ const documentationSections = [
           'The Contract row stores Contract from and Contract to dates. Contract from is also saved as the employee start date for employee table, sidebar, and older local records that still read the start field. Turning on No end date clears Contract to, disables that date input, and saves the contract as indefinite. Turning the button off restores an editable Contract to date seeded from Contract from, the employee start date, or today.',
           'Medical exam stores only the date the employee completed the exam in the Medical row. If the completed date is empty, the form shows a red inline warning with an alert icon under the date input.',
           'Safety training stores the completion date and the valid-until date in the Safety training row. If the completed date is empty, the form shows a red inline warning with an alert icon under the completed date input.',
-          'The Comments tab stores internal employee comments with comment text, author, and local date. Operations users can view comments but the comment input and Add comment button are disabled for them.',
-          'The Archive / delete user tab lets permitted users archive an employee without deleting data, restore an archived employee, or delete the employee record and linked local entries, documents, correction records, and unlock windows.',
+          'The Comments tab stores internal employee comments with comment text, author, and local date. It is visible only to Management and team lead users.',
+          'The Archive / delete user tab lets Management and team lead users archive an employee without deleting data, restore an archived employee, or delete the employee record and linked local entries, documents, correction records, and unlock windows. Operations users do not see this tab.',
           'Archived employees are excluded from operational views, time-entry employee selectors, manual unlock selectors, tracker user scope, analytics people metrics, correction reviewer scopes, department people counts, and tag people counts.',
           'Archived employees remain available in the Employees list only when the Status filter is set to Archived users or All users, and they open in the sidebar with an Inactive status.',
           'Archiving an employee stops that employee\'s active timer if one is running and clears matching active table person filters.',
@@ -4669,6 +4669,17 @@ function EmployeeRecordSidebar({
     { id: 'comments', label: 'Comments', icon: ReceiptText },
     { id: 'admin', label: 'Archive / delete user', icon: FolderLock },
   ];
+  const visibleRecordTabs = useMemo(() => (
+    canEditPeople
+      ? recordTabs
+      : recordTabs.filter((tab) => ['overview', 'documents'].includes(tab.id))
+  ), [canEditPeople]);
+
+  useEffect(() => {
+    if (!visibleRecordTabs.some((tab) => tab.id === activeRecordTab)) {
+      setActiveRecordTab('overview');
+    }
+  }, [activeRecordTab, visibleRecordTabs]);
 
   function submitComment() {
     onAddComment(employee, commentText);
@@ -4779,7 +4790,7 @@ function EmployeeRecordSidebar({
           </section>
           <section className="employee-record-overview">
             <nav className="employee-record-tabs" aria-label="Employee record sections">
-              {recordTabs.map((tab) => {
+              {visibleRecordTabs.map((tab) => {
                 const Icon = tab.icon;
                 return (
                   <button
@@ -5008,7 +5019,7 @@ function EmployeeRecordSidebar({
                 </div>
               </div>
             )}
-            {activeRecordTab === 'comments' && (
+            {activeRecordTab === 'comments' && canEditPeople && (
               <div className="employee-overview-card">
                 <div className="overview-title">
                   <span><ReceiptText size={19} /></span>
@@ -5040,7 +5051,7 @@ function EmployeeRecordSidebar({
                 </div>
               </div>
             )}
-            {activeRecordTab === 'admin' && (
+            {activeRecordTab === 'admin' && canEditPeople && (
               <div className="employee-overview-card">
                 <div className="overview-title">
                   <span><FolderLock size={19} /></span>
@@ -5068,7 +5079,6 @@ function EmployeeRecordSidebar({
                     <Trash2 size={16} /> Delete user
                   </button>
                 </div>
-                {!canEditPeople && <div className="modal-warning"><AlertCircle size={16} /> Operations cannot archive or delete employees.</div>}
               </div>
             )}
           </section>
