@@ -2892,11 +2892,12 @@
   }
 
   .vacation-month-row.vacation-department-row {
-    @apply relative z-[35] border-t border-[#dfe7ef];
+    @apply relative border-t border-[#dfe7ef];
   }
 
   .vacation-month-row.vacation-department-row i {
     @apply my-0 border-l-0 bg-[#f8fafc];
+    background: #f8fafc !important;
   }
 
   .vacation-month-row.vacation-department-row i.weekend,
@@ -3039,11 +3040,11 @@
   }
 
   .vacation-today-marker {
-    @apply pointer-events-none absolute bottom-0 top-[42px] z-30 w-0;
+    @apply pointer-events-none absolute bottom-0 top-[42px] z-50 w-0;
   }
 
   .vacation-today-marker::before {
-    @apply absolute left-1/2 top-1 h-3.5 w-3.5 -translate-x-1/2 rounded-full bg-[#ff3347] shadow-[0_0_0_7px_rgba(255,51,71,0.13)] content-[''];
+    @apply absolute left-1/2 top-1 h-3.5 w-3.5 -translate-x-1/2 rounded-full bg-[#df2424] shadow-[0_0_0_7px_rgba(223,36,36,0.13)] content-[''];
   }
 
   .vacation-today-marker::after {
