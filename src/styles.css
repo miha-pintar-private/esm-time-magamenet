@@ -2966,23 +2966,91 @@
   }
 
   .vacation-month-row {
-    @apply h-[42px] border-t border-[#edf1f4];
+    @apply relative h-[42px] border-t border-[#edf1f4];
   }
 
   .vacation-month-row i {
     @apply my-2 border-l border-[#e7edf3] bg-transparent;
   }
 
-  .vacation-month-row i.approved {
-    @apply border-l-0 bg-[#dff9ec] shadow-[inset_0_0_0_1px_#78d8aa];
+  .vacation-month-row i.weekend,
+  .vacation-month-row i.holiday,
+  .vacation-month-row i.warning {
+    @apply my-0 border-l border-[#dce7f2];
   }
 
-  .vacation-month-row i.pending {
-    @apply border-l-0 bg-[#fff4c7] shadow-[inset_0_0_0_1px_#f4c842];
+  .vacation-month-row i.weekend {
+    @apply bg-[#edf4ff];
   }
 
-  .vacation-month-row i.sick {
-    @apply bg-[#ffe7e9] shadow-[inset_0_0_0_1px_#ff9ba6];
+  .vacation-month-row i.holiday {
+    @apply bg-[#eafbf2];
+  }
+
+  .vacation-month-row i.warning {
+    @apply bg-[#fff1e5];
+  }
+
+  .vacation-month-row i.today {
+    @apply relative my-0;
+  }
+
+  .vacation-month-row i.today::after {
+    @apply absolute bottom-0 left-1/2 top-0 z-20 w-[3px] -translate-x-1/2 rounded-full bg-[#df2424] content-[''];
+  }
+
+  .vacation-timeline-block {
+    @apply absolute top-1/2 z-10 grid h-[28px] -translate-y-1/2 cursor-pointer place-items-center rounded-full border bg-[#e8fff4] text-[15px] leading-none shadow-[0_8px_20px_rgba(30,64,95,0.08)] transition-[transform,box-shadow,border-color] duration-150;
+  }
+
+  .vacation-timeline-block.approved {
+    @apply border-[#47d5a1] bg-[#e8fff4] text-[#078050];
+  }
+
+  .vacation-timeline-block.pending {
+    @apply border-[#f4c842] bg-[#fff4bd] text-[#a15c00];
+  }
+
+  .vacation-timeline-block.sick {
+    @apply border-[#ff9bac] bg-[#ffe8ed] text-[#b42335];
+  }
+
+  .vacation-timeline-block:hover,
+  .vacation-timeline-block:focus-visible {
+    @apply z-30 scale-[1.015] outline-none shadow-[0_18px_38px_rgba(36,48,65,0.16)];
+  }
+
+  .vacation-timeline-block:focus-visible {
+    @apply ring-2 ring-[#2f6df6] ring-offset-2;
+  }
+
+  .vacation-timeline-popover {
+    @apply pointer-events-none invisible absolute left-1/2 top-[calc(100%+12px)] z-40 grid min-w-[220px] -translate-x-1/2 gap-2 rounded-[12px] border border-[#e1e7ee] bg-white p-4 text-left opacity-0 shadow-[0_18px_45px_rgba(36,48,65,0.16)] transition-[opacity,visibility,transform] duration-150;
+  }
+
+  .vacation-timeline-popover::before {
+    @apply absolute left-1/2 top-[-6px] h-3 w-3 -translate-x-1/2 rotate-45 border-l border-t border-[#e1e7ee] bg-white content-[''];
+  }
+
+  .vacation-timeline-block:hover .vacation-timeline-popover,
+  .vacation-timeline-block:focus-visible .vacation-timeline-popover {
+    @apply visible translate-y-0 opacity-100;
+  }
+
+  .vacation-timeline-popover strong {
+    @apply text-[15px] font-black text-[#111827];
+  }
+
+  .vacation-timeline-popover b {
+    @apply w-fit rounded-full bg-[#dfeaff] px-3 py-1 text-[12px] font-black text-[#1f5df4];
+  }
+
+  .vacation-timeline-popover small {
+    @apply text-[13px] font-bold text-[#526070];
+  }
+
+  .vacation-timeline-popover em {
+    @apply text-[13px] font-black not-italic text-[#078050];
   }
 
   .vacation-side,

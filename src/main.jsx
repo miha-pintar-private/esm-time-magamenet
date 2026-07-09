@@ -1168,6 +1168,7 @@ const documentationSections = [
           'Approved Sick leave requests are counted separately as Sick days in analytics.',
           'Holiday rules are excluded from working-day calculations globally. Risk periods do not change working-day counts.',
           'The annual timeline shows active visible employees, pending and approved absences, weekends, holidays, risk periods, and today.',
+          'Weekend, Holiday, Risk period, and Today markers are drawn through the full timeline height, not only in the date header.',
           'The Vacation tab on the employee record shows the allowance source and the approval scope for that employee.',
         ],
         metrics: [
@@ -5255,6 +5256,12 @@ function VacationTimeline({ people, requests, rules, year, holidayDates }) {
     scrollRef.current.scrollLeft = Math.max(0, monthOffset - 84);
   }, [todayYear, year, months]);
 
+  function timelineDateClass(date) {
+    const day = parseIsoDate(date)?.getDay();
+    const warning = rules.some((rule) => rule.type === 'warning' && rangesOverlap(date, date, rule.startDate, rule.endDate));
+    return cx((day === 0 || day === 6) && 'weekend', holidayDates.has(date) && 'holiday', warning && 'warning', todayYear && date === TODAY && 'today');
+  }
+
   return (
     <div className="vacation-timeline">
       <div className="vacation-timeline-users">
@@ -5280,10 +5287,8 @@ function VacationTimeline({ people, requests, rules, year, holidayDates }) {
                 <strong>{new Date(year, month, 1).toLocaleString('en-US', { month: 'short' })}</strong>
                 <div className="vacation-month-days">
                   {monthDates.map((date) => {
-                    const day = parseIsoDate(date)?.getDay();
-                    const warning = rules.some((rule) => rule.type === 'warning' && rangesOverlap(date, date, rule.startDate, rule.endDate));
                     return (
-                      <span className={cx((day === 0 || day === 6) && 'weekend', holidayDates.has(date) && 'holiday', warning && 'warning', todayYear && date === TODAY && 'today')} key={date}>
+                      <span className={timelineDateClass(date)} key={date}>
                         {Number(date.slice(8))}
                       </span>
                     );
@@ -5292,14 +5297,30 @@ function VacationTimeline({ people, requests, rules, year, holidayDates }) {
                 {groupedPeople.map((group) => (
                   <React.Fragment key={`${group.department}-${month}`}>
                     <div className="vacation-month-row vacation-department-row" aria-hidden="true">
-                      {monthDates.map((date) => <i key={date} />)}
+                      {monthDates.map((date) => <i className={timelineDateClass(date)} key={date} />)}
                     </div>
                     {group.members.map((person) => (
                       <div className="vacation-month-row" key={`${person.id}-${month}`}>
-                        {monthDates.map((date) => {
-                          const request = requests.find((item) => item.employee === person.name && ['pending', 'approved'].includes(item.status) && rangesOverlap(date, date, item.startDate, item.endDate));
-                          return <i className={request ? `${request.status} ${request.type}` : ''} title={request ? `${person.name}: ${absenceTypeLabel(request.type)} ${displayDate(request.startDate)} - ${displayDate(request.endDate)}` : date} key={date}>{request && date === request.startDate ? ' ' : ''}</i>;
-                        })}
+                        {monthDates.map((date) => <i className={timelineDateClass(date)} key={date} />)}
+                        {requests
+                          .filter((item) => item.employee === person.name && ['pending', 'approved'].includes(item.status) && rangesOverlap(item.startDate, item.endDate, monthStart, monthEnd))
+                          .map((request) => (
+                            <button
+                              className={`vacation-timeline-block ${request.status} ${request.type}`}
+                              style={timelineRequestStyle(request, monthStart, monthEnd)}
+                              type="button"
+                              key={request.id}
+                              aria-label={`${person.name}: ${absenceTypeLabel(request.type)} ${displayDate(request.startDate)} - ${displayDate(request.endDate)}`}
+                            >
+                              <span aria-hidden="true">{request.type === 'sick' ? '+' : '🏝️'}</span>
+                              <div className="vacation-timeline-popover">
+                                <strong>{person.name}</strong>
+                                <b>{absenceTypeLabel(request.type)}</b>
+                                <small>{displayDate(request.startDate)} - {displayDate(request.endDate)}</small>
+                                <em>{absenceStatusLabel(request.status)}</em>
+                              </div>
+                            </button>
+                          ))}
                       </div>
                     ))}
                   </React.Fragment>
