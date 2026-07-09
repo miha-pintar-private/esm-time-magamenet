@@ -1147,16 +1147,16 @@ const documentationSections = [
           'Open Employees, then open the Vacation subtab.',
           'Use Overview to review the current user balance, team absences this week, the yearly timeline, and request status lists.',
           'In New absence request, select the user in scope, choose Vacation or Sick leave, enter From and Until dates, add optional notes, and click Submit request.',
-          'Open Approvals & analytics to review the employee balance table for the selected approval scope, then review Pending approvals and Calendar rules below the table.',
+          'Open Approvals & analytics to review the employee balance table for the selected approval scope, manage Pending, Approved, and Rejected request blocks below the table, then review Calendar rules at the bottom.',
           'Management can add a calendar rule by choosing Holiday or Risk period, entering the rule name and date range, and clicking Add rule.',
-          'Management and authorized team leads can approve or reject pending requests from the pending approvals list or from pending request cards.',
+          'Management and authorized team leads can approve, reject, or correct request status from the request blocks when the request is inside their approval scope.',
         ],
         specifics: [
           'The Overview timeline is visible for all active employees to every role, so everyone can see who is away and when.',
           'The Vacation year selector filters the visible timeline, balance table, and year-based absence calculations.',
           'Timeline rows are grouped by employee department.',
           'The Approved, Pending, and Rejected request panels in Overview show only the active user\'s own requests.',
-          'Team or company approval queues are shown only in Approvals & analytics.',
+          'Team or company approval queues are shown only in Approvals & analytics, where Pending, Approved, and Rejected blocks allow authorized users to correct request status when needed.',
           'Operations users can submit absence requests only for themselves and do not see the Approvals & analytics tab.',
           'Team leads can submit requests for themselves and for employees in their lead department scope, but not for other team leads or management users.',
           'Management can submit and manage requests for all employees.',
@@ -3885,7 +3885,6 @@ function App() {
             role={role}
             activeRole={activeRole}
             visibleEntries={filteredEntries}
-            visiblePeople={activeVisiblePeople}
             workTypes={visibleWorkTypes}
             filters={tableFilters}
             filterOptions={tableFilterOptions}
@@ -4080,7 +4079,6 @@ function calculateHours(start, end) {
 function TimeView(props) {
   const {
     role,
-    visiblePeople,
     visibleEntries,
     workTypes,
     filters,
@@ -4888,9 +4886,17 @@ function VacationView({
     calendarPeople.some((person) => person.name === request.employee)
   )), [requests, year, calendarPeople]);
   const myRequests = visibleRequests.filter((request) => request.employee === activeRole.person);
-  const pendingApprovals = visibleRequests.filter((request) => (
-    request.status === 'pending' && canApproveAbsenceRequest(request, role, activePerson, people, activeLeadDepartments)
+  const managedApprovalRequests = visibleRequests.filter((request) => (
+    canApproveAbsenceRequest(request, role, activePerson, people, activeLeadDepartments)
   ));
+  const analyticsRequestGroups = [
+    { status: 'pending', title: 'Pending approvals', countLabel: 'waiting', empty: 'No requests are waiting for approval.' },
+    { status: 'approved', title: 'Approved requests', countLabel: 'approved', empty: 'No approved requests.' },
+    { status: 'rejected', title: 'Rejected requests', countLabel: 'rejected', empty: 'No rejected requests.' },
+  ].map((group) => ({
+    ...group,
+    items: managedApprovalRequests.filter((request) => request.status === group.status),
+  }));
   const yearRules = rules.filter((rule) => rangesOverlap(rule.startDate, rule.endDate, `${year}-01-01`, `${year}-12-31`));
   const weekStart = addIsoDays(TODAY, -((parseIsoDate(TODAY)?.getDay() || 7) - 1));
   const weekEnd = addIsoDays(weekStart, 6);
@@ -5113,27 +5119,31 @@ function VacationView({
           </section>
 
           <aside className="vacation-analytics-side">
-            <section className="primary-panel vacation-approvals-panel">
-              <div className="vacation-status-head">
-                <h3>Pending approvals</h3>
-                <span>{pendingApprovals.length} waiting</span>
-              </div>
-              <div className="vacation-request-list">
-                {pendingApprovals.map((request) => (
-                  <VacationRequestItem
-                    key={request.id}
-                    request={request}
-                    holidayDates={holidayDates}
-                    canApprove
-                    canDelete
-                    onApprove={onApproveRequest}
-                    onReject={onRejectRequest}
-                    onDelete={onDeleteRequest}
-                  />
-                ))}
-                {pendingApprovals.length === 0 && <span className="empty-state">No requests are waiting for approval.</span>}
-              </div>
-            </section>
+            <div className="vacation-analytics-requests">
+              {analyticsRequestGroups.map((group) => (
+                <section className={`primary-panel vacation-approvals-panel vacation-status-panel ${group.status}`} key={group.status}>
+                  <div className="vacation-status-head">
+                    <h3><i />{group.title}</h3>
+                    <span>{group.items.length} {group.countLabel}</span>
+                  </div>
+                  <div className="vacation-request-list">
+                    {group.items.map((request) => (
+                      <VacationRequestItem
+                        key={request.id}
+                        request={request}
+                        holidayDates={holidayDates}
+                        canApprove
+                        canDelete
+                        onApprove={onApproveRequest}
+                        onReject={onRejectRequest}
+                        onDelete={onDeleteRequest}
+                      />
+                    ))}
+                    {group.items.length === 0 && <span className="empty-state">{group.empty}</span>}
+                  </div>
+                </section>
+              ))}
+            </div>
 
             <section className="primary-panel vacation-rules-panel">
               <div className="panel-heading compact">
@@ -5200,11 +5210,11 @@ function VacationRequestItem({ request, holidayDates, canApprove, canDelete, onA
       </div>
       <div className="vacation-request-actions">
         <span className={`status-pill ${request.status}`}>{absenceStatusLabel(request.status)}</span>
-        {canApprove && request.status === 'pending' && (
-          <>
-            <button className="soft-btn success-soft" onClick={() => onApprove(request)}>Approve</button>
-            <button className="soft-btn danger-soft" onClick={() => onReject(request)}>Reject</button>
-          </>
+        {canApprove && request.status !== 'approved' && (
+          <button className="soft-btn success-soft" onClick={() => onApprove(request)}>Approve</button>
+        )}
+        {canApprove && request.status !== 'rejected' && (
+          <button className="soft-btn danger-soft" onClick={() => onReject(request)}>Reject</button>
         )}
         {canDelete && (
           <button className="icon-btn table-action danger" onClick={() => onDelete(request)} aria-label="Delete absence request"><Trash2 size={16} /></button>

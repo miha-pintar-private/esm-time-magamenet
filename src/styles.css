@@ -164,10 +164,6 @@
     @apply bg-green-dark;
   }
 
-  .dot {
-    @apply ml-auto inline-grid h-[22px] min-w-[22px] place-items-center rounded-full bg-[#eff2f4] px-1.5 text-xs text-[#697585];
-  }
-
   .main {
     @apply min-w-0 bg-slate-50 px-7 pb-14 pt-7;
   }
@@ -682,10 +678,6 @@
     @apply border-[#a9dfbb] bg-[#ecf9f0] text-[#247a43] shadow-[0_0_0_3px_rgba(81,200,120,0.12)];
   }
 
-  .derived-metric-grid {
-    @apply grid grid-cols-4 gap-3 px-[26px];
-  }
-
   .derived-field {
     @apply grid min-h-[62px] content-center gap-1 rounded-[8px] border border-line bg-[#fbfcfd] px-3 py-2;
   }
@@ -722,16 +714,7 @@
     @apply grid min-w-0 gap-[22px] [animation:enter_380ms_ease_both];
   }
 
-  .two-col {
-    @apply grid-cols-[minmax(0,1fr)_310px];
-  }
-
-  .span-two {
-    @apply col-span-full;
-  }
-
   .primary-panel,
-  .side-panel,
   .metric {
     @apply min-w-0 rounded-[14px] border border-line bg-panel shadow-panel;
   }
@@ -744,10 +727,6 @@
     @apply min-w-0 pt-1;
   }
 
-  .side-panel {
-    @apply grid content-start gap-3.5 p-4;
-  }
-
   .panel-heading {
     @apply mb-[22px] flex items-start justify-between gap-[18px];
   }
@@ -756,8 +735,7 @@
     @apply mb-3.5;
   }
 
-  .soft-btn,
-  .text-btn {
+  .soft-btn {
     @apply inline-flex min-h-[34px] cursor-pointer items-center justify-center gap-2 rounded-[9px] px-3.5 font-extrabold;
   }
 
@@ -773,16 +751,8 @@
     @apply min-h-[42px] shrink-0 px-3 text-xs;
   }
 
-  .text-btn {
-    @apply min-h-0 bg-transparent p-0 text-green-dark;
-  }
-
   .field {
     @apply grid gap-2;
-  }
-
-  .field.wide {
-    @apply col-span-full;
   }
 
   .time-input-action {
@@ -806,13 +776,11 @@
     @apply inline-flex items-center gap-2;
   }
 
-  .status-pill,
-  .chip {
+  .status-pill {
     @apply inline-flex min-h-7 items-center justify-center rounded-full bg-[#f1f3f5] px-2.5 text-xs font-[850] text-[#667485];
   }
 
-  .status-pill.live,
-  .chip.green {
+  .status-pill.live {
     @apply bg-[#def8e8] text-[#168853];
   }
 
@@ -820,15 +788,6 @@
     @apply bg-[#f1f3f5] text-[#7b8794];
   }
 
-  .chip.blue {
-    @apply bg-[#e8f2ff] text-[#2574c9];
-  }
-
-  .chip.gray {
-    @apply bg-[#eff1f3] text-[#73808e];
-  }
-
-  .metric-grid,
   .analytics-kpis {
     @apply grid grid-cols-4 gap-[18px];
   }
@@ -996,10 +955,6 @@
 
   .metric {
     @apply grid min-h-[135px] content-start gap-2 p-[18px];
-  }
-
-  .side-panel .metric {
-    @apply shadow-none;
   }
 
   .metric-icon {
@@ -2801,7 +2756,12 @@
   }
 
   .vacation-analytics-side {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .vacation-analytics-requests {
+    @apply grid gap-5;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .vacation-metrics {
@@ -3468,7 +3428,8 @@
 
     .vacation-overview-layout,
     .vacation-analytics-layout,
-    .vacation-analytics-side {
+    .vacation-analytics-side,
+    .vacation-analytics-requests {
       @apply grid-cols-1;
     }
 
