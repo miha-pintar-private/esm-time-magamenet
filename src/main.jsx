@@ -1171,6 +1171,7 @@ const documentationSections = [
           'Holiday rules are excluded from working-day calculations globally. Risk periods do not change working-day counts.',
           'The annual timeline shows active visible employees, pending and approved absences, weekends, holidays, risk periods, and today.',
           'Weekend, Holiday, Risk period, and Today markers are drawn through the full timeline height, not only in the date header.',
+          'When date markers overlap, Holiday has top visual priority, Weekend is second, and Risk period is the lowest layer; combined cells use split coloring so the overlap remains visible.',
           'The Vacation tab on the employee record shows the allowance source and the approval scope for that employee.',
         ],
         metrics: [

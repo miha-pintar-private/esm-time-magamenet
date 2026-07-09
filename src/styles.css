@@ -2892,11 +2892,22 @@
   }
 
   .vacation-month-row.vacation-department-row {
-    @apply border-t border-[#dfe7ef];
+    @apply relative z-[35] border-t border-[#dfe7ef];
   }
 
   .vacation-month-row.vacation-department-row i {
     @apply my-0 border-l-0 bg-[#f8fafc];
+  }
+
+  .vacation-month-row.vacation-department-row i.weekend,
+  .vacation-month-row.vacation-department-row i.holiday,
+  .vacation-month-row.vacation-department-row i.warning,
+  .vacation-month-row.vacation-department-row i.today {
+    @apply bg-[#f8fafc];
+  }
+
+  .vacation-month-row.vacation-department-row i.today::after {
+    content: none;
   }
 
   .person-avatar.small {
@@ -2945,6 +2956,10 @@
     @apply grid h-[30px] place-items-center border-t border-[#edf1f4] text-[11px] font-black text-[#4f5d6e];
   }
 
+  .vacation-month-days span.warning {
+    @apply bg-[#fff1e5] text-[#a65716];
+  }
+
   .vacation-month-days span.weekend {
     @apply bg-[#edf4ff] text-[#2367ff];
   }
@@ -2953,8 +2968,24 @@
     @apply bg-[#eafbf2] text-[#087d45];
   }
 
-  .vacation-month-days span.warning {
-    @apply bg-[#fff1e5] text-[#a65716];
+  .vacation-month-days span.weekend.warning {
+    background: linear-gradient(135deg, #edf4ff 0 68%, #fff1e5 68% 100%);
+    @apply text-[#2367ff];
+  }
+
+  .vacation-month-days span.holiday.warning {
+    background: linear-gradient(135deg, #eafbf2 0 68%, #fff1e5 68% 100%);
+    @apply text-[#087d45];
+  }
+
+  .vacation-month-days span.holiday.weekend {
+    background: linear-gradient(135deg, #eafbf2 0 68%, #edf4ff 68% 100%);
+    @apply text-[#087d45];
+  }
+
+  .vacation-month-days span.holiday.weekend.warning {
+    background: linear-gradient(135deg, #eafbf2 0 56%, #edf4ff 56% 78%, #fff1e5 78% 100%);
+    @apply text-[#087d45];
   }
 
   .vacation-month-days span.today {
@@ -2975,6 +3006,10 @@
     @apply my-0 border-l border-[#dce7f2];
   }
 
+  .vacation-month-row i.warning {
+    @apply bg-[#fff1e5];
+  }
+
   .vacation-month-row i.weekend {
     @apply bg-[#edf4ff];
   }
@@ -2983,8 +3018,20 @@
     @apply bg-[#eafbf2];
   }
 
-  .vacation-month-row i.warning {
-    @apply bg-[#fff1e5];
+  .vacation-month-row i.weekend.warning {
+    background: linear-gradient(135deg, #edf4ff 0 68%, #fff1e5 68% 100%);
+  }
+
+  .vacation-month-row i.holiday.warning {
+    background: linear-gradient(135deg, #eafbf2 0 68%, #fff1e5 68% 100%);
+  }
+
+  .vacation-month-row i.holiday.weekend {
+    background: linear-gradient(135deg, #eafbf2 0 68%, #edf4ff 68% 100%);
+  }
+
+  .vacation-month-row i.holiday.weekend.warning {
+    background: linear-gradient(135deg, #eafbf2 0 56%, #edf4ff 56% 78%, #fff1e5 78% 100%);
   }
 
   .vacation-month-row i.today {
