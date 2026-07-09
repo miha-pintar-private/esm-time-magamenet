@@ -686,14 +686,24 @@ function normalizeRoutePath(pathname) {
   return path === '/index.html' ? '/' : path;
 }
 
+function currentRoutePath() {
+  const hashPath = window.location.hash.replace(/^#/, '');
+  if (hashPath) return normalizeRoutePath(hashPath.startsWith('/') ? hashPath : `/${hashPath}`);
+  return '/';
+}
+
 function tabFromLocation(fallbackTab = DEFAULT_TAB) {
-  const path = normalizeRoutePath(window.location.pathname);
+  const path = currentRoutePath();
   if (path === '/') return pathByTab[fallbackTab] ? fallbackTab : DEFAULT_TAB;
   return tabByPath[path] || DEFAULT_TAB;
 }
 
 function routeForTab(tab) {
   return pathByTab[tab] || pathByTab[DEFAULT_TAB];
+}
+
+function hashRouteForTab(tab) {
+  return `#${routeForTab(tab)}`;
 }
 
 const documentationSections = [
@@ -823,7 +833,7 @@ const documentationSections = [
       },
       {
         name: 'Time Management subtabs',
-        howItWorks: 'The Time Management sidebar item groups subtabs for the time-entry table, Analytics, Settings, and Correction log. The Time Management subtab is the table and correction workflow view.',
+        howItWorks: 'The Time Management sidebar item groups subtabs for the time-entry table, Analytics, Settings, and Correction log. The Time Management subtab is the table and correction workflow view. Browser URLs use hash routes so copied links and refreshed pages work on static hosting such as GitHub Pages.',
         userSteps: [
           'Open Time Management from the sidebar.',
           'Use the nested sidebar links to switch between Time Management, Analytics, Settings, and Correction log.',
@@ -833,7 +843,7 @@ const documentationSections = [
           'The Time Management sidebar item remains highlighted while any Time Management subtab is open.',
           'Correction counts are not shown in the sidebar navigation.',
           'Operations users do not see the Settings subtab.',
-          'The subtab URLs remain stable: /time-management, /analytics, /settings, and /correction-log.',
+          'The subtab URLs remain stable as hash routes: #/time-management, #/analytics, #/settings, and #/correction-log.',
         ],
       },
     ],
@@ -1260,7 +1270,7 @@ const documentationSections = [
       },
       {
         name: 'Page navigation',
-        howItWorks: 'Each main sidebar tab and nested Employees or Time Management subtab has a stable client-side URL path. Clicking navigation updates the browser address without a full reload, and direct page URLs open the matching view.',
+        howItWorks: 'Each main sidebar tab and nested Employees or Time Management subtab has a stable client-side hash URL. Clicking navigation updates the browser address without a full reload, and copied or refreshed URLs open the matching view on static hosting such as GitHub Pages.',
         userSteps: [
           'Click a sidebar item to open a main page.',
           'Under Employees, click a nested sidebar subtab to open Employees, Departments, Rules, or Tags.',
@@ -1269,16 +1279,16 @@ const documentationSections = [
           'Use the browser Back and Forward buttons to move between recently opened pages.',
         ],
         specifics: [
-          'Dashboard uses /dashboard.',
-          'Employees uses /employees.',
-          'Employee Departments uses /employees/departments.',
-          'Employee Rules uses /employees/rules and is hidden for Operations users.',
-          'Employee Tags uses /employees/tags and is hidden for Operations users.',
-          'Time Management opens from the sidebar and uses /time-management for the table subtab.',
-          'Analytics is a Time Management subtab and uses /analytics.',
-          'Settings is a Time Management subtab, uses /settings, and is hidden for Operations users.',
-          'Correction log is a Time Management subtab and uses /correction-log.',
-          'Documentation uses /documentation.',
+          'Dashboard uses #/dashboard.',
+          'Employees uses #/employees.',
+          'Employee Departments uses #/employees/departments.',
+          'Employee Rules uses #/employees/rules and is hidden for Operations users.',
+          'Employee Tags uses #/employees/tags and is hidden for Operations users.',
+          'Time Management opens from the sidebar and uses #/time-management for the table subtab.',
+          'Analytics is a Time Management subtab and uses #/analytics.',
+          'Settings is a Time Management subtab, uses #/settings, and is hidden for Operations users.',
+          'Correction log is a Time Management subtab and uses #/correction-log.',
+          'Documentation uses #/documentation.',
           'When an Operations user lands on Settings, the app redirects to the Time Management table subtab because Operations users cannot manage settings.',
           'When an Operations user lands on Employee Rules or Employee Tags, the app redirects to the Employees list because Operations users cannot manage settings records.',
           'Unknown routes fall back to Time Management.',
@@ -1980,8 +1990,8 @@ function App() {
   })).filter((group) => group.items.length > 0), [canManageSettings]);
 
   function navigateToTab(nextTab, options = {}) {
-    const nextPath = routeForTab(nextTab);
-    if (normalizeRoutePath(window.location.pathname) !== nextPath) {
+    const nextPath = hashRouteForTab(nextTab);
+    if (window.location.hash !== nextPath) {
       window.history[options.replace ? 'replaceState' : 'pushState']({}, '', nextPath);
     }
     setTab(nextTab);
@@ -2017,15 +2027,19 @@ function App() {
       setTab(routeTab);
       return undefined;
     }
-    if (normalizeRoutePath(window.location.pathname) !== routeForTab(routeTab)) {
-      window.history.replaceState({}, '', routeForTab(routeTab));
+    if (window.location.hash !== hashRouteForTab(routeTab)) {
+      window.history.replaceState({}, '', hashRouteForTab(routeTab));
     }
 
-    const handlePopState = () => {
+    const handleRouteChange = () => {
       setTab(tabFromLocation(DEFAULT_TAB));
     };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+    window.addEventListener('popstate', handleRouteChange);
+    window.addEventListener('hashchange', handleRouteChange);
+    return () => {
+      window.removeEventListener('popstate', handleRouteChange);
+      window.removeEventListener('hashchange', handleRouteChange);
+    };
   }, []);
 
   useEffect(() => {
