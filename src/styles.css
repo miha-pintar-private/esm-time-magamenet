@@ -829,6 +829,30 @@
     @apply border-[#b9e7c9] bg-[#ecf9f0] text-[#1f8f56];
   }
 
+  .analytics-filter-panel {
+    @apply overflow-visible;
+  }
+
+  .analytics-filter-grid {
+    @apply grid grid-cols-[repeat(4,minmax(0,1fr))] gap-3;
+  }
+
+  .analytics-filter-grid .filter-field {
+    @apply w-full min-w-0;
+  }
+
+  .analytics-filter-grid .filter-field.person-filter {
+    @apply w-full min-w-0;
+  }
+
+  .analytics-filter-grid .multi-select .custom-select-trigger {
+    @apply min-h-[38px] py-1.5;
+  }
+
+  .analytics-filter-grid .multi-select-pill {
+    @apply min-h-6 px-2 text-[11px];
+  }
+
   .analytics-filter-warning {
     @apply mt-3 border-[#f6d7a8] bg-[#fff8ed] text-[#9a6a22];
   }
@@ -853,6 +877,26 @@
 
   .workload-flow-chart {
     @apply min-h-[300px];
+  }
+
+  .analytics-paytype-grid {
+    @apply grid gap-4;
+  }
+
+  .analytics-paytype-section {
+    @apply border-t border-line pt-4 first:border-t-0 first:pt-0;
+  }
+
+  .analytics-paytype-head {
+    @apply mb-3 flex flex-wrap items-center justify-between gap-2 text-sm font-black text-[#344052];
+  }
+
+  .analytics-paytype-head span {
+    @apply text-[12px] uppercase tracking-[0.08em] text-[#8a96a7];
+  }
+
+  .analytics-paytype-head strong {
+    @apply rounded-full border border-[#d9eadf] bg-[#f2fbf5] px-3 py-1 text-[#1e8f55];
   }
 
   .analytics-data-table {
@@ -3614,6 +3658,10 @@
       @apply w-[184px] min-w-[164px];
     }
 
+    .analytics-filter-grid {
+      @apply grid-cols-2;
+    }
+
     .table-toolbar .soft-btn {
       @apply px-3.5 text-[12px];
     }
@@ -3992,6 +4040,10 @@
 
     .topbar-right {
       @apply flex-wrap justify-start;
+    }
+
+    .analytics-filter-grid {
+      @apply grid-cols-1;
     }
 
     .vacation-head {

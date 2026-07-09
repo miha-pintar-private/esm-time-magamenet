@@ -964,31 +964,36 @@ const documentationSections = [
       },
       {
         name: 'Average hours per employee',
-        howItWorks: 'Analytics divides visible total hours by the number of visible people.',
+        howItWorks: 'Analytics divides filtered total hours by the number of filtered visible people.',
         userSteps: [
           'Open Time Management, then open the Analytics subtab.',
           'Switch role to change the people and entries in scope.',
+          'Use Analytics scope filters to narrow the denominator to selected departments, tags, employment types, or people.',
         ],
         specifics: [
           'The denominator is at least 1 to prevent division by zero.',
-          'The label states Last 30 days, but the current prototype uses the visible local time entries rather than a dynamic 30-day server query.',
+          'Date, department, tag, employment type, and people filters all affect the average.',
         ],
         metrics: [
-          'Average hours per employee = round(total visible hours / max(visible people count, 1), 1)',
+          'Average hours per employee = round(filtered analytics hours / max(filtered visible people count, 1), 1)',
         ],
       },
       {
         name: 'Department and user work-type analytics',
-        howItWorks: 'Analytics filters the active role scope by an independent date range, then shows how much time each department and user spent on every recorded work type plus approved vacation and sick leave working days. The page includes stacked workload-hour charts, a scope-level workload flow chart, and detail tables for departments and users.',
+        howItWorks: 'Analytics filters the active role scope by an independent date range plus optional department, tag, employment type, and people filters, then shows how much time each department and user spent on every recorded work type plus approved vacation and sick leave working days. The page includes stacked workload-hour charts, a scope-level workload flow chart, pay-type workload charts, and detail tables for departments and users.',
         userSteps: [
           'Open Time Management, then open the Analytics subtab.',
           'Set From and To dates in the Analytics header, or click Last 30 days.',
+          'Use Analytics scope filters to select one or more departments, tags, employment types, or people.',
           'Review Workload hours by user and Workload hours by department to compare stacked work-type hours.',
           'Review Workload flow to see the selected scope split by work type.',
+          'Review Workload by pay type to compare Monthly salary, Project work, and Hourly rate hours for the selected filters.',
           'Use the Department analytics and User analytics tables to compare hours, percent of time, variance from average, allocated cost, cost per hour, and change over time.',
         ],
         specifics: [
           'Analytics date filters do not change the Time Management entry table filters.',
+          'Analytics scope filters are multi-select filters; leaving a filter empty means all values in the active role scope are included.',
+          'People must match every active filter category to remain in scope. For example, selecting a department and tag includes only people who are in that department and have that tag.',
           'The Analytics header shows how many time records and approved absence working days are included in the selected period, so users can confirm whether a date change changed the underlying dataset.',
           'If From is later than To, Analytics automatically reads the range from the earlier date to the later date and shows a warning.',
           'Role scope controls which users, departments, entries, and work types can appear.',
@@ -996,6 +1001,7 @@ const documentationSections = [
           'Approved vacation and sick leave are included as derived 8-hour analytics entries for each working day in the selected range.',
           'Pending, rejected, and deleted absence requests are not included in Analytics workload or cost.',
           'Vacation and sick leave working days exclude Saturdays, Sundays, and configured holiday rules from the Vacation module.',
+          'Pay-type workload charts classify each included entry by the employee compensation row that matches the entry work type. Approved absence days use the first fallback non-project compensation row when available.',
           'All analytics charts are rendered with Chart.js for consistent axes, legends, tooltips, and responsive sizing.',
           'The workload charts use configured work type colors from Settings.',
           'The detail table Change column groups the selected entries by calendar month and renders a compact Chart.js trend bar for the row.',
@@ -1003,7 +1009,8 @@ const documentationSections = [
           'When no entries match the selected period, charts and tables show an empty state instead of zero-filled rows.',
         ],
         metrics: [
-          'Filtered analytics entries = visible time entries where From <= entry.date <= To + approved vacation/sick working days from the Vacation module in the same date range',
+          'Filtered people = visible people matching all selected departments, tags, employment types, and people filters',
+          'Filtered analytics entries = visible time entries where employee is in filtered people and From <= entry.date <= To + approved vacation/sick working days for filtered people from the Vacation module in the same date range',
           'Vacation or sick leave hours = count(approved working days, excluding weekends and holidays) × 8',
           'Department work-type hours = Σ entry.hours for entries whose employee belongs to the department and entry.type matches the work type',
           'User work-type hours = Σ entry.hours where entry.employee matches the user and entry.type matches the work type',
@@ -1013,6 +1020,7 @@ const documentationSections = [
           'Stacked workload chart value = work-type hours for each visible department or user',
           'Stacked workload axis maximum = the highest visible department or user total hours',
           'Workload flow percent = work-type hours / total selected analytics hours × 100%',
+          'Pay-type chart value = Σ entry.hours where compensationRowForEntry(employee, entry).payType equals Monthly salary, Project work, or Hourly rate',
           'Trend bar value = row hours grouped by calendar month in the selected analytics period',
         ],
       },
@@ -1180,7 +1188,7 @@ const documentationSections = [
         ],
         specifics: [
           'The Overview timeline is visible for all active employees to every role, so everyone can see who is away and when.',
-          'The Absent this week card lists approved absences that overlap the current Monday-through-Sunday week in a compact row layout. Each listed absence shows the employee name, department, From-to-Until date range, the absence type, and a separate Today badge when today falls inside that approved absence range.',
+          'The Absent this week card lists approved absences that overlap the current Monday-through-Sunday week in a compact row layout. It always uses the current week based on today and does not change when the Vacation year selector is changed for the timeline. Each listed absence shows the employee name, department, From-to-Until date range, the absence type, and a separate Today badge when today falls inside that approved absence range.',
           'Vacation and Sick leave requests are submitted as Pending and must be approved or rejected by an authorized approver before they count as approved absence.',
           'Employees can edit or delete their own requests, including approved requests. Changes to requests that start after today are applied immediately.',
           'When an employee edits or deletes a request that starts today or in the past, the original request stays unchanged and a Pending edit or delete request is added to the approval queue. The change is applied only after an authorized team lead or Management user approves it.',
@@ -2153,9 +2161,26 @@ function sortedWorkTypeNames(entries = []) {
   return Array.from(new Set(entries.map((entry) => entry.type).filter(Boolean))).sort((first, second) => first.localeCompare(second));
 }
 
+function sortedUnique(values = []) {
+  return Array.from(new Set(values.filter(Boolean))).sort((first, second) => first.localeCompare(second));
+}
+
 function periodLabel(dateValue) {
   if (!dateValue) return 'No date';
   return dateValue.slice(0, 7);
+}
+
+function compensationRowForEntry(employee, entry) {
+  const rows = employeeCompensationRows(employee);
+  const timeRows = rows.filter((row) => row.payType !== PAY_TYPE_PROJECT);
+  const scopedRows = timeRows.filter((row) => row.workTypes.length > 0);
+  const fallbackRows = timeRows.filter((row) => row.workTypes.length === 0);
+
+  if (entry?.absenceType) return fallbackRows[0] || timeRows[0] || rows[0];
+  return scopedRows.find((row) => rowMatchesEntry(row, entry, false))
+    || fallbackRows.find((row) => rowMatchesEntry(row, entry, true))
+    || rows.find((row) => row.payType === PAY_TYPE_PROJECT)
+    || rows[0];
 }
 
 function entryCostForEmployee(employee, entries, employmentRules, configuredTypes) {
@@ -5342,8 +5367,10 @@ function VacationView({
   const yearRules = rules.filter((rule) => rangesOverlap(rule.startDate, rule.endDate, `${year}-01-01`, `${year}-12-31`));
   const weekStart = addIsoDays(TODAY, -((parseIsoDate(TODAY)?.getDay() || 7) - 1));
   const weekEnd = addIsoDays(weekStart, 6);
-  const awayThisWeek = visibleRequests.filter((request) => (
-    request.status === 'approved' && rangesOverlap(request.startDate, request.endDate, weekStart, weekEnd)
+  const awayThisWeek = requests.filter((request) => (
+    request.status === 'approved'
+    && rangesOverlap(request.startDate, request.endDate, weekStart, weekEnd)
+    && calendarPeople.some((person) => person.name === request.employee)
   )).map((request) => ({
     ...request,
     employeeDepartment: calendarPeople.find((person) => person.name === request.employee)?.department || 'No department',
@@ -7337,25 +7364,47 @@ function DocumentTypeRuleModal({ mode, rule, existingRules, onClose, onSave }) {
 }
 
 function AnalyticsView({ role, activePlatform, people, entries, absenceRequests, absenceRules, configuredWorkTypes, employmentRules, activeRole }) {
-  const [filters, setFilters] = useState({ from: relativeLocalDate(-30), to: TODAY });
+  const [filters, setFilters] = useState({
+    from: relativeLocalDate(-30),
+    to: TODAY,
+    departments: [],
+    tags: [],
+    employmentTypes: [],
+    people: [],
+  });
   const normalizedFilters = useMemo(() => {
     if (filters.from && filters.to && filters.from > filters.to) {
       return { from: filters.to, to: filters.from, reversed: true };
     }
     return { from: filters.from, to: filters.to, reversed: false };
   }, [filters.from, filters.to]);
+  const filterOptions = useMemo(() => ({
+    departments: sortedUnique(people.map((person) => person.department)).map((name) => ({ name })),
+    tags: sortedUnique(people.flatMap((person) => person.tags || [])).map((name) => ({ name })),
+    employmentTypes: sortedUnique(people.map((person) => person.employment)).map((name) => ({ name })),
+    people: people
+      .map((person) => ({ name: person.name, meta: person.department }))
+      .sort((first, second) => first.name.localeCompare(second.name)),
+  }), [people]);
+  const filteredPeople = useMemo(() => people.filter((person) => (
+    (filters.departments.length === 0 || filters.departments.includes(person.department))
+    && (filters.tags.length === 0 || (person.tags || []).some((tagName) => filters.tags.includes(tagName)))
+    && (filters.employmentTypes.length === 0 || filters.employmentTypes.includes(person.employment))
+    && (filters.people.length === 0 || filters.people.includes(person.name))
+  )), [people, filters.departments, filters.tags, filters.employmentTypes, filters.people]);
+  const filteredPeopleNames = useMemo(() => new Set(filteredPeople.map((person) => person.name)), [filteredPeople]);
   const periodEntries = useMemo(() => entries.filter((entry) => {
     const afterFrom = !normalizedFilters.from || entry.date >= normalizedFilters.from;
     const beforeTo = !normalizedFilters.to || entry.date <= normalizedFilters.to;
-    return afterFrom && beforeTo;
-  }), [entries, normalizedFilters.from, normalizedFilters.to]);
+    return filteredPeopleNames.has(entry.employee) && afterFrom && beforeTo;
+  }), [entries, filteredPeopleNames, normalizedFilters.from, normalizedFilters.to]);
   const periodAbsenceEntries = useMemo(() => (
-    absenceAnalyticsEntries(absenceRequests, absenceRules, people, normalizedFilters.from, normalizedFilters.to)
-  ), [absenceRequests, absenceRules, people, normalizedFilters.from, normalizedFilters.to]);
+    absenceAnalyticsEntries(absenceRequests, absenceRules, filteredPeople, normalizedFilters.from, normalizedFilters.to)
+  ), [absenceRequests, absenceRules, filteredPeople, normalizedFilters.from, normalizedFilters.to]);
   const analyticsEntries = useMemo(() => (
     [...periodEntries, ...periodAbsenceEntries]
   ), [periodEntries, periodAbsenceEntries]);
-  const peopleByName = useMemo(() => new Map(people.map((person) => [person.name, person])), [people]);
+  const peopleByName = useMemo(() => new Map(filteredPeople.map((person) => [person.name, person])), [filteredPeople]);
   const visibleTypeNames = useMemo(() => sortedWorkTypeNames(analyticsEntries), [analyticsEntries]);
   const totalHours = analyticsEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
   const absenceHours = periodAbsenceEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
@@ -7368,27 +7417,27 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
         : 'All dates';
   const timeRecordCount = periodEntries.length;
   const absenceDayCount = periodAbsenceEntries.length;
-  const totalCost = people.reduce((sum, person) => sum + employeeRuleCost(person, employmentRules, analyticsEntries, configuredWorkTypes), 0);
-  const departmentNames = Array.from(new Set(people.map((person) => person.department))).sort();
+  const totalCost = filteredPeople.reduce((sum, person) => sum + employeeRuleCost(person, employmentRules, analyticsEntries, configuredWorkTypes), 0);
+  const departmentNames = sortedUnique(filteredPeople.map((person) => person.department));
   const departmentRows = buildAnalyticsGroupRows({
     groups: departmentNames,
     entries: analyticsEntries,
-    people,
+    people: filteredPeople,
     configuredTypes: configuredWorkTypes,
     employmentRules,
     groupLabel: 'department',
     groupForEntry: (entry) => peopleByName.get(entry.employee)?.department || entry.department,
   });
   const userRows = buildAnalyticsGroupRows({
-    groups: people.map((person) => person.name),
+    groups: filteredPeople.map((person) => person.name),
     entries: analyticsEntries,
-    people,
+    people: filteredPeople,
     configuredTypes: configuredWorkTypes,
     employmentRules,
     groupLabel: 'user',
     groupForEntry: (entry) => entry.employee,
   });
-  const userWorkload = people.map((person) => {
+  const userWorkload = filteredPeople.map((person) => {
     const personEntries = analyticsEntries.filter((entry) => entry.employee === person.name);
     const hours = personEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
     const cost = employeeRuleCost(person, employmentRules, personEntries, configuredWorkTypes);
@@ -7400,10 +7449,10 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
     return { label: person.name, meta: person.department, hours, cost, segments };
   }).filter((row) => row.hours > 0).sort((first, second) => second.hours - first.hours);
   const departmentWorkload = departmentNames.map((department) => {
-    const departmentPeople = new Set(people.filter((person) => person.department === department).map((person) => person.name));
+    const departmentPeople = new Set(filteredPeople.filter((person) => person.department === department).map((person) => person.name));
     const departmentEntries = analyticsEntries.filter((entry) => departmentPeople.has(entry.employee));
     const hours = departmentEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
-    const cost = people
+    const cost = filteredPeople
       .filter((person) => person.department === department)
       .reduce((sum, person) => sum + employeeRuleCost(person, employmentRules, departmentEntries, configuredWorkTypes), 0);
     const segments = visibleTypeNames.map((typeName) => ({
@@ -7413,6 +7462,29 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
     })).filter((segment) => segment.hours > 0);
     return { label: department, meta: `${departmentPeople.size} user${departmentPeople.size === 1 ? '' : 's'}`, hours, cost, segments };
   }).filter((row) => row.hours > 0).sort((first, second) => second.hours - first.hours);
+  const payTypeWorkloads = payTypeOptions.map((payType) => {
+    const payTypeEntries = analyticsEntries.filter((entry) => {
+      const person = peopleByName.get(entry.employee);
+      return person && compensationRowForEntry(person, entry)?.payType === payType.name;
+    });
+    const payTypeTypeNames = sortedWorkTypeNames(payTypeEntries);
+    const rows = filteredPeople.map((person) => {
+      const personEntries = payTypeEntries.filter((entry) => entry.employee === person.name);
+      const hours = personEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
+      const cost = employeeRuleCost(person, employmentRules, personEntries, configuredWorkTypes);
+      const segments = payTypeTypeNames.map((typeName) => ({
+        typeName,
+        hours: personEntries.filter((entry) => entry.type === typeName).reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0),
+        color: workTypeColor(typeName, configuredWorkTypes),
+      })).filter((segment) => segment.hours > 0);
+      return { label: person.name, meta: person.department, hours, cost, segments };
+    }).filter((row) => row.hours > 0).sort((first, second) => second.hours - first.hours);
+    return {
+      payType: payType.name,
+      hours: payTypeEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0),
+      rows,
+    };
+  });
   const flowRows = visibleTypeNames.map((typeName) => {
     const typeEntries = analyticsEntries.filter((entry) => entry.type === typeName);
     const hours = typeEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
@@ -7440,12 +7512,12 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
               <span>To</span>
               <input type="date" value={filters.to} onChange={(event) => setFilters((current) => ({ ...current, to: event.target.value }))} />
             </label>
-            <button className="soft-btn" onClick={() => setFilters({ from: relativeLocalDate(-30), to: TODAY })}><Filter size={17} /> Last 30 days</button>
+            <button className="soft-btn" onClick={() => setFilters((current) => ({ ...current, from: relativeLocalDate(-30), to: TODAY }))}><Filter size={17} /> Last 30 days</button>
           </div>
         </div>
         <div className="analytics-kpis">
           <Metric icon={Clock3} label="Total working hours" value={compactHours(totalHours)} delta={`${timeRecordCount} time record${timeRecordCount === 1 ? '' : 's'} included`} />
-          <Metric icon={Activity} label="Average hours / user" value={compactHours(totalHours / Math.max(people.length, 1))} delta={`${people.length} users in scope`} />
+          <Metric icon={Activity} label="Average hours / user" value={compactHours(totalHours / Math.max(filteredPeople.length, 1))} delta={`${filteredPeople.length} users in scope`} />
           <Metric icon={CircleDollarSign} label="Allocated cost" value={money(totalCost)} delta={`${compactHours(absenceHours)} from approved vacation and sick leave`} />
         </div>
         <div className="analytics-data-summary">
@@ -7457,6 +7529,45 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
         {normalizedFilters.reversed && (
           <span className="empty-state analytics-filter-warning">From is later than To, so Analytics is reading the range from {displayDate(normalizedFilters.from)} to {displayDate(normalizedFilters.to)}.</span>
         )}
+      </section>
+
+      <section className="primary-panel analytics-filter-panel">
+        <div className="panel-heading compact">
+          <div>
+            <span className="eyebrow">Filters</span>
+            <h2>Analytics scope</h2>
+          </div>
+          <button
+            className="soft-btn"
+            onClick={() => setFilters((current) => ({
+              ...current,
+              departments: [],
+              tags: [],
+              employmentTypes: [],
+              people: [],
+            }))}
+          >
+            <X size={16} /> Clear filters
+          </button>
+        </div>
+        <div className="analytics-filter-grid">
+          <label className="filter-field">
+            <span>Department</span>
+            <MultiSelectDropdown values={filters.departments} options={filterOptions.departments} placeholder="All departments" onChange={(values) => setFilters((current) => ({ ...current, departments: values }))} />
+          </label>
+          <label className="filter-field">
+            <span>Tag</span>
+            <MultiSelectDropdown values={filters.tags} options={filterOptions.tags} placeholder="All tags" onChange={(values) => setFilters((current) => ({ ...current, tags: values }))} />
+          </label>
+          <label className="filter-field">
+            <span>Employment type</span>
+            <MultiSelectDropdown values={filters.employmentTypes} options={filterOptions.employmentTypes} placeholder="All employment types" onChange={(values) => setFilters((current) => ({ ...current, employmentTypes: values }))} />
+          </label>
+          <label className="filter-field person-filter">
+            <span>People</span>
+            <MultiSelectDropdown values={filters.people} options={filterOptions.people} placeholder="All people" onChange={(values) => setFilters((current) => ({ ...current, people: values }))} />
+          </label>
+        </div>
       </section>
 
       <section className="primary-panel analytics-chart-panel">
@@ -7472,6 +7583,21 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
       <section className="primary-panel analytics-chart-panel">
         <ChartHeading kicker="Total scope" title="Workload flow" />
         <WorkloadFlowChart rows={flowRows} totalHours={totalHours} />
+      </section>
+
+      <section className="primary-panel analytics-paytype-panel">
+        <ChartHeading kicker="Monthly salary / Project work / Hourly rate" title="Workload by pay type" />
+        <div className="analytics-paytype-grid">
+          {payTypeWorkloads.map((group) => (
+            <article className="analytics-paytype-section" key={group.payType}>
+              <div className="analytics-paytype-head">
+                <span>{group.payType}</span>
+                <strong>{compactHours(group.hours)}</strong>
+              </div>
+              <StackedWorkloadChart rows={group.rows} emptyMessage={`No ${group.payType.toLowerCase()} entries match the selected filters.`} />
+            </article>
+          ))}
+        </div>
       </section>
 
       <section className="primary-panel analytics-table-panel">
@@ -7531,8 +7657,8 @@ const sharedChartPlugins = {
   },
 };
 
-function StackedWorkloadChart({ rows }) {
-  if (rows.length === 0) return <span className="empty-state">No time entries match the selected analytics period.</span>;
+function StackedWorkloadChart({ rows, emptyMessage = 'No time entries match the selected analytics period.' }) {
+  if (rows.length === 0) return <span className="empty-state">{emptyMessage}</span>;
   const typeNames = Array.from(new Set(rows.flatMap((row) => row.segments.map((segment) => segment.typeName))));
   const colorByType = new Map(rows.flatMap((row) => row.segments.map((segment) => [segment.typeName, segment.color])));
   const data = {
