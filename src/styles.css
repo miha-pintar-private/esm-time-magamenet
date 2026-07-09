@@ -3076,6 +3076,14 @@
     @apply text-[20px] text-[#111827];
   }
 
+  .vacation-request-warning {
+    @apply mx-0 mb-0 items-start gap-2 px-3 py-2.5 text-[12px] leading-snug;
+  }
+
+  .vacation-request-warning svg {
+    @apply mt-0.5 h-3.5 w-3.5 shrink-0;
+  }
+
   .vacation-request-columns {
     @apply grid grid-cols-3 gap-4;
   }

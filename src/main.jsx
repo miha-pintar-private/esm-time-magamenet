@@ -1164,7 +1164,7 @@ const documentationSections = [
           'Only Management can approve vacation for a Team Lead or Management user.',
           'Management can add or delete calendar rules. Team leads and Operations users can view rules but cannot manage them.',
           'Request validation requires an existing employee, From and Until dates, and an Until date that is not before From.',
-          'Holiday and Risk period overlaps are shown as warnings when submitting a request, but the request can still be submitted.',
+          'Holiday and Risk period overlaps are shown as warnings when submitting a request. The warning tells the user to consult their manager before taking leave in that period, but the request can still be submitted.',
           'Deleting an absence request asks for confirmation: Are you sure you want to delete this record?',
           'Rejecting a request requires an English rejection reason through the browser prompt.',
           'Only approved Vacation requests reduce vacation balance. Pending, rejected, and Sick leave requests do not reduce vacation balance.',
@@ -5242,9 +5242,13 @@ function VacationView({
                 <span><b>{selectedWorkingDays}</b> working days</span>
               </div>
               {requestWarnings.length > 0 && (
-                <div className="modal-warning">
+                <div className="modal-warning vacation-request-warning">
                   <AlertCircle size={16} />
-                  {requestWarnings.map((rule) => `${absenceRuleLabel(rule.type)}: ${rule.name}`).join(' | ')}
+                  <span>
+                    Consult your manager before taking leave during this period.
+                    {' '}
+                    {requestWarnings.map((rule) => `${absenceRuleLabel(rule.type)}: ${rule.name}`).join(' | ')}
+                  </span>
                 </div>
               )}
               <label className="field modal-note">
