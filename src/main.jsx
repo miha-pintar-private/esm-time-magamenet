@@ -1291,7 +1291,7 @@ const documentationSections = [
           'Settings is a Time Management subtab, uses #/settings, and is hidden for Operations users.',
           'Correction log is a Time Management subtab and uses #/correction-log.',
           'Documentation uses #/documentation.',
-          'Static builds use relative asset paths so the app can load from a GitHub Pages project path such as /esm-time-magamenet/ and keep the same hash routes.',
+          'Static builds use the GitHub Pages project base path /esm-time-magamenet/ so bundled assets load from the same project URL while hash routes keep working.',
           'When an Operations user lands on Settings, the app redirects to the Time Management table subtab because Operations users cannot manage settings.',
           'When an Operations user lands on Employee Rules or Employee Tags, the app redirects to the Employees list because Operations users cannot manage settings records.',
           'Unknown routes fall back to Time Management.',
