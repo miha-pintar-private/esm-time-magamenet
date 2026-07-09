@@ -983,24 +983,17 @@ const documentationSections = [
     intro: 'This area documents administration features used to maintain local prototype records and access rules.',
     features: [
       {
-        name: 'HR metrics',
-        howItWorks: 'The Employees sidebar item groups role-scoped subtabs for Employees, Departments, Rules, and Tags. The metric cards show visible people, department scope, document counts, and the active platform owner for the active Employees area scope.',
+        name: 'Employees area navigation',
+        howItWorks: 'The Employees sidebar item groups role-scoped subtabs for Employees, Departments, Rules, and Tags.',
         userSteps: [
           'Open Employees.',
           'Use the nested sidebar links to switch between Employees, Departments, Rules, and Tags.',
           'Switch role to compare Management, Team Lead, and Operations scope.',
         ],
         specifics: [
-          'People visible is based on the active role scope and the active Employees filters, including the Status filter that defaults to Active users.',
-          'The Departments card is a scope indicator based on departments visible in the active Employees area scope.',
-          'The Documents card sums each visible employee document count, refreshed from local document records linked by employee name when the employee is saved.',
-          'System owner is currently Laravel because the platform profile is fixed in code.',
+          'The Employees tab uses the active role scope and the active Employees filters, including the Status filter that defaults to Active users.',
+          'The Departments subtab shows departments visible in the active role scope.',
           'Operations users do not see the Rules or Tags subtabs because those libraries affect employee administration and cost logic.',
-        ],
-        metrics: [
-          'People visible = count(people in active role scope that match the active Employees filters)',
-          'Documents = Σ person.docs for filtered visible people',
-          'Departments = count(departments visible in the active role scope)',
         ],
       },
       {
@@ -1102,7 +1095,7 @@ const documentationSections = [
       },
       {
         name: 'Employee rules',
-        howItWorks: 'The Rules subtab under Employees stores employment type rules and document type tags in compact divided tables. Employment rules define employee cost method, required employee to-dos, and employee card fields. Document type tags define which date fields are required when users add employee documents.',
+        howItWorks: 'The Rules subtab under Employees stores employment type rules and document type tags in compact divided tables. Employment rules define required employee to-dos and employee card fields. Document type tags define which date fields are required when users add employee documents.',
         userSteps: [
           'Open Employees, then open the Rules subtab.',
           'Click Add employment type.',
@@ -1121,7 +1114,7 @@ const documentationSections = [
           'Monthly salary defaults to requiring employment contract, medical exam, and safety training.',
           'Project work and Hourly rate default to requiring an employment contract only, but medical exam and safety training can be enabled manually.',
           'Rules assigned to employees cannot be deleted.',
-          'The Employment type rules table shows the rule name, pay type, cost logic, required employee to-dos, assigned employee count, and edit or delete actions when the user can manage rules.',
+          'The Employment type rules table shows the rule name, pay type, three requirement status rows for Employment contract, Medical exam, and Safety training, assigned employee count, and edit or delete actions when the user can manage rules.',
           'Deleting an unassigned rule asks for confirmation: Are you sure you want to delete this employment rule?',
           'Renaming a rule updates employees that used the old employment type name.',
           'Document types already used by documents cannot be deleted.',
@@ -4134,7 +4127,6 @@ function HrView({
       canonicalDepartmentName(department.name) === canonicalDepartmentName(name)
     )) || { name, lead: 'No team lead assigned', leads: [] });
   }, [role, departmentItems, activeLeadDepartments, operationalPeople]);
-  const departmentCount = scopedDepartments.length || (role === 'operations' ? 1 : 0);
   const departmentOptions = useMemo(() => [
     { name: 'All departments' },
     ...Array.from(new Set(scopedDepartments.map((department) => department.name).filter(Boolean)))
@@ -4177,13 +4169,6 @@ function HrView({
 
   return (
     <div className="workspace">
-      <div className="metric-grid">
-        <Metric icon={UsersRound} label="People visible" value={filteredPeople.length} delta={hasActiveEmployeeFilters ? `Filtered from ${people.length}` : (role === 'management' ? 'Active company users' : role === 'lead' ? 'Active department scope' : 'Own active profile')} />
-        <Metric icon={BriefcaseBusiness} label="Departments" value={departmentCount} delta="Permission filtered" />
-        <Metric icon={FileText} label="Documents" value={filteredPeople.reduce((sum, person) => sum + person.docs, 0)} delta="Stored through Laravel files" />
-        <Metric icon={Server} label="System owner" value={activePlatform.label} delta={activePlatform.owner} />
-      </div>
-
       {section === 'employees' && (
         <section className="primary-panel">
           <div className="panel-heading">
@@ -4346,19 +4331,18 @@ function EmploymentRulesView({
       </div>
       <div className="settings-tag-note employee-admin-note">
         <ListChecks size={16} />
-        <span>Rules define employment cost logic and document type date requirements used on employee records.</span>
+        <span>Rules define employee requirements and document type date requirements used on employee records.</span>
       </div>
       <div className="rules-section-head">
         <div>
           <h3>Employment type rules</h3>
-          <p>Cost formula, required employee to-dos, and employee card fields.</p>
+          <p>Required employee to-dos and employee card fields.</p>
         </div>
         <button className="soft-btn" disabled={!canManageRules} onClick={onAddRule}><Plus size={17} /> Add employment type</button>
       </div>
       <div className={cx('employment-rule-table employment-type-rules-table', !canManageRules && 'read-only')}>
         <div className="employment-rule-table-head" aria-hidden="true">
           <span>Rule</span>
-          <span>Cost logic</span>
           <span>Requirements</span>
           <span>Employees</span>
           {canManageRules && <span>Actions</span>}
@@ -4366,22 +4350,28 @@ function EmploymentRulesView({
         {rules.map((rule) => {
           const assignedPeople = people.filter((person) => person.employment === rule.name);
           const requirements = [
-            rule.requiresContract && 'Employment contract',
-            rule.requiresMedical && 'Medical exam',
-            rule.requiresSafety && 'Safety training',
-          ].filter(Boolean);
+            { label: 'Employment contract', required: rule.requiresContract },
+            { label: 'Medical exam', required: rule.requiresMedical },
+            { label: 'Safety training', required: rule.requiresSafety },
+          ];
           return (
             <article className="employment-rule-row" key={rule.id}>
               <div className="employment-rule-name" data-label="Rule">
                 <strong>{rule.name}</strong>
                 <span>{rule.payType}</span>
               </div>
-              <span className="employment-rule-formula" data-label="Cost logic">
-                {rule.payType === PAY_TYPE_MONTHLY ? 'Monthly total / monthly hours x time entries' : rule.payType === PAY_TYPE_HOURLY ? 'Hourly rate x time entries' : 'Project value / project days'}
-              </span>
-              <span className="employment-rule-meta" data-label="Requirements">
-                {requirements.length > 0 ? requirements.join(', ') : 'No automatic to-dos'}
-              </span>
+              <div className="employment-requirement-list" data-label="Requirements">
+                {requirements.map((requirement) => {
+                  const RequirementIcon = requirement.required ? Check : X;
+                  return (
+                    <span className={cx('employment-requirement-item', requirement.required ? 'required' : 'not-required')} key={requirement.label}>
+                      <RequirementIcon size={13} />
+                      <b>{requirement.label}</b>
+                      <small>{requirement.required ? 'Required' : 'Not required'}</small>
+                    </span>
+                  );
+                })}
+              </div>
               <span className="employment-rule-count" data-label="Employees">{assignedPeople.length}</span>
               {canManageRules && (
                 <span className="settings-row-actions employment-rule-actions" data-label="Actions">

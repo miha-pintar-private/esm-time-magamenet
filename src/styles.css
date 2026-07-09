@@ -2218,12 +2218,12 @@
 
   .employment-type-rules-table .employment-rule-table-head,
   .employment-type-rules-table .employment-rule-row {
-    @apply grid-cols-[minmax(150px,0.85fr)_minmax(210px,1.1fr)_minmax(180px,1fr)_86px_auto];
+    @apply grid-cols-[minmax(160px,0.8fr)_minmax(260px,1.3fr)_86px_auto];
   }
 
   .employment-type-rules-table.read-only .employment-rule-table-head,
   .employment-type-rules-table.read-only .employment-rule-row {
-    @apply grid-cols-[minmax(150px,0.85fr)_minmax(210px,1.1fr)_minmax(180px,1fr)_86px];
+    @apply grid-cols-[minmax(160px,0.8fr)_minmax(260px,1.3fr)_86px];
   }
 
   .document-type-rules-table .employment-rule-table-head,
@@ -2264,9 +2264,40 @@
     @apply mt-0.5 block truncate text-xs font-bold text-[#8a96a7];
   }
 
-  .employment-rule-formula,
   .employment-rule-meta {
     @apply min-w-0 text-[13px] font-bold leading-snug text-[#657286];
+  }
+
+  .employment-requirement-list {
+    @apply grid min-w-0 gap-1;
+  }
+
+  .employment-requirement-item {
+    @apply grid min-h-6 grid-cols-[16px_minmax(130px,1fr)_92px] items-center gap-2 text-[13px] leading-none;
+  }
+
+  .employment-requirement-item svg {
+    @apply h-4 w-4 rounded-full p-0.5;
+  }
+
+  .employment-requirement-item.required svg {
+    @apply bg-[#e8f7ef] text-[#22965b];
+  }
+
+  .employment-requirement-item.not-required svg {
+    @apply bg-[#f3f5f7] text-[#9aa5b4];
+  }
+
+  .employment-requirement-item b {
+    @apply min-w-0 truncate font-extrabold text-[#4f5d6e];
+  }
+
+  .employment-requirement-item small {
+    @apply text-xs font-black text-[#8a96a7];
+  }
+
+  .employment-requirement-item.required small {
+    @apply text-[#348b5f];
   }
 
   .employment-rule-count {
@@ -2844,7 +2875,7 @@
     }
 
     .employment-rule-name,
-    .employment-rule-formula,
+    .employment-requirement-list,
     .employment-rule-meta,
     .employment-rule-count,
     .employment-rule-actions {
@@ -2852,12 +2883,16 @@
     }
 
     .employment-rule-name::before,
-    .employment-rule-formula::before,
+    .employment-requirement-list::before,
     .employment-rule-meta::before,
     .employment-rule-count::before,
     .employment-rule-actions::before {
       content: attr(data-label);
       @apply text-[10px] font-black uppercase tracking-[0.08em] text-[#8a96a7];
+    }
+
+    .employment-requirement-item {
+      @apply grid-cols-[16px_minmax(0,1fr)_86px];
     }
 
     .employment-rule-actions {
