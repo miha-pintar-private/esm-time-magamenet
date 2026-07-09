@@ -3167,7 +3167,7 @@
     @apply border-[#ffc9d0] bg-[#fff7f8];
   }
 
-  .vacation-request-item > div:first-child {
+  .vacation-request-summary {
     @apply flex flex-wrap items-center gap-2;
   }
 
@@ -3205,6 +3205,47 @@
 
   .vacation-request-actions {
     @apply flex flex-wrap items-center gap-2;
+  }
+
+  .vacation-past-panel .vacation-request-item {
+    @apply grid-cols-[minmax(0,1fr)_auto] items-center border-[#d9e1ea] bg-[#f5f7fa] text-[#667085] shadow-none;
+  }
+
+  .vacation-past-panel .vacation-request-item.approved {
+    @apply border-[#d9e1ea] bg-[#f5f7fa];
+  }
+
+  .vacation-past-panel .vacation-request-summary {
+    @apply min-w-0 flex-nowrap overflow-hidden;
+  }
+
+  .vacation-past-panel .vacation-request-summary strong,
+  .vacation-past-panel .vacation-request-summary small {
+    @apply w-auto text-[#667085];
+  }
+
+  .vacation-past-panel .vacation-request-summary strong {
+    @apply min-w-0 truncate;
+  }
+
+  .vacation-past-panel .vacation-request-summary small {
+    @apply shrink-0;
+  }
+
+  .vacation-past-panel .vacation-request-summary em {
+    @apply w-auto min-w-0 truncate text-[#7d8897];
+  }
+
+  .vacation-past-panel .absence-chip.vacation,
+  .vacation-past-panel .absence-chip.sick,
+  .vacation-past-panel .absence-days-chip,
+  .vacation-past-panel .absence-change-chip,
+  .vacation-past-panel .status-pill {
+    @apply border border-[#d9e1ea] bg-[#eef2f6] text-[#667085];
+  }
+
+  .vacation-past-panel .vacation-request-actions {
+    @apply flex-nowrap justify-end;
   }
 
   .success-soft {
@@ -3418,6 +3459,305 @@
   }
 }
 
+@media (max-width: 1360px) {
+  @layer components {
+    .app-shell {
+      @apply grid-cols-[208px_minmax(0,1fr)];
+    }
+
+    .sidebar {
+      @apply px-3 py-4;
+    }
+
+    .brand {
+      @apply mb-6 text-lg;
+    }
+
+    .nav-group {
+      @apply mb-5;
+    }
+
+    .nav-item {
+      @apply min-h-[34px] gap-2.5 px-2 text-[12px];
+    }
+
+    .nav-subitems {
+      @apply pl-[30px];
+    }
+
+    .nav-subitem {
+      @apply min-h-7 text-[12px];
+    }
+
+    .main {
+      @apply px-5 pb-10 pt-5;
+    }
+
+    .topbar {
+      @apply -mx-5 -mt-5 mb-5 min-h-[54px] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-2 px-5 py-2;
+    }
+
+    .topbar-right {
+      @apply gap-1.5;
+    }
+
+    .search-trigger kbd {
+      @apply hidden;
+    }
+
+    .top-actions {
+      @apply gap-1.5 pl-2.5;
+    }
+
+    .header-tracker {
+      @apply gap-1.5;
+    }
+
+    .custom-select {
+      @apply w-[164px] min-w-[164px];
+    }
+
+    .role-switcher.compact {
+      @apply w-[246px] [grid-template-columns:repeat(3,minmax(76px,1fr))];
+    }
+
+    .role-switcher.compact button {
+      @apply px-1.5;
+    }
+
+    .role-switcher span {
+      @apply text-[11px];
+    }
+
+    .header-start {
+      @apply min-w-[76px] px-3 text-[12px];
+    }
+
+    .header-timer {
+      @apply min-w-[70px] px-2.5 text-[12px];
+    }
+
+    .user-meta {
+      @apply min-w-[92px];
+    }
+
+    .workspace {
+      @apply gap-5;
+    }
+
+    .primary-panel {
+      @apply px-5 pb-5 pt-4;
+    }
+
+    .panel-heading {
+      @apply mb-4 gap-3;
+    }
+
+    .time-metrics,
+    .analytics-kpis,
+    .vacation-metrics {
+      @apply gap-3.5;
+    }
+
+    .metric {
+      @apply min-h-[116px] p-4;
+    }
+
+    .metric strong,
+    .dashboard-current strong {
+      @apply text-[24px];
+    }
+
+    .table-control-bar {
+      @apply gap-3;
+    }
+
+    .filter-field {
+      @apply w-[158px] min-w-[140px];
+    }
+
+    .filter-field.date-filter {
+      @apply w-[138px] min-w-[128px];
+    }
+
+    .filter-field.person-filter {
+      @apply w-[184px] min-w-[164px];
+    }
+
+    .table-toolbar .soft-btn {
+      @apply px-3.5 text-[12px];
+    }
+
+    .time-entry-header,
+    .time-entry-row {
+      grid-template-columns: 240px 90px 98px 48px minmax(150px, 0.7fr) minmax(130px, 1fr) 64px;
+      column-gap: 10px;
+      padding-inline: 12px;
+    }
+
+    .time-entry-row {
+      min-height: 50px;
+      font-size: 13px;
+    }
+
+    .time-range {
+      font-size: 14px;
+    }
+
+    .duration,
+    .entry-date,
+    .note-cell,
+    .employee-cell {
+      font-size: 13px;
+    }
+
+    .employee-cell {
+      gap: 9px;
+    }
+
+    .entry-avatar {
+      width: 28px;
+      height: 28px;
+    }
+
+    .row-actions {
+      min-width: 94px;
+      gap: 4px;
+    }
+
+    .chartjs-shell {
+      height: var(--chart-height, 280px);
+    }
+
+    .chartjs-shell canvas {
+      @apply min-w-[620px];
+    }
+
+    .analytics-data-head,
+    .analytics-data-row {
+      grid-template-columns: minmax(140px, 1.2fr) minmax(130px, 1.1fr) 76px 70px 70px 86px 86px 92px;
+      min-width: 820px;
+      gap: 10px;
+      padding-inline: 12px;
+    }
+
+    .documentation-layout {
+      @apply grid-cols-[208px_minmax(0,1fr)] gap-5;
+    }
+
+    .documentation-section {
+      @apply p-5;
+    }
+
+    .documentation-section-head h2 {
+      @apply text-[24px];
+    }
+
+    .documentation-feature {
+      @apply p-4;
+    }
+
+    .metric-equation {
+      @apply grid-cols-[minmax(130px,0.38fr)_minmax(220px,1fr)];
+    }
+
+    .employee-table th,
+    .employee-table td {
+      @apply px-3.5;
+    }
+
+    .employee-name-cell {
+      @apply min-w-[220px] gap-2.5;
+    }
+
+    .person-avatar {
+      @apply h-9 w-9;
+    }
+
+    .employment-type-text {
+      @apply max-w-[220px] text-[13px];
+    }
+
+    .employee-record-sidebar {
+      @apply w-[min(900px,calc(100vw-40px))];
+    }
+
+    .employee-record-body {
+      @apply grid-cols-[260px_minmax(0,1fr)];
+    }
+
+    .employee-record-profile {
+      @apply px-5 py-6;
+    }
+
+    .employee-record-overview {
+      @apply px-6 py-5;
+    }
+
+    .employee-record-facts {
+      @apply gap-3.5;
+    }
+
+    .employee-record-fact strong,
+    .employee-record-tags strong,
+    .employee-overview-card strong {
+      @apply text-[14px];
+    }
+
+    .employee-modal {
+      @apply w-[min(940px,100%)];
+    }
+
+    .employee-modal .modal-grid {
+      @apply gap-x-2.5;
+    }
+
+    .employee-compliance-row {
+      @apply grid-cols-[128px_repeat(3,minmax(0,1fr))] gap-2.5;
+    }
+
+    .settings-page {
+      @apply gap-4;
+    }
+
+    .settings-panel-head,
+    .settings-row,
+    .settings-tag-note {
+      @apply px-5;
+    }
+
+    .settings-row {
+      @apply min-h-[68px];
+    }
+
+    .settings-tags {
+      @apply p-5 pt-4;
+    }
+
+    .tag-department-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .vacation-overview-layout {
+      grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+    }
+
+    .vacation-timeline {
+      grid-template-columns: 190px minmax(0, 1fr);
+    }
+
+    .vacation-month-days,
+    .vacation-month-row {
+      grid-template-columns: repeat(var(--days, 31), 24px);
+    }
+
+    .vacation-request-columns,
+    .vacation-analytics-requests {
+      @apply gap-3;
+    }
+  }
+}
+
 @media (max-width: 1180px) {
   @layer components {
     .app-shell {
@@ -3462,6 +3802,98 @@
     .time-metrics,
     .analytics-kpis {
       @apply grid-cols-2;
+    }
+
+    .topbar {
+      @apply grid-cols-1 items-stretch;
+    }
+
+    .topbar-left {
+      @apply hidden;
+    }
+
+    .header-tracker,
+    .topbar-right {
+      @apply justify-start;
+    }
+
+    .topbar-right {
+      @apply border-t border-line pt-2;
+    }
+
+    .role-switcher.compact {
+      @apply ml-0 w-full max-w-[360px];
+    }
+
+    .custom-select {
+      @apply w-[min(180px,100%)] min-w-[132px];
+    }
+
+    .documentation-layout {
+      @apply grid-cols-1;
+    }
+
+    .documentation-index {
+      @apply static max-h-none grid-cols-3;
+    }
+
+    .employee-record-sidebar {
+      @apply w-[min(860px,calc(100vw-24px))];
+    }
+
+    .employee-record-body {
+      @apply grid-cols-[230px_minmax(0,1fr)];
+    }
+
+    .employee-record-profile {
+      @apply px-4;
+    }
+
+    .employee-record-overview {
+      @apply px-5;
+    }
+
+    .overview-grid {
+      @apply grid-cols-1;
+    }
+
+    .overview-grid > div,
+    .overview-grid > div:nth-child(odd),
+    .overview-grid > div:nth-child(even),
+    .overview-grid > div:nth-last-child(-n+2) {
+      @apply border-r-0 border-b py-3 pl-0 pr-0;
+    }
+
+    .employee-modal .modal-grid,
+    .employee-modal .user-info-grid {
+      @apply grid-cols-2;
+    }
+
+    .employee-modal .user-info-full,
+    .employee-modal .user-info-address,
+    .employee-modal .user-info-half,
+    .employee-modal .user-info-city,
+    .employee-modal .user-info-third,
+    .employee-modal .modal-note:first-child,
+    .employee-modal .modal-grid > .modal-note:last-child:nth-child(odd) {
+      @apply col-span-2;
+    }
+
+    .employee-modal .user-info-post {
+      @apply col-span-1;
+    }
+
+    .employee-compliance-row,
+    .compensation-editor-row {
+      @apply grid-cols-2;
+    }
+
+    .compensation-editor-row .icon-btn {
+      @apply col-start-2 row-start-1;
+    }
+
+    .settings-page {
+      @apply grid-cols-1;
     }
 
     .tag-department-grid {

@@ -1167,11 +1167,11 @@ const documentationSections = [
         howItWorks: 'The Vacation subtab under Employees manages local absence requests, working-day vacation balances, sick leave counts, approvals, holidays, and risk periods. Requests are stored as absence request records in browser localStorage. Calendar rules are global and are stored as absence rule records. The employee annual allowance is stored on the employee card as Annual vacation allowance and falls back to 20 days when missing or invalid.',
         userSteps: [
           'Open Employees, then open the Vacation subtab.',
-          'Use Overview to review the current user balance, team absences this week with who is away and until when, the yearly timeline, request status lists, and the current user\'s approved past absences. Click Today next to the year selector to return the timeline to the current date.',
+          'Use Overview to review the current user balance, team absences this week with who is away and until when, the yearly timeline, current and future request status lists, and the current user\'s past absences. Click Today next to the year selector to return the timeline to the current date.',
           'In New absence request, select the user in scope, choose Vacation or Sick leave, enter From and Until dates, add optional notes, and click Submit request.',
           'To change an existing request, click the pencil icon on the request card, then update the highlighted Editing request form and click Save changes.',
           'To delete an existing request, click the trash icon on the request card and confirm the deletion dialog.',
-          'Open Approvals & analytics to review the employee balance table for the selected approval scope, review approved past absences for the management or team lead scope, manage Pending, Approved, and Rejected request blocks below the table, then review Calendar rules at the bottom.',
+          'Open Approvals & analytics to review the employee balance table for the selected approval scope, review past absences for the management or team lead scope, manage current and future Pending, Approved, and Rejected request blocks below the table, then review Calendar rules at the bottom.',
           'Management can add a calendar rule by choosing Holiday or Risk period, entering the rule name and date range, and clicking Add rule.',
           'Management and authorized team leads can approve, reject, or correct request status from the request blocks when the request is inside their approval scope.',
         ],
@@ -1184,12 +1184,12 @@ const documentationSections = [
           'Approving a Pending edit request updates the original absence request with the proposed employee, type, dates, return date, and notes, then removes the pending edit request. Rejecting it keeps the original request unchanged and stores the rejection reason on the pending edit request.',
           'Approving a Pending delete request removes both the original absence request and the pending delete request. Rejecting it keeps the original request unchanged and stores the rejection reason on the pending delete request.',
           'The Vacation year selector filters the visible timeline, balance table, and year-based absence calculations. The Today button switches the timeline to the current year when needed and scrolls the calendar to the current date marker.',
-          'Timeline rows are grouped by employee department.',
-          'The Approved, Pending, and Rejected request panels in Overview show only the active user\'s own requests.',
-          'The Past absences panel in Overview shows the active user\'s approved absences from the selected year where the absence Until date is before today.',
-          'The Past absences panel in Approvals & analytics shows approved past absences for the visible management or team lead analytics scope. Management sees all active employees, while team leads see their scoped employees according to the same Vacation analytics scope.',
+          'Timeline rows are grouped by employee department. The Users column stays pinned while scrolling horizontally and moves with the calendar rows while scrolling vertically.',
+          'The Approved, Pending, and Rejected request panels in Overview show only the active user\'s own requests where the Until date is today or later.',
+          'The Past absences panel in Overview shows the active user\'s requests from the selected year where the absence Until date is before today. Past absence rows use a muted gray treatment and keep the absence type, working-day count, employee, date range, status, and actions on one row when space allows.',
+          'The Past absences panel in Approvals & analytics shows past absences for the visible management or team lead analytics scope where the Until date is before today. Management sees all active employees, while team leads see their scoped employees according to the same Vacation analytics scope. Past absence rows use the same muted one-row layout as the Overview past absence list.',
           'Request cards are color-coded by status in the Overview panels and approval queues: Approved requests are green, Pending requests are yellow, and Rejected requests are red.',
-          'Team or company approval queues are shown only in Approvals & analytics, where Pending, Approved, and Rejected blocks allow authorized users to correct request status when needed.',
+          'Team or company approval queues are shown only in Approvals & analytics, where Pending, Approved, and Rejected blocks show scoped requests with an Until date of today or later and allow authorized users to correct request status when needed.',
           'Operations users can submit absence requests only for themselves and do not see the Approvals & analytics tab.',
           'Team leads can submit requests for themselves and for employees in their lead department scope, but not for other team leads or management users.',
           'Management can submit and manage requests for all employees.',
@@ -1213,7 +1213,7 @@ const documentationSections = [
         ],
         metrics: [
           'Working days = count of inclusive dates between From and Until, excluding Saturdays, Sundays, and Holiday rule dates',
-          'Past absences count = count(approved absence requests in the selected year where Until < today and employee is in the active Past absences scope)',
+          'Past absences count = count(absence requests in the selected year where Until < today and employee is in the active Past absences scope)',
           'Vacation allowance = employee.vacationDaysAvailable when it is a valid non-negative number, otherwise 20 days',
           'Planned and used vacation days = approved Vacation working days in the selected year',
           'Vacation taken = approved Vacation working days from 1 January of the selected year through today, capped to 31 December of the selected year; future selected years show 0 taken days',
@@ -1779,13 +1779,20 @@ function absenceRequestsForYear(requests, year) {
   return requests.filter((request) => rangesOverlap(request.startDate, request.endDate, from, to));
 }
 
-function pastApprovedAbsenceRequests(requests, people, year, today = TODAY) {
+function isPastAbsenceRequest(request, today = TODAY) {
+  return Boolean(request?.endDate && request.endDate < today);
+}
+
+function isCurrentOrFutureAbsenceRequest(request, today = TODAY) {
+  return Boolean(request?.endDate && request.endDate >= today);
+}
+
+function pastAbsenceRequests(requests, people, year, today = TODAY) {
   const visibleNames = new Set(people.map((person) => person.name));
   return absenceRequestsForYear(requests, year)
     .filter((request) => (
-      request.status === 'approved'
-      && visibleNames.has(request.employee)
-      && request.endDate < today
+      visibleNames.has(request.employee)
+      && isPastAbsenceRequest(request, today)
     ))
     .sort((first, second) => {
       if (first.startDate !== second.startDate) return second.startDate.localeCompare(first.startDate);
@@ -5293,15 +5300,16 @@ function VacationView({
   const visibleRequests = useMemo(() => absenceRequestsForYear(requests, year).filter((request) => (
     calendarPeople.some((person) => person.name === request.employee)
   )), [requests, year, calendarPeople]);
-  const myRequests = visibleRequests.filter((request) => request.employee === activeRole.person);
+  const currentOrFutureRequests = visibleRequests.filter((request) => isCurrentOrFutureAbsenceRequest(request));
+  const myRequests = currentOrFutureRequests.filter((request) => request.employee === activeRole.person);
   const myPastAbsences = useMemo(() => (
-    pastApprovedAbsenceRequests(requests, calendarPeople.filter((person) => person.name === activeRole.person), year)
+    pastAbsenceRequests(requests, calendarPeople.filter((person) => person.name === activeRole.person), year)
   ), [requests, calendarPeople, activeRole.person, year]);
-  const managedApprovalRequests = visibleRequests.filter((request) => (
+  const managedApprovalRequests = currentOrFutureRequests.filter((request) => (
     canApproveAbsenceRequest(request, role, activePerson, people, activeLeadDepartments)
   ));
   const scopedPastAbsences = useMemo(() => (
-    pastApprovedAbsenceRequests(requests, approvalPeople, year)
+    pastAbsenceRequests(requests, approvalPeople, year)
   ), [requests, approvalPeople, year]);
   const analyticsRequestGroups = [
     { status: 'pending', title: 'Pending approvals', countLabel: 'waiting', empty: 'No requests are waiting for approval.' },
@@ -5519,7 +5527,7 @@ function VacationView({
               holidayDates={holidayDates}
               year={year}
               countLabel={`${myPastAbsences.length} total`}
-              emptyText="No approved past absences."
+              emptyText="No past absences."
               canApproveForRequest={(request) => view === 'analytics' && canApproveAbsenceRequest(request, role, activePerson, people, activeLeadDepartments)}
               canEditRequest={(request) => !request.meta?.changeAction && (request.employee === activeRole.person || canApproveAbsenceRequest(request, role, activePerson, people, activeLeadDepartments))}
               canDeleteRequest={(request) => role === 'management' || request.employee === activeRole.person || canApproveAbsenceRequest(request, role, activePerson, people, activeLeadDepartments)}
@@ -5646,7 +5654,7 @@ function VacationView({
             holidayDates={holidayDates}
             year={year}
             countLabel={`${scopedPastAbsences.length} total`}
-            emptyText="No approved past absences match this scope."
+            emptyText="No past absences match this scope."
             canApproveForRequest={(request) => canApproveAbsenceRequest(request, role, activePerson, people, activeLeadDepartments)}
             canEditRequest={(request) => !request.meta?.changeAction && (request.employee === activeRole.person || canApproveAbsenceRequest(request, role, activePerson, people, activeLeadDepartments))}
             canDeleteRequest={(request) => role === 'management' || request.employee === activeRole.person || canApproveAbsenceRequest(request, role, activePerson, people, activeLeadDepartments)}
@@ -5783,7 +5791,7 @@ function VacationRequestItem({ request, holidayDates, canApprove, canEdit, canDe
   const changeDetails = absenceChangeDetails(request);
   return (
     <article className={`vacation-request-item ${request.status}`}>
-      <div>
+      <div className="vacation-request-summary">
         <span className={`absence-chip ${request.type}`}>{absenceTypeLabel(request.type)}</span>
         {changeActionLabel && <span className="absence-change-chip">{changeActionLabel}</span>}
         <span className="absence-days-chip">{workingDays} working day{workingDays === 1 ? '' : 's'}</span>
@@ -5857,20 +5865,20 @@ function VacationTimeline({ people, requests, rules, year, holidayDates, todaySc
   }
 
   return (
-    <div className="vacation-timeline">
-      <div className="vacation-timeline-users">
-        <strong>Users</strong>
-        <span className="vacation-date-spacer" aria-hidden="true" />
-        {groupedPeople.map((group) => (
-          <React.Fragment key={group.department}>
-            <span className="vacation-department-row">{group.department}</span>
-            {group.members.map((person) => (
-              <span key={person.id}><span className="person-avatar small" style={personAvatarStyle(person.name)}>{initials(person.name)}</span>{person.name}</span>
-            ))}
-          </React.Fragment>
-        ))}
-      </div>
-      <div className="vacation-timeline-scroll" ref={scrollRef}>
+    <div className="vacation-timeline-scroll" ref={scrollRef}>
+      <div className="vacation-timeline">
+        <div className="vacation-timeline-users">
+          <strong>Users</strong>
+          <span className="vacation-date-spacer" aria-hidden="true" />
+          {groupedPeople.map((group) => (
+            <React.Fragment key={group.department}>
+              <span className="vacation-department-row">{group.department}</span>
+              {group.members.map((person) => (
+                <span key={person.id}><span className="person-avatar small" style={personAvatarStyle(person.name)}>{initials(person.name)}</span>{person.name}</span>
+              ))}
+            </React.Fragment>
+          ))}
+        </div>
         <div className="vacation-months">
           {months.map((month) => {
             const monthStart = localDate(new Date(year, month, 1));
