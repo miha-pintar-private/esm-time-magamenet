@@ -989,9 +989,12 @@ const documentationSections = [
         ],
         specifics: [
           'Analytics date filters do not change the Time Management entry table filters.',
+          'The Analytics header shows how many time records and approved absence working days are included in the selected period, so users can confirm whether a date change changed the underlying dataset.',
+          'If From is later than To, Analytics automatically reads the range from the earlier date to the later date and shows a warning.',
           'Role scope controls which users, departments, entries, and work types can appear.',
           'Only work types, vacation days, or sick leave days with hours in the selected date range are shown in the workload charts and tables.',
           'Approved vacation and sick leave are included as derived 8-hour analytics entries for each working day in the selected range.',
+          'Pending, rejected, and deleted absence requests are not included in Analytics workload or cost.',
           'Vacation and sick leave working days exclude Saturdays, Sundays, and configured holiday rules from the Vacation module.',
           'All analytics charts are rendered with Chart.js for consistent axes, legends, tooltips, and responsive sizing.',
           'The workload charts use configured work type colors from Settings.',
@@ -1599,6 +1602,7 @@ const documentationSections = [
         specifics: [
           'Below wide desktop sizes, the app reduces sidebar width, page padding, panel spacing, metric card height, table column widths, chart minimum width, drawer width, and vacation request panel density.',
           'Below compact laptop sizes, the sidebar switches to icon-only navigation, the top bar stacks into two rows, documentation index links move above the content, settings use one column, and employee forms use fewer columns.',
+          'Dropdown menus use compact row height, normal application text size, smaller option padding, and bounded menu width so select lists stay visually aligned with surrounding form controls.',
           'Wide tabular data keeps horizontal scrolling instead of hiding columns so records, metrics, formulas, audit details, and vacation timeline days remain available.',
           'Mobile rules still take over below the existing phone breakpoint.',
         ],
@@ -7334,14 +7338,20 @@ function DocumentTypeRuleModal({ mode, rule, existingRules, onClose, onSave }) {
 
 function AnalyticsView({ role, activePlatform, people, entries, absenceRequests, absenceRules, configuredWorkTypes, employmentRules, activeRole }) {
   const [filters, setFilters] = useState({ from: relativeLocalDate(-30), to: TODAY });
+  const normalizedFilters = useMemo(() => {
+    if (filters.from && filters.to && filters.from > filters.to) {
+      return { from: filters.to, to: filters.from, reversed: true };
+    }
+    return { from: filters.from, to: filters.to, reversed: false };
+  }, [filters.from, filters.to]);
   const periodEntries = useMemo(() => entries.filter((entry) => {
-    const afterFrom = !filters.from || entry.date >= filters.from;
-    const beforeTo = !filters.to || entry.date <= filters.to;
+    const afterFrom = !normalizedFilters.from || entry.date >= normalizedFilters.from;
+    const beforeTo = !normalizedFilters.to || entry.date <= normalizedFilters.to;
     return afterFrom && beforeTo;
-  }), [entries, filters]);
+  }), [entries, normalizedFilters.from, normalizedFilters.to]);
   const periodAbsenceEntries = useMemo(() => (
-    absenceAnalyticsEntries(absenceRequests, absenceRules, people, filters.from, filters.to)
-  ), [absenceRequests, absenceRules, people, filters.from, filters.to]);
+    absenceAnalyticsEntries(absenceRequests, absenceRules, people, normalizedFilters.from, normalizedFilters.to)
+  ), [absenceRequests, absenceRules, people, normalizedFilters.from, normalizedFilters.to]);
   const analyticsEntries = useMemo(() => (
     [...periodEntries, ...periodAbsenceEntries]
   ), [periodEntries, periodAbsenceEntries]);
@@ -7349,6 +7359,15 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
   const visibleTypeNames = useMemo(() => sortedWorkTypeNames(analyticsEntries), [analyticsEntries]);
   const totalHours = analyticsEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
   const absenceHours = periodAbsenceEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
+  const analyticsPeriodLabel = normalizedFilters.from && normalizedFilters.to
+    ? `${displayDate(normalizedFilters.from)} to ${displayDate(normalizedFilters.to)}`
+    : normalizedFilters.from
+      ? `${displayDate(normalizedFilters.from)} onward`
+      : normalizedFilters.to
+        ? `Until ${displayDate(normalizedFilters.to)}`
+        : 'All dates';
+  const timeRecordCount = periodEntries.length;
+  const absenceDayCount = periodAbsenceEntries.length;
   const totalCost = people.reduce((sum, person) => sum + employeeRuleCost(person, employmentRules, analyticsEntries, configuredWorkTypes), 0);
   const departmentNames = Array.from(new Set(people.map((person) => person.department))).sort();
   const departmentRows = buildAnalyticsGroupRows({
@@ -7425,10 +7444,19 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
           </div>
         </div>
         <div className="analytics-kpis">
-          <Metric icon={Clock3} label="Total working hours" value={compactHours(totalHours)} delta="Selected date range" />
+          <Metric icon={Clock3} label="Total working hours" value={compactHours(totalHours)} delta={`${timeRecordCount} time record${timeRecordCount === 1 ? '' : 's'} included`} />
           <Metric icon={Activity} label="Average hours / user" value={compactHours(totalHours / Math.max(people.length, 1))} delta={`${people.length} users in scope`} />
-          <Metric icon={CircleDollarSign} label="Allocated cost" value={money(totalCost)} delta={`${compactHours(absenceHours)} from vacation and sick leave`} />
+          <Metric icon={CircleDollarSign} label="Allocated cost" value={money(totalCost)} delta={`${compactHours(absenceHours)} from approved vacation and sick leave`} />
         </div>
+        <div className="analytics-data-summary">
+          <span>Selected period: {analyticsPeriodLabel}</span>
+          <span>{timeRecordCount} time record{timeRecordCount === 1 ? '' : 's'}</span>
+          <span>{absenceDayCount} approved absence day{absenceDayCount === 1 ? '' : 's'}</span>
+          <span>Pending absence requests are excluded.</span>
+        </div>
+        {normalizedFilters.reversed && (
+          <span className="empty-state analytics-filter-warning">From is later than To, so Analytics is reading the range from {displayDate(normalizedFilters.from)} to {displayDate(normalizedFilters.to)}.</span>
+        )}
       </section>
 
       <section className="primary-panel analytics-chart-panel">

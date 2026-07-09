@@ -234,15 +234,15 @@
   }
 
   .custom-select-menu {
-    @apply absolute left-0 top-[calc(100%+12px)] z-40 max-h-[344px] w-[min(360px,calc(100vw-32px))] overflow-y-auto rounded-[14px] border border-[#e2e7ed] bg-white py-3.5 shadow-[0_20px_48px_rgba(36,48,65,0.14)] [animation:dropdownEnter_140ms_ease_both];
+    @apply absolute left-0 top-[calc(100%+6px)] z-40 max-h-[260px] w-full min-w-full max-w-[calc(100vw-32px)] overflow-y-auto rounded-[10px] border border-[#e2e7ed] bg-white py-1.5 shadow-[0_14px_34px_rgba(36,48,65,0.12)] [animation:dropdownEnter_140ms_ease_both];
   }
 
   .custom-select-option {
-    @apply flex min-h-[52px] w-full cursor-pointer items-center gap-4 bg-transparent px-[22px] text-left text-[17px] font-[760] text-[#344052];
+    @apply flex min-h-[36px] w-full cursor-pointer items-center gap-2.5 bg-transparent px-3 text-left text-[13px] font-[750] text-[#344052];
   }
 
   .worktype-select .custom-select-option {
-    @apply min-h-[46px] gap-3.5 px-5 text-[14px] font-[740];
+    @apply min-h-[34px] gap-2.5 px-3 text-[13px] font-[740];
   }
 
   .custom-select-option:hover,
@@ -255,7 +255,7 @@
   }
 
   .custom-select-option.all-option {
-    @apply mx-2 mb-1 w-[calc(100%-16px)] rounded-lg border border-dashed border-[#b9c6d5] bg-[#f7fafc] px-3.5 text-[#263241];
+    @apply mx-1.5 mb-1 w-[calc(100%-12px)] rounded-[8px] border border-dashed border-[#b9c6d5] bg-[#f7fafc] px-2.5 text-[#263241];
   }
 
   .custom-select-option.all-option:hover,
@@ -264,11 +264,11 @@
   }
 
   .custom-select-option i {
-    @apply h-3 w-3 shrink-0 rounded-full;
+    @apply h-2.5 w-2.5 shrink-0 rounded-full;
   }
 
   .custom-select-option.all-option i {
-    @apply h-4 w-4 border-[3px] border-[#35bfae] bg-white;
+    @apply h-3.5 w-3.5 border-[3px] border-[#35bfae] bg-white;
   }
 
   .custom-select-option span {
@@ -815,6 +815,22 @@
   .analytics-date-filters input,
   .analytics-date-filters .soft-btn {
     @apply min-h-[34px] rounded-[8px] text-[12px] font-[750];
+  }
+
+  .analytics-data-summary {
+    @apply -mt-2 flex flex-wrap items-center gap-2 text-xs font-extrabold text-[#748294];
+  }
+
+  .analytics-data-summary span {
+    @apply rounded-full border border-line bg-[#fbfcfd] px-3 py-1.5;
+  }
+
+  .analytics-data-summary span:first-child {
+    @apply border-[#b9e7c9] bg-[#ecf9f0] text-[#1f8f56];
+  }
+
+  .analytics-filter-warning {
+    @apply mt-3 border-[#f6d7a8] bg-[#fff8ed] text-[#9a6a22];
   }
 
   .analytics-chart-panel,
@@ -3776,11 +3792,11 @@
     }
 
     .vacation-status-head h3 {
-      @apply text-[14px];
+      @apply text-[13px];
     }
 
     .vacation-status-head span {
-      @apply px-2 text-[10px];
+      @apply px-1.5 text-[9px];
     }
 
     .vacation-request-item {
