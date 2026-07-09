@@ -643,7 +643,7 @@
   }
 
   .employee-compliance-row {
-    @apply grid grid-cols-[150px_repeat(3,minmax(0,1fr))] items-start gap-3 border-b border-line py-2.5;
+    @apply grid grid-cols-[150px_repeat(3,minmax(0,1fr))] items-end gap-3 border-b border-line py-2.5;
   }
 
   .employee-compliance-row:last-child {
@@ -671,7 +671,7 @@
   }
 
   .employee-end-date-toggle {
-    @apply mt-[23px] min-h-[36px] rounded-[8px] border border-[#dbe4ee] bg-white px-3 text-[12px] font-extrabold text-[#637083] transition-[background,border-color,color,box-shadow] duration-150;
+    @apply min-h-[36px] rounded-[8px] border border-[#dbe4ee] bg-white px-3 text-[12px] font-extrabold text-[#637083] transition-[background,border-color,color,box-shadow] duration-150;
   }
 
   .employee-end-date-toggle:hover {

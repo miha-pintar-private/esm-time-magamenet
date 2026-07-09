@@ -1016,7 +1016,7 @@ const documentationSections = [
           'For compatibility with older local records, the app still keeps a combined address value generated from Address, Post number, and City.',
           'The Overview tab Work setup list is a flat divided status list driven by the employee employment rule pay type. Monthly salary employees show the contract period and, when the rule requires them, Medical exam and Safety training details. Hourly rate and Project work employees show the contract period. Displayed employee record dates use day-month-year format.',
           'The Overview tab Compensation setup uses a flat divided table without an extra panel frame. It shows each compensation row by employment type, work types, cost details, and project period; on narrow screens the same fields stack with labels.',
-          'The Contract and compliance form section is split into separate rows for Contract, Medical, and Safety training.',
+          'The Contract and compliance form section is split into separate rows for Contract, Medical, and Safety training. Row controls align vertically so the Contract from field, Contract to field, and No end date button scan as one row.',
           'The Contract row stores Contract from and Contract to dates. Turning on No end date clears Contract to, disables that date input, and saves the contract as indefinite. Turning the button off restores an editable Contract to date seeded from Contract from, the employee start date, or today.',
           'Medical exam stores only the date the employee completed the exam in the Medical row. If the completed date is empty, the form shows a red inline warning with an alert icon under the date input.',
           'Safety training stores the completion date and the valid-until date in the Safety training row. If the completed date is empty, the form shows a red inline warning with an alert icon under the completed date input.',
@@ -1035,7 +1035,8 @@ const documentationSections = [
           'Deleting an employee asks for confirmation: Are you sure you want to delete this employee and all linked local records?',
           'Deleting an employee removes linked local time entries, documents, correction records, active unlock windows, matching employee table filters, and any active timer for that employee.',
           'Compensation rows are stored on the employee profile. Each row selects an employment type from Rules. Monthly salary and Hourly rate rows can be mapped to one or more Time Management work types.',
-          'The employee table Employment type column shows the employee profile employment type selected from Rules.',
+          'The first compensation row is treated as the primary employment type. Changing the profile Employment type updates that first row, and changing the first row Employment type updates the profile Employment type.',
+          'The employee table Employment type column shows the primary employee profile employment type selected from Rules.',
           'When an employee has more than one non-project compensation row, every non-project row must have at least one applicable work type selected so the app knows which cost applies to each entry.',
           'Monthly salary compensation rows let users enter gross salary, gross gross cost, meal allowance, transport allowance, and an optional note. Monthly hours are calculated automatically from the current month working days.',
           'Hourly rate rows show hourly rate, meal allowance, transport allowance, and note fields. Meal and transport values can be 0.',
@@ -2498,6 +2499,8 @@ function App() {
     const linkedDocs = documents.filter((document) => document.employee === linkedName).length;
     const contractStartDate = form.contractStartDate || form.start;
     const contractEndDate = form.contractEndDate || '';
+    const compensationRows = employeeCompensationRows({ ...form, cost: Number(form.cost) || 0 });
+    const primaryEmployment = compensationRows[0]?.employmentType || form.employment.trim() || 'Not specified';
     const nextEmployeeBase = {
       id: form.id || Date.now(),
       name,
@@ -2512,7 +2515,7 @@ function App() {
       email: form.email.trim(),
       phone: form.phone.trim(),
       privateEmail: form.privateEmail.trim(),
-      employment: form.employment.trim() || 'Not specified',
+      employment: primaryEmployment,
       start: form.start,
       contractStartDate,
       contractEndDate,
@@ -2529,7 +2532,7 @@ function App() {
       docs: linkedDocs,
       status: form.status || employeeStatus(original || {}),
       comments: Array.isArray(form.comments) ? form.comments : (original?.comments || []),
-      compensationRows: employeeCompensationRows({ ...form, cost: Number(form.cost) || 0 }),
+      compensationRows,
       leadDepartments: form.level === 'Team Lead'
         ? form.leadDepartments.map((item) => resolveDepartmentName(item, departmentItems))
         : [],
@@ -4582,7 +4585,23 @@ function EmployeeModal({ mode, employee, role, primaryLeadDepartment, employees,
     .map((type) => ({ name: type.name, meta: type.department }));
 
   function update(field, value) {
-    setForm((current) => ({ ...current, [field]: value }));
+    setForm((current) => ({
+      ...current,
+      [field]: value,
+      ...(field === 'employment'
+        ? {
+            compensationRows: current.compensationRows.map((row, index) => (
+              index === 0
+                ? {
+                    ...row,
+                    employmentType: value,
+                    payType: normalizedEmploymentRules.find((rule) => rule.name === value)?.payType || row.payType,
+                  }
+                : row
+            )),
+          }
+        : {}),
+    }));
   }
 
   function toggleContractEndDateMode() {
@@ -4595,6 +4614,7 @@ function EmployeeModal({ mode, employee, role, primaryLeadDepartment, employees,
   function updateCompensationRow(id, field, value) {
     setForm((current) => ({
       ...current,
+      employment: field === 'employmentType' && current.compensationRows[0]?.id === id ? value : current.employment,
       compensationRows: current.compensationRows.map((row) => (
         row.id === id
           ? {
