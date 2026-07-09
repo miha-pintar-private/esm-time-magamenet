@@ -146,7 +146,7 @@ const people = [
     safetyValidUntil: '2026-09-22',
     compensationRows: [
       { id: 1, employmentType: 'Full-time permanent', workTypes: ['Development', 'Testing', 'Meeting'], payType: 'Monthly salary', grossSalary: 2550, grossGrossCost: 4120, mealAllowance: 0, transportAllowance: 0, hourlyRate: 0, oneTimeAmount: 0 },
-      { id: 2, employmentType: 'Side work', workTypes: ['Work from home'], payType: 'Hourly rate', grossSalary: 0, grossGrossCost: 0, mealAllowance: 0, transportAllowance: 0, hourlyRate: 28, oneTimeAmount: 0 },
+      { id: 2, employmentType: 'Side work', workTypes: ['Development'], payType: 'Hourly rate', grossSalary: 0, grossGrossCost: 0, mealAllowance: 0, transportAllowance: 0, hourlyRate: 28, oneTimeAmount: 0 },
     ],
     medical: 'Valid until 2026-12-09',
     safety: 'Valid until 2026-09-22',
@@ -295,7 +295,6 @@ const workTypes = [
   { name: 'Testing', department: 'Development', paid: true, break: false, users: 'Development department', hours: 145, cost: 3180 },
   { name: 'Meeting', department: 'All', paid: true, break: false, users: 'All employees', hours: 96, cost: 2120 },
   { name: 'Lunch break', department: 'All', paid: false, break: true, users: 'All employees', hours: 74, cost: 0 },
-  { name: 'Work from home', department: 'All', paid: true, break: false, users: 'WFH eligible', hours: 188, cost: 4010 },
 ];
 
 const departments = [
@@ -309,7 +308,7 @@ const departments = [
 const settingsTags = [
   { name: 'Backend', department: 'Development', workType: 'Development' },
   { name: 'Frontend', department: 'Development', workType: 'Development' },
-  { name: 'Remote', department: 'All departments', workType: 'Work from home' },
+  { name: 'Remote', department: 'All departments', workType: 'All work types' },
   { name: 'Night shift', department: 'Operations', workType: 'Warehouse work' },
   { name: 'Container', department: 'Operations', workType: 'Container unloading' },
   { name: 'Seasonal', department: 'All departments', workType: 'All work types' },
@@ -331,7 +330,6 @@ const managementSettingsWorkTypes = [
   { name: 'Testing', department: 'Development', paid: true, color: '#5b91f4' },
   { name: 'Meeting', department: 'All departments', paid: true, color: '#75869a' },
   { name: 'Lunch break', department: 'All departments', paid: false, color: '#f5bd3f' },
-  { name: 'Work from home', department: 'All departments', paid: true, color: '#28a35a' },
 ];
 
 const leadSettingsWorkTypes = [
@@ -348,6 +346,23 @@ const operationsSettingsWorkTypes = [
   { name: 'Meeting', department: 'All departments', paid: true, color: '#75869a' },
   { name: 'Lunch break', department: 'All departments', paid: false, color: '#f5bd3f' },
 ];
+
+const LEGACY_WFH_WORK_TYPE = 'Work from home';
+
+function isSystemWorkType(typeName) {
+  return SYSTEM_WORK_TYPES.some((type) => type.name === typeName);
+}
+
+function ensureSystemWorkTypes(types = []) {
+  const keyed = new Map((Array.isArray(types) ? types : [])
+    .filter((type) => type.name !== LEGACY_WFH_WORK_TYPE)
+    .map((type) => [type.name, type]));
+  SYSTEM_WORK_TYPES.forEach((type) => {
+    const existing = keyed.get(type.name);
+    keyed.set(type.name, { ...type, ...existing, ...type });
+  });
+  return Array.from(keyed.values());
+}
 
 const PAY_TYPE_MONTHLY = 'Monthly salary';
 const PAY_TYPE_PROJECT = 'Project work';
@@ -466,17 +481,17 @@ function normalizeSettingsTags(tags) {
       : {
           name: tag.name,
           department: tag.department || 'All departments',
-          workType: tag.workType || 'All work types',
+          workType: tag.workType === LEGACY_WFH_WORK_TYPE ? 'All work types' : tag.workType || 'All work types',
         }
   )).filter((tag) => tag.name);
 }
 
 function normalizeSettingsWorkTypes(types) {
-  return (Array.isArray(types) ? types : []).map((type) => ({
+  return ensureSystemWorkTypes((Array.isArray(types) ? types : []).map((type) => ({
     ...type,
     tags: Array.isArray(type.tags) ? type.tags : [],
     paid: type.paid !== false,
-  }));
+  })));
 }
 
 function activeTagNames(tagItems) {
@@ -509,6 +524,7 @@ function canonicalDepartmentName(department) {
 }
 
 function workTypeMatchesPerson(type, person) {
+  if (isSystemWorkType(type.name)) return true;
   const typeDepartment = normalizeDepartmentName(type.department);
   const departmentMatches = typeDepartment === 'All' || canonicalDepartmentName(typeDepartment) === canonicalDepartmentName(person.department);
   const tags = Array.isArray(type.tags) ? type.tags.filter(Boolean) : [];
@@ -583,8 +599,49 @@ function normalizeEmployeeDepartments(employeeItems, departmentItems) {
 function normalizeEntryDepartments(entryItems, departmentItems) {
   return entryItems.map((entry) => ({
     ...entry,
+    type: entry.type === LEGACY_WFH_WORK_TYPE ? fallbackWorkTypeForDepartment(entry.department) : entry.type,
+    workFromHome: entry.workFromHome || entry.type === LEGACY_WFH_WORK_TYPE,
     department: resolveDepartmentName(entry.department, departmentItems),
   }));
+}
+
+function fallbackWorkTypeForDepartment(department) {
+  const canonicalDepartment = canonicalDepartmentName(department);
+  const match = [...managementSettingsWorkTypes, ...workTypes].find((type) => {
+    if (type.name === LEGACY_WFH_WORK_TYPE || type.name === LUNCH_BREAK_TYPE) return false;
+    const normalizedDepartment = normalizeDepartmentName(type.department);
+    return normalizedDepartment === 'All' || canonicalDepartmentName(normalizedDepartment) === canonicalDepartment;
+  });
+  return match?.name || UNDEFINED_WORK_TYPE;
+}
+
+function normalizeLegacyWorkTypeName(typeName, department) {
+  return typeName === LEGACY_WFH_WORK_TYPE ? fallbackWorkTypeForDepartment(department) : typeName;
+}
+
+function normalizeLegacyCompensationWorkTypes(employeeItems) {
+  return employeeItems.map((employee) => {
+    if (!Array.isArray(employee.compensationRows)) return employee;
+    return {
+      ...employee,
+      compensationRows: employee.compensationRows.map((row) => ({
+        ...row,
+        workTypes: Array.isArray(row.workTypes)
+          ? Array.from(new Set(row.workTypes.map((typeName) => normalizeLegacyWorkTypeName(typeName, employee.department))))
+          : row.workTypes,
+      })),
+    };
+  });
+}
+
+function normalizeLegacyActiveSession(session) {
+  if (!session) return null;
+  if (session.type !== LEGACY_WFH_WORK_TYPE) return session;
+  return {
+    ...session,
+    type: fallbackWorkTypeForDepartment(session.department),
+    workFromHome: true,
+  };
 }
 
 function normalizeWorkTypeDepartments(typeItems, departmentItems) {
@@ -625,7 +682,7 @@ function syncDepartmentItemsWithEmployees(departmentItems, employeeItems) {
 const baseEntries = [
   { id: 101, employee: 'Sara Kranjc', department: 'Customer Support', date: '2026-07-08', type: 'Customer support', start: '08:00', end: '11:45', hours: 3.75, status: 'Running eligible', source: 'Manual', workFromHome: true },
   { id: 102, employee: 'Sara Kranjc', department: 'Customer Support', date: '2026-07-08', type: 'Lunch break', start: '11:45', end: '12:15', hours: 0.5, status: 'Break', source: 'Tracked', break: true },
-  { id: 107, employee: 'Sara Kranjc', department: 'Customer Support', date: '2026-07-06', type: 'Work from home', start: '13:00', end: '16:00', hours: 3, status: 'Locked', source: 'Tracked', workFromHome: true },
+  { id: 107, employee: 'Sara Kranjc', department: 'Customer Support', date: '2026-07-06', type: 'Customer support', start: '13:00', end: '16:00', hours: 3, status: 'Locked', source: 'Tracked', workFromHome: true },
   { id: 103, employee: 'Marko Novak', department: 'Development', date: '2026-07-08', type: 'Development', start: '07:00', end: '13:30', hours: 6.5, status: 'Approved', source: 'Tracked' },
   { id: 104, employee: 'Nika Zupan', department: 'Operations', date: '2026-07-07', type: 'Container unloading', start: '14:00', end: '19:30', hours: 5.5, status: 'Unlocked', source: 'Correction' },
   { id: 105, employee: 'Tim Ravnik', department: 'Marketing', date: '2026-07-07', type: 'Marketing content', start: '09:30', end: '16:00', hours: 6.5, status: 'Locked', source: 'Tracked' },
@@ -641,7 +698,13 @@ const DEFAULT_TABLE_FILTERS = {
   person: '',
 };
 const LUNCH_BREAK_TYPE = 'Lunch break';
+const UNDEFINED_WORK_TYPE = 'Undefined';
+const SHORTAGE_WORKLOAD_TYPE = 'Shortage';
+const OVERTIME_WORKLOAD_TYPE = 'Overtime';
 const UNDEFINED_DEPARTMENT = 'Undefined department';
+const SYSTEM_WORK_TYPES = [
+  { name: UNDEFINED_WORK_TYPE, department: 'All departments', paid: true, color: '#9aa7b5', tags: [], system: true },
+];
 const MANUAL_UNLOCK_LABEL = 'Until manually locked';
 const REQUEST_APPROVAL_OPTIONS = [
   { value: '10m', label: '10 min' },
@@ -757,10 +820,11 @@ const documentationSections = [
         ],
         specifics: [
           'The selected work type is auto-filled from the current role scope when the previous selection is no longer available.',
+          'Undefined is always available in the top-bar work type selector. It is a system work type for tasks whose category is unknown or outside configured work types.',
           'Lunch break forces the work type to Lunch break and saves the entry as a break.',
           'The timer automatically stops at 23:59 on the tracked date.',
           'Saved tracked entries use the active role user, current local date, start time, end time, and elapsed duration.',
-          'Tracked work-from-home entries use the source Tracked · WFH; other tracked entries use Tracked.',
+          'Work from home is saved as a Home flag on the selected work type, not as a separate work type. Tracked work-from-home entries use the source Tracked · WFH; other tracked entries use Tracked.',
         ],
         metrics: [
           'Elapsed time = now - session.startedAt',
@@ -782,6 +846,7 @@ const documentationSections = [
           'On today, start and end time cannot be later than the current local time.',
           'Past dates require edit permission: management and team leads can edit scoped past entries; operations users need an approved correction window.',
           'If the selected work type is not available for the selected employee department or tags, the entry cannot be saved.',
+          'Undefined is always available for manual entries and cannot be removed from Settings.',
           'The End field includes a Now button that sets the end time to the current local browser time.',
           'If the end time is earlier than the start time, saved hours are clamped to 0 instead of rolling into the next day.',
           'Editing an entry writes an Edited record to the correction log.',
@@ -791,7 +856,7 @@ const documentationSections = [
         metrics: [
           'Manual entry hours = round(max(0, endMinutes - startMinutes) / 60, 2)',
           'Break flag = selected work type === Lunch break',
-          'Work-from-home flag = selected work type === Work from home',
+          'Work-from-home flag = top-bar Work from home toggle is enabled',
         ],
       },
       {
@@ -980,12 +1045,13 @@ const documentationSections = [
       },
       {
         name: 'Department and user work-type analytics',
-        howItWorks: 'Analytics filters the active role scope by an independent date range plus optional department, tag, employment type, and people filters, then shows how much time each department and user spent on every recorded work type plus approved vacation and sick leave working days. The page includes stacked workload-hour charts, a scope-level workload flow chart, pay-type workload charts, and detail tables for departments and users.',
+        howItWorks: 'Analytics filters the active role scope by an independent date range plus optional department, tag, employment type, compensation type, and people filters, then shows how much time each department and user spent on every recorded work type plus approved vacation and sick leave working days. The page includes stacked workload-hour charts, a scope-level workload flow chart, pay-type workload charts, and detail tables for departments and users.',
         userSteps: [
           'Open Time Management, then open the Analytics subtab.',
           'Set From and To dates in the Analytics header, or click Last 30 days.',
-          'Use Analytics scope filters to select one or more departments, tags, employment types, or people.',
+          'Use Analytics scope filters to select one or more departments, tags, employment types, compensation types, or people.',
           'Review Workload hours by user and Workload hours by department to compare stacked work-type hours.',
+          'Use General or Detailed above each workload chart. General groups normal work entries under Work. Detailed splits normal work entries by work type. Lunch break, Vacation, Sick leave, Undefined, Shortage, and Overtime remain visible in both modes.',
           'Review Workload flow to see the selected scope split by work type.',
           'Review Workload by pay type to compare Monthly salary, Project work, and Hourly rate hours for the selected filters.',
           'Use the Department analytics and User analytics tables to compare hours, percent of time, variance from average, allocated cost, cost per hour, and change over time.',
@@ -994,11 +1060,16 @@ const documentationSections = [
           'Analytics date filters do not change the Time Management entry table filters.',
           'Analytics scope filters are multi-select filters; leaving a filter empty means all values in the active role scope are included.',
           'People must match every active filter category to remain in scope. For example, selecting a department and tag includes only people who are in that department and have that tag.',
+          'Compensation type filters use employee compensation rows. A person remains in scope when at least one compensation row uses a selected pay type, such as Monthly salary, Project work, or Hourly rate.',
           'The Analytics header shows how many time records and approved absence working days are included in the selected period, so users can confirm whether a date change changed the underlying dataset.',
           'If From is later than To, Analytics automatically reads the range from the earlier date to the later date and shows a warning.',
           'Role scope controls which users, departments, entries, and work types can appear.',
           'Only work types, vacation days, or sick leave days with hours in the selected date range are shown in the workload charts and tables.',
+          'Work from home is not shown as a workload chart category because it is a Home flag on a time entry, not a work type.',
           'Approved vacation and sick leave are included as derived 8-hour analytics entries for each working day in the selected range.',
+          'For Monthly salary employees, workload charts use period working capacity. If recorded work, lunch break, vacation, sick leave, and saved Undefined hours are below capacity, the missing hours are shown as Shortage. If they are above capacity, the excess work portion is shown as Overtime and the stacked bar extends beyond the normal capacity.',
+          'Shortage is shown as the rightmost red workload segment. Overtime is shown as a green workload segment.',
+          'Undefined can also come from saved time entries where the user selected the Undefined work type.',
           'Pending, rejected, and deleted absence requests are not included in Analytics workload or cost.',
           'Vacation and sick leave working days exclude Saturdays, Sundays, and configured holiday rules from the Vacation module.',
           'Pay-type workload charts classify each included entry by the employee compensation row that matches the entry work type. Approved absence days use the first fallback non-project compensation row when available.',
@@ -1009,9 +1080,12 @@ const documentationSections = [
           'When no entries match the selected period, charts and tables show an empty state instead of zero-filled rows.',
         ],
         metrics: [
-          'Filtered people = visible people matching all selected departments, tags, employment types, and people filters',
+          'Filtered people = visible people matching all selected departments, tags, employment types, compensation types, and people filters',
           'Filtered analytics entries = visible time entries where employee is in filtered people and From <= entry.date <= To + approved vacation/sick working days for filtered people from the Vacation module in the same date range',
           'Vacation or sick leave hours = count(approved working days, excluding weekends and holidays) × 8',
+          'Monthly salary workload capacity = count(inclusive selected-period dates excluding Saturdays, Sundays, and Vacation-module holiday dates) × 8',
+          'Monthly salary Shortage workload hours = max(monthly salary workload capacity - recorded work hours - lunch break hours - approved vacation hours - approved sick leave hours - saved Undefined hours, 0)',
+          'Monthly salary Overtime workload hours = max(recorded work hours + lunch break hours + approved vacation hours + approved sick leave hours + saved Undefined hours - monthly salary workload capacity, 0)',
           'Department work-type hours = Σ entry.hours for entries whose employee belongs to the department and entry.type matches the work type',
           'User work-type hours = Σ entry.hours where entry.employee matches the user and entry.type matches the work type',
           'Work-type share = work-type hours / total hours for the same department or user × 100',
@@ -1493,13 +1567,114 @@ const documentationSections = [
       },
       {
         name: 'Core relationship tree',
-        howItWorks: 'The main operational record is a time entry. A time entry connects an employee, department, work type, correction permission, and compensation rule so the app can show scope, validate edits, and calculate paid hours and cost.',
+        howItWorks: 'The main operational record is a time entry. A time entry connects an employee, department, work type, correction permission, absence context, document context, and compensation rule so the app can show scope, validate edits, and calculate paid hours, balances, compliance, and cost.',
         userSteps: [
           'Start with Departments and Tags when defining organizational scope.',
           'Create or maintain Employees with department, role, tags, vacation allowance, and compensation rows.',
           'Create Work types that match the intended departments and tags.',
           'Record time entries using only work types available to the selected employee.',
           'Use Documents, Rules, Vacation, and Corrections as supporting datasets around the employee and time entry records.',
+        ],
+        dependencyTree: [
+          {
+            node: 'Role scope',
+            detail: 'Current role and preview person decide which employees, entries, requests, settings, and documents are visible.',
+            children: [
+              {
+                node: 'Departments',
+                detail: 'Department names group employees, table filters, work types, tags, lead scope, and analytics rows.',
+                children: [
+                  {
+                    node: 'Employees',
+                    detail: 'Employee name, level, department, tags, allowance, and compensation rows are the central link for local records.',
+                    children: [
+                      {
+                        node: 'Time entries',
+                        detail: 'Entries use employee name, department, date, work type, source, hours, and editability to power tables, dashboards, audit, and analytics.',
+                        children: [
+                          { node: 'Paid hours', detail: 'Includes only entries whose work type is configured as paid.' },
+                          { node: 'Allocated cost', detail: 'Uses the employee compensation row that matches the entry work type and pay type.' },
+                          { node: 'Correction log', detail: 'Entry edits and deletes add audit records, and correction windows control operations edits on past dates.' },
+                        ],
+                      },
+                      {
+                        node: 'Absence requests',
+                        detail: 'Approved vacation and sick leave create derived 8-hour analytics entries for working days only.',
+                        children: [
+                          { node: 'Vacation balance', detail: 'Uses annual allowance minus approved vacation working days in the selected year.' },
+                          { node: 'Analytics workload', detail: 'Includes approved vacation and sick leave days in the selected analytics period.' },
+                        ],
+                      },
+                      {
+                        node: 'Documents',
+                        detail: 'Document records are linked by employee name and document type, then counted on employee cards and compliance checks.',
+                        children: [
+                          { node: 'Employment rule tasks', detail: 'Rules check whether required contract, medical, or safety data exists.' },
+                          { node: 'Document counts', detail: 'Counts local document records linked to the employee name.' },
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    node: 'Work types',
+                    detail: 'Work type name, department, paid flag, color, and tags control time-entry selection and analytics grouping.',
+                    children: [
+                      { node: 'Timer and manual form', detail: 'Only work types valid for the active employee and role scope can be saved.' },
+                      { node: 'Charts and formulas', detail: 'Work type colors and paid flags drive workload charts, paid hours, and cost inclusion.' },
+                    ],
+                  },
+                  {
+                    node: 'Tags',
+                    detail: 'Tags connect employee segmentation with work type eligibility and analytics scope filters.',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        relationshipMatrix: [
+          {
+            area: 'Time entry eligibility',
+            uses: 'role, employees, departmentItems, managementTypes or leadTypes, tagItems, correctionWindows, tableFilters',
+            includes: 'Active employees in role scope, valid department or All departments work types, matching tag restrictions, today entries, and permitted past entries.',
+            excludes: 'Future dates, archived employees, out-of-scope departments, invalid work type and tag combinations, and operations past entries without an active unlock.',
+            output: 'Rows that can be created, edited, listed, filtered, audited, and summarized.',
+          },
+          {
+            area: 'Paid hours and entry cost',
+            uses: 'entries, employees.compensationRows, workType.paid, work type mappings, monthly working days, project date ranges',
+            includes: 'Visible paid entries, matching monthly or hourly compensation rows, fallback non-project rows, and visible paid entry dates inside project ranges.',
+            excludes: 'Unpaid work types, Lunch break, unknown work types, archived employees outside role scope, and project dates with no visible paid entry.',
+            output: 'Paid hour totals, cost cards, analytics allocated cost, cost per hour, and pay-type workload grouping.',
+          },
+          {
+            area: 'Analytics workload',
+            uses: 'visible entries, employees, departments, tags, employment types, people filters, absenceRequests, absenceRules',
+            includes: 'Entries in the normalized analytics date range plus approved vacation and sick leave working days for filtered visible people.',
+            excludes: 'Pending, rejected, deleted, or out-of-range absence requests; weekends; configured holidays; and people that fail any selected scope filter.',
+            output: 'Workload charts, department analytics, user analytics, workload flow, pay-type charts, share, variance, and trend bars.',
+          },
+          {
+            area: 'Vacation balance and timeline',
+            uses: 'employees.vacationDaysAvailable, absenceRequests, absenceRules, selected year, active role scope',
+            includes: 'Approved vacation working days in the selected year, visible employee requests, holiday rules, risk periods, and blocked periods.',
+            excludes: 'Weekends, holidays from working-day counts, non-vacation request types from vacation used days, and requests outside the selected year where not relevant.',
+            output: 'Available days, used days, pending days, sick leave count, timeline markers, warnings, and approval queue.',
+          },
+          {
+            area: 'Employee compliance and documents',
+            uses: 'employees, documents, employmentRuleItems, documentTypeItems',
+            includes: 'Employee employment type, required employment rule flags, contract documents, medical dates, safety dates, document status, and document type date requirements.',
+            excludes: 'Archived users from operational lists, unused document types when deletion is allowed, and document records not linked to the employee name.',
+            output: 'Employee alert icon tasks, document counts, document form required fields, and compliance context in the employee record.',
+          },
+          {
+            area: 'Renames, deletes, and synchronization',
+            uses: 'employees, entries, documents, absenceRequests, corrections, correctionWindows, departments, work types, tags, rolePeople, filters, activeSession',
+            includes: 'Local records that reference the renamed or deleted employee, department, work type, or tag by user-facing name.',
+            excludes: 'Historical time records when a work type is deleted; they keep their old work type name by design.',
+            output: 'Dependent local records are updated or removed so visible tables, filters, timers, analytics, and audit views stay coherent after the change.',
+          },
         ],
         specifics: [
           'Department -> Employee: employees.department must match an existing department name, or the app can create or use Undefined department when a department is deleted.',
@@ -1515,6 +1690,67 @@ const documentationSections = [
         metrics: [
           'Time entry eligibility = employee in role scope + work type department match + matching tag requirement + date/edit permission',
           'Cost relationship = entries.employee -> employee.compensationRows -> matching workTypes and payType -> allocated cost',
+          'Analytics relationship = role scope + analytics filters + time entries + approved absence working days - excluded statuses/weekends/holidays',
+        ],
+      },
+      {
+        name: 'Workflow dependency overview',
+        howItWorks: 'This overview shows which source records each user workflow reads, which records it writes, what it includes, and what it leaves out. It is the quickest reference for understanding the full picture behind a visible number, table, chart, or permission decision.',
+        userSteps: [
+          'Open Documentation, then Data schema and sources.',
+          'Find the workflow or metric area in the table.',
+          'Read Source data first, then Included data and Excluded data to confirm the calculation boundary.',
+          'Use Written or updated data to see which local records are changed by the workflow.',
+        ],
+        relationshipMatrix: [
+          {
+            area: 'Live timer save',
+            uses: 'activeSession, selectedWorkType, wfh, lunch, active role person, configured work types',
+            includes: 'Current local date, start timestamp, stop timestamp, elapsed duration, active employee, selected valid work type, and WFH or lunch flags.',
+            excludes: 'Manual entry fields, future time after now, unavailable work types, and any employee outside the active role person.',
+            output: 'Creates one entry record and clears activeSession while preserving role, selectedWorkType, wfh, and lunch state as applicable.',
+          },
+          {
+            area: 'Manual entry save',
+            uses: 'entry form, employees, configured work types, role scope, correctionWindows, existing entry when editing',
+            includes: 'Selected employee, valid work type, date, start, end, calculated hours, source Manual, and optional note.',
+            excludes: 'Future dates, today times after now, invalid work type and employee combinations, and operations past dates without approved unlock.',
+            output: 'Creates or updates one entry record; editing writes an Edited correction record.',
+          },
+          {
+            area: 'Entry delete',
+            uses: 'entries, active role permission, correctionWindows, correction log',
+            includes: 'The selected visible entry after the user confirms the English delete dialog.',
+            excludes: 'Entries outside active scope and operations past entries without edit permission.',
+            output: 'Removes the entry and writes a Deleted correction record.',
+          },
+          {
+            area: 'Correction approval',
+            uses: 'correction request, reviewer role scope, selected approval duration, date range',
+            includes: 'Pending requests visible to the reviewer and manual unlocks created by Management or Team Lead users.',
+            excludes: 'Future date ranges, requests outside reviewer scope, and declined requests from active unlock windows.',
+            output: 'Creates or updates correctionWindows and correction audit records; expired windows stop granting edit permission.',
+          },
+          {
+            area: 'Employee rename',
+            uses: 'employee form, entries, documents, absenceRequests, corrections, correctionWindows, departments, rolePeople, tableFilters, activeSession',
+            includes: 'All local records linked by the old employee name.',
+            excludes: 'Unrelated employee records and backend IDs, because this prototype stores name-based local relationships.',
+            output: 'Updates linked names so tables, documents, vacation requests, unlocks, filters, timer state, and audit views continue to point to the same person.',
+          },
+          {
+            area: 'Department delete',
+            uses: 'departmentItems, employees, entries, managementTypes, leadTypes, tagItems, active lead assignments',
+            includes: 'Employees and entries in the deleted department, work types scoped to it, tags scoped to it, and lead assignments referencing it.',
+            excludes: 'Historical entry rows themselves; they are moved to Undefined department rather than deleted.',
+            output: 'Moves people and entries to Undefined department, removes department-scoped work types and tags, and cleans lead assignments.',
+          },
+        ],
+        specifics: [
+          'This table documents runtime behavior in the current browser-only prototype.',
+          'Source data means the state read by the workflow before it decides what to show, validate, calculate, or save.',
+          'Written or updated data means the local state arrays or settings that change after the user action completes.',
+          'Included and excluded data define the calculation boundary for user-facing counts, costs, permissions, and charts.',
         ],
       },
       {
@@ -2068,6 +2304,7 @@ function scopedEmployeeEntries(employee, entries = [], configuredTypes = []) {
   const paidByType = new Map(configuredTypes.map((type) => [type.name, type.paid !== false]));
   return entries.filter((entry) => (
     entry.employee === employee.name
+    && entry.syntheticWorkload !== true
     && entry.break !== true
     && paidByType.get(entry.type) !== false
   ));
@@ -2151,10 +2388,142 @@ function compactHours(value) {
 }
 
 function workTypeColor(typeName, configuredTypes = []) {
+  if (typeName === 'Work') return '#2684ff';
+  if (typeName === UNDEFINED_WORK_TYPE) return '#9aa7b5';
+  if (typeName === SHORTAGE_WORKLOAD_TYPE) return '#e11d48';
+  if (typeName === OVERTIME_WORKLOAD_TYPE) return '#28a35a';
+  if (typeName === LUNCH_BREAK_TYPE) return '#f4b740';
   if (typeName === 'Vacation') return '#1d8f63';
-  if (typeName === 'Sick leave') return '#12b76a';
+  if (typeName === 'Sick leave') return '#ff6247';
   const configured = configuredTypes.find((type) => type.name === typeName);
   return configured?.color || '#8b96a4';
+}
+
+function workloadSegmentName(entry, mode) {
+  if (entry.type === SHORTAGE_WORKLOAD_TYPE) return SHORTAGE_WORKLOAD_TYPE;
+  if (entry.type === OVERTIME_WORKLOAD_TYPE) return OVERTIME_WORKLOAD_TYPE;
+  if (entry.type === UNDEFINED_WORK_TYPE) return UNDEFINED_WORK_TYPE;
+  if (entry.type === LUNCH_BREAK_TYPE || entry.break) return LUNCH_BREAK_TYPE;
+  if (entry.type === 'Vacation' || entry.type === 'Sick leave') return entry.type;
+  return mode === 'general' ? 'Work' : entry.type;
+}
+
+function compareWorkloadSegmentNames(first, second) {
+  const rank = (typeName) => {
+    if (typeName === SHORTAGE_WORKLOAD_TYPE) return 1000;
+    if (typeName === OVERTIME_WORKLOAD_TYPE) return 900;
+    if (typeName === UNDEFINED_WORK_TYPE) return 800;
+    if (typeName === 'Sick leave') return 700;
+    if (typeName === 'Vacation') return 600;
+    if (typeName === LUNCH_BREAK_TYPE) return 500;
+    if (typeName === 'Work') return 0;
+    return 100;
+  };
+  const rankDiff = rank(first) - rank(second);
+  if (rankDiff !== 0) return rankDiff;
+  return first.localeCompare(second);
+}
+
+function hasMonthlySalaryRow(employee) {
+  return employeeCompensationRows(employee).some((row) => row.payType === PAY_TYPE_MONTHLY);
+}
+
+function workloadCapacityHours(employee, from, to, absenceRules = []) {
+  if (!from || !to || !hasMonthlySalaryRow(employee)) return 0;
+  return countWorkingDays(from, to, holidayDateSet(absenceRules)) * 8;
+}
+
+function canCarryOvertime(entry) {
+  return !entry.absenceType
+    && entry.break !== true
+    && entry.type !== LUNCH_BREAK_TYPE
+    && entry.type !== UNDEFINED_WORK_TYPE
+    && entry.type !== SHORTAGE_WORKLOAD_TYPE
+    && entry.type !== OVERTIME_WORKLOAD_TYPE;
+}
+
+function splitOvertimeEntries(entries = [], overtimeHours = 0, person) {
+  const eligibleHours = entries.reduce((sum, entry) => (
+    canCarryOvertime(entry) ? sum + (Number(entry.hours) || 0) : sum
+  ), 0);
+  if (!eligibleHours || !overtimeHours) return entries;
+  const overtimeToSplit = Math.min(overtimeHours, eligibleHours);
+  const ratio = overtimeToSplit / eligibleHours;
+  const adjustedEntries = entries
+    .map((entry) => {
+      if (!canCarryOvertime(entry)) return entry;
+      const hours = Number(entry.hours) || 0;
+      const adjustedHours = Math.max(hours - (hours * ratio), 0);
+      return { ...entry, hours: adjustedHours };
+    })
+    .filter((entry) => (Number(entry.hours) || 0) > 0);
+
+  return [
+    ...adjustedEntries,
+    {
+      id: `overtime-${person.id || person.name}`,
+      employee: person.name,
+      department: person.department,
+      type: OVERTIME_WORKLOAD_TYPE,
+      date: entries[entries.length - 1]?.date || TODAY,
+      hours: overtimeToSplit,
+      break: false,
+      syntheticWorkload: true,
+    },
+  ];
+}
+
+function buildWorkloadEntries(entries = [], people = [], absenceRules = [], from, to) {
+  const entriesByPerson = new Map();
+  entries.forEach((entry) => {
+    entriesByPerson.set(entry.employee, [...(entriesByPerson.get(entry.employee) || []), entry]);
+  });
+
+  return people.flatMap((person) => {
+    const personEntries = entriesByPerson.get(person.name) || [];
+    const capacityHours = workloadCapacityHours(person, from, to, absenceRules);
+    if (!capacityHours) return personEntries;
+    const personHours = personEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
+    if (personHours > capacityHours) {
+      return splitOvertimeEntries(personEntries, personHours - capacityHours, person);
+    }
+    if (personHours < capacityHours) {
+      return [
+        ...personEntries,
+        {
+          id: `shortage-${person.id || person.name}-${from}-${to}`,
+          employee: person.name,
+          department: person.department,
+          type: SHORTAGE_WORKLOAD_TYPE,
+          date: to,
+          hours: capacityHours - personHours,
+          break: false,
+          syntheticWorkload: true,
+        },
+      ];
+    }
+    return personEntries;
+  });
+}
+
+function workloadSegmentsForEntries(entries = [], mode, configuredTypes = []) {
+  const hoursBySegment = new Map();
+  entries.forEach((entry) => {
+    const segmentName = workloadSegmentName(entry, mode);
+    hoursBySegment.set(segmentName, (hoursBySegment.get(segmentName) || 0) + (Number(entry.hours) || 0));
+  });
+  return Array.from(hoursBySegment.entries())
+    .map(([typeName, hours]) => ({
+      typeName,
+      hours,
+      color: workTypeColor(typeName, configuredTypes),
+    }))
+    .filter((segment) => segment.hours > 0)
+    .sort((first, second) => {
+      const segmentOrder = compareWorkloadSegmentNames(first.typeName, second.typeName);
+      if (segmentOrder !== 0) return segmentOrder;
+      return second.hours - first.hours || first.typeName.localeCompare(second.typeName);
+    });
 }
 
 function sortedWorkTypeNames(entries = []) {
@@ -2608,7 +2977,9 @@ function App() {
   ), [stored, initialDepartmentItems]);
   const initialEmployees = useMemo(() => (
     syncEmployeesWithDepartmentLeads(
-      normalizeEmployeeDepartments(syncEmployeeTagsWithSettings(stored.employees || people, initialTagItems), initialDepartmentItems),
+      normalizeLegacyCompensationWorkTypes(
+        normalizeEmployeeDepartments(syncEmployeeTagsWithSettings(stored.employees || people, initialTagItems), initialDepartmentItems),
+      ),
       initialDepartmentItems,
     )
   ), [stored, initialTagItems, initialDepartmentItems]);
@@ -2627,9 +2998,9 @@ function App() {
   const [absenceRules, setAbsenceRules] = useState(stored.absenceRules || baseAbsenceRules);
   const [corrections, setCorrections] = useState(stored.corrections || correctionLog);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedWorkType, setSelectedWorkType] = useState(stored.selectedWorkType || '');
+  const [selectedWorkType, setSelectedWorkType] = useState(stored.selectedWorkType === LEGACY_WFH_WORK_TYPE ? '' : stored.selectedWorkType || '');
   const [tableFilters, setTableFilters] = useState(() => initialTableFilters(stored.tableFilters));
-  const [activeSession, setActiveSession] = useState(stored.activeSession || null);
+  const [activeSession, setActiveSession] = useState(() => normalizeLegacyActiveSession(stored.activeSession));
   const [wfh, setWfh] = useState(Boolean(stored.wfh));
   const [lunch, setLunch] = useState(Boolean(stored.lunch));
   const [correctionWindows, setCorrectionWindows] = useState(stored.correctionWindows || []);
@@ -2830,7 +3201,7 @@ function App() {
   }, [role, tableFilterOptions]);
 
   const configuredWorkTypes = useMemo(() => {
-    const base = workTypes.map((type) => [type.name, type]);
+    const base = ensureSystemWorkTypes(workTypes).map((type) => [type.name, type]);
     const configured = [...managementTypes, ...leadTypes].map((type) => [
       type.name,
       {
@@ -3077,7 +3448,7 @@ function App() {
       status: form.date === TODAY ? 'Approved' : 'Correction',
       source: 'Manual',
       break: form.type === 'Lunch break',
-      workFromHome: form.type === 'Work from home',
+      workFromHome: Boolean(form.workFromHome),
       note: form.note,
     };
 
@@ -3912,6 +4283,10 @@ function App() {
 
   function editWorkType(type) {
     if (!canManageSettings) return;
+    if (isSystemWorkType(type.name)) {
+      showToast('Undefined is a system work type and cannot be edited');
+      return;
+    }
     if (role === 'lead' && !departmentInScope(type.department, activeLeadDepartments)) return;
     setSettingsModal({ type: 'workType', item: type });
   }
@@ -3924,6 +4299,10 @@ function App() {
     const previousDepartment = form.originalDepartment;
     if (!name) {
       showToast('Work type name is required');
+      return;
+    }
+    if (isSystemWorkType(previousName) || isSystemWorkType(name)) {
+      showToast('Undefined is a system work type and cannot be changed');
       return;
     }
     const department = isLead ? primaryLeadDepartment : (form.department === 'All departments' ? form.department : resolveDepartmentName(form.department, departmentItems));
@@ -3961,6 +4340,10 @@ function App() {
 
   function deleteWorkType(type) {
     if (!canManageSettings) return;
+    if (isSystemWorkType(type.name)) {
+      showToast('Undefined is a system work type and cannot be deleted');
+      return;
+    }
     if (role === 'lead' && !departmentInScope(type.department, activeLeadDepartments)) return;
     const confirmed = window.confirm('Are you sure you want to delete this work type? Existing time records will stay unchanged.');
     if (!confirmed) return;
@@ -4889,23 +5272,324 @@ function documentationSlug(value) {
   return value.toLowerCase().replaceAll(' ', '-').replaceAll(',', '');
 }
 
-function renderMetricLine(metric) {
+function metricParts(metric) {
   const [label, ...formulaParts] = metric.split(' = ');
-  if (formulaParts.length === 0) {
-    return <p className="metric-note">{metric}</p>;
+  return {
+    label,
+    formula: formulaParts.join(' = '),
+    hasFormula: formulaParts.length > 0,
+  };
+}
+
+function metricLogicFor(metric, feature) {
+  const { label, formula, hasFormula } = metricParts(metric);
+  const normalized = `${label} ${formula}`.toLowerCase();
+  const sources = [
+    normalized.includes('entry') || normalized.includes('entries') ? 'entries' : null,
+    normalized.includes('employee') || normalized.includes('people') || normalized.includes('user') ? 'employees' : null,
+    normalized.includes('document') ? 'documents' : null,
+    normalized.includes('absence') || normalized.includes('vacation') || normalized.includes('sick') ? 'absenceRequests' : null,
+    normalized.includes('holiday') || normalized.includes('working days') ? 'absenceRules' : null,
+    normalized.includes('worktype') || normalized.includes('work type') || normalized.includes('paid') ? 'managementTypes / leadTypes' : null,
+    normalized.includes('cost') || normalized.includes('gross') || normalized.includes('hourly') || normalized.includes('project') ? 'employees.compensationRows' : null,
+    normalized.includes('correction') || normalized.includes('unlock') || normalized.includes('locked') ? 'corrections / correctionWindows' : null,
+    normalized.includes('filter') || normalized.includes('visible') || normalized.includes('scope') ? 'active role scope and filters' : null,
+  ].filter(Boolean);
+
+  const included = [];
+  const excluded = [];
+
+  if (normalized.includes('visible') || normalized.includes('filtered') || normalized.includes('scope')) {
+    included.push('records inside the active role scope and active filters');
+    excluded.push('records outside the active role scope or current filter set');
   }
+  if (normalized.includes('paid') || normalized.includes('cost')) {
+    included.push('paid work types and mapped compensation rows');
+    excluded.push('unpaid work types, break entries, and unknown work type mappings');
+  }
+  if (normalized.includes('vacation') || normalized.includes('sick') || normalized.includes('absence')) {
+    included.push('approved absence working days in the selected period');
+    excluded.push('pending, rejected, deleted, weekend, and holiday days where the formula excludes them');
+  }
+  if (normalized.includes('future')) {
+    excluded.push('future dates');
+  }
+
+  return {
+    label,
+    formula,
+    hasFormula,
+    sources: sources.length ? Array.from(new Set(sources)) : ['feature state listed in this documentation block'],
+    included: included.length ? included : ['records that pass the feature-specific validation and scope rules above'],
+    excluded: excluded.length ? excluded : ['records that fail role, date, status, or validation rules described above'],
+    stages: [
+      { title: 'Source records', text: sources.length ? Array.from(new Set(sources)).join(', ') : 'Feature state and localStorage records for this feature.' },
+      { title: 'Scope gate', text: 'Apply active role, visible people, date range, and feature filters before calculating.' },
+      { title: 'Transform', text: hasFormula ? formula : 'Use the documented rule as a count, status, or relationship check.' },
+      { title: 'UI output', text: `${label} in ${feature.name}.` },
+    ],
+  };
+}
+
+function renderMetricLine(metric, feature) {
+  const logic = metricLogicFor(metric, feature);
+  const { label, formula, hasFormula } = logic;
   return (
-    <div className="metric-equation" aria-label={`${label} formula`}>
-      <span>{label}</span>
-      <code>
-        <b>=</b>
-        {formulaParts.join(' = ')}
-      </code>
-    </div>
+    <details className="metric-map">
+      <summary>
+        <span className="metric-map-title">{label}</span>
+        <span className="metric-map-preview">{hasFormula ? formula : 'Open logic map'}</span>
+        <span className="metric-map-action">Open map</span>
+      </summary>
+      <div className="metric-map-body">
+        {hasFormula ? (
+          <div className="metric-equation" aria-label={`${label} formula`}>
+            <span>Formula</span>
+            <code>
+              <b>=</b>
+              {formula}
+            </code>
+          </div>
+        ) : (
+          <p className="metric-note">{metric}</p>
+        )}
+        <div className="logic-flow" aria-label={`${label} dependency flow`}>
+          {logic.stages.map((stage, index) => (
+            <div className="logic-stage" key={`${label}-${stage.title}`}>
+              <span>{String(index + 1).padStart(2, '0')}</span>
+              <strong>{stage.title}</strong>
+              <p>{stage.text}</p>
+            </div>
+          ))}
+        </div>
+        <div className="logic-detail-grid">
+          <div>
+            <strong>Required data</strong>
+            <div className="logic-chip-list">
+              {logic.sources.map((source) => <span key={source}>{source}</span>)}
+            </div>
+          </div>
+          <div>
+            <strong>Included</strong>
+            <ul>{logic.included.map((item) => <li key={item}>{item}</li>)}</ul>
+          </div>
+          <div>
+            <strong>Excluded</strong>
+            <ul>{logic.excluded.map((item) => <li key={item}>{item}</li>)}</ul>
+          </div>
+        </div>
+      </div>
+    </details>
+  );
+}
+
+function splitDataFields(required = '') {
+  return required
+    .replace(/^Current /, 'current ')
+    .split(/,\s+|\s+and\s+/)
+    .map((field) => field.trim().replace(/\.$/, ''))
+    .filter(Boolean);
+}
+
+function readableFieldName(field) {
+  return field
+    .replace(/^optional /, '')
+    .replace(/^current /, '')
+    .replace(/ when relevant$/, '')
+    .replace(/ based on document type$/, '')
+    .replace(/\s+/g, ' ');
+}
+
+function fieldLocation(entity, field) {
+  const name = readableFieldName(field);
+  const normalizedEntity = entity.toLowerCase();
+  const normalizedField = name.toLowerCase();
+
+  if (normalizedEntity === 'employees') {
+    if (normalizedField === 'id') return 'Internal employee record key in localStorage; used to keep the selected employee stable while filters change.';
+    if (normalizedField === 'name') return 'Employees table, employee record header, top-bar role preview, time-entry employee selectors, filters, Dashboard recent rows, Vacation requests, and Correction log.';
+    if (normalizedField === 'level') return 'Employees table Role level column, employee edit form, role scope rules, vacation approval scope, and Settings visibility.';
+    if (normalizedField === 'department') return 'Employees table, employee record, department filters, analytics grouping, time-entry scope, lead scope, tags, and workload charts.';
+    if (normalizedField === 'employment') return 'Employees table Employment type column, employee record Work setup, Rules matching, and Analytics employment-type filters.';
+    if (normalizedField.includes('contract')) return 'Employee record Contract and compliance section, employee alert popover, and compliance tasks.';
+    if (normalizedField.includes('contact')) return 'Employee record User info and contact details.';
+    if (normalizedField === 'tags') return 'Employees table filters, employee record tags, work type eligibility, and Analytics tag filters.';
+    if (normalizedField === 'compensationrows') return 'Employee record Compensation rows and Analytics cost allocation.';
+    if (normalizedField === 'vacationdaysavailable') return 'Employee record Annual vacation allowance and Vacation balance calculations.';
+    if (normalizedField.includes('archived')) return 'Archive / delete user tab and all active-user scope filters.';
+  }
+
+  if (normalizedEntity === 'entries') {
+    if (normalizedField === 'id') return 'Internal time-entry key used by edit and delete actions.';
+    if (normalizedField === 'employee') return 'Time Management table, manual entry modal, timer save flow, Dashboard recent rows, Analytics rows, and Correction log.';
+    if (normalizedField === 'department') return 'Time Management employee department pill, department filters, and Analytics department grouping.';
+    if (normalizedField === 'date') return 'Time Management filters, manual entry modal, Dashboard recent rows, correction windows, and Analytics period filters.';
+    if (normalizedField === 'type') return 'Work type column, timer selector, manual entry modal, paid-hour logic, cost mapping, and Analytics workload segments.';
+    if (['start', 'end'].includes(normalizedField)) return 'Time Management table, manual entry modal, timer output, and hour calculation.';
+    if (normalizedField === 'hours') return 'Metric cards, Dashboard, Time Management totals, Analytics workload, cost allocation, and trend charts.';
+    if (normalizedField === 'status') return 'Time-entry row state and audit context.';
+    if (normalizedField === 'source') return 'Time Management table source label and distinction between Manual, Tracked, and Tracked WFH.';
+    if (normalizedField.includes('break') || normalizedField.includes('workfromhome')) return 'Timer toggles, manual entry flags, paid-hour exclusion, and entry row context.';
+  }
+
+  if (normalizedEntity === 'departmentitems') {
+    if (normalizedField === 'name') return 'Employees > Departments, employee department selectors, work type department scope, table filters, and Analytics department rows.';
+    if (normalizedField.includes('lead')) return 'Departments lead assignment, Team Lead role scope, correction review scope, and vacation approval scope.';
+  }
+
+  if (normalizedEntity.includes('managementtypes') || normalizedEntity.includes('leadtypes')) {
+    if (normalizedField === 'name') return 'Settings work type list, timer selector, manual entry selector, entry rows, and Analytics workload labels.';
+    if (normalizedField === 'department') return 'Settings work type department scope and employee eligibility.';
+    if (normalizedField === 'paid') return 'Settings paid/unpaid badge, Paid hours metric, and cost inclusion.';
+    if (normalizedField === 'color') return 'Settings color swatch and Analytics chart colors.';
+    if (normalizedField.includes('tags')) return 'Settings tag restrictions and employee work type eligibility.';
+  }
+
+  if (normalizedEntity === 'tagitems') {
+    if (normalizedField === 'name') return 'Employees > Tags, employee tag selector, employee filters, and Analytics tag filters.';
+    if (normalizedField === 'department') return 'Tag department grouping and Team Lead tag management scope.';
+    if (normalizedField === 'worktype') return 'Tag to work type link that controls which tagged employees can use restricted work types.';
+  }
+
+  if (normalizedEntity === 'documents') {
+    if (normalizedField === 'employee') return 'Employee record Documents tab, document counts, compliance checks, and employee rename synchronization.';
+    if (['title', 'type', 'status'].includes(normalizedField)) return 'Employee document list, document upload form, document type validation, and document compliance context.';
+    if (normalizedField.includes('date')) return 'Document upload form date fields and document type rule validation.';
+    if (normalizedField.includes('file')) return 'Employee document upload zone and localStorage file metadata/data URL.';
+  }
+
+  if (normalizedEntity === 'absencerequests') {
+    if (normalizedField === 'employee') return 'Vacation request forms, Overview panels, approval queues, Analytics absence entries, and employee rename synchronization.';
+    if (normalizedField === 'type') return 'Vacation or Sick leave selector, request cards, balance logic, and Analytics absence segments.';
+    if (normalizedField.includes('date')) return 'Vacation form, timeline placement, working-day calculation, approval scope, and Analytics period inclusion.';
+    if (normalizedField === 'status') return 'Request cards, approval queues, balance inclusion, and Analytics inclusion rules.';
+    if (normalizedField.includes('meta')) return 'Pending edit/delete workflow and link back to the original approved request.';
+  }
+
+  if (normalizedEntity === 'absencerules') {
+    if (normalizedField === 'type') return 'Vacation Calendar rules list, timeline shading, and working-day exclusion logic.';
+    if (normalizedField.includes('date')) return 'Calendar rule form, timeline markers, holiday exclusion, and risk warning periods.';
+    if (normalizedField === 'name') return 'Calendar rule label shown in Vacation warnings and timeline context.';
+  }
+
+  if (normalizedEntity.includes('corrections')) {
+    if (normalizedField === 'employee') return 'Correction request list, active unlocks, correction log, and operations edit permission.';
+    if (normalizedField.includes('date') || normalizedField.includes('range')) return 'Correction request form, manual unlock form, active window display, and past-entry edit gate.';
+    if (normalizedField.includes('state') || normalizedField.includes('status')) return 'Correction request cards, active unlock state, correction log, and lock expiry state.';
+  }
+
+  return `${entity} localStorage record and the feature views that read this dataset.`;
+}
+
+function fieldDisplay(entity, field) {
+  const name = readableFieldName(field);
+  const normalized = name.toLowerCase();
+  if (normalized === 'id') return 'Does not display directly; it identifies records for edit, delete, selection, and synchronization.';
+  if (normalized.includes('date')) return 'Displays as a date, date range, timeline position, expiry, or period boundary depending on the feature.';
+  if (normalized.includes('status') || normalized.includes('state')) return 'Displays as a status badge, request state, row state, or audit state.';
+  if (normalized.includes('color')) return 'Displays as chart color, swatch, or colored segment.';
+  if (normalized.includes('paid')) return 'Displays as Paid or Unpaid and controls whether hours enter paid-hour and cost metrics.';
+  if (normalized.includes('tags')) return 'Displays as tag chips and filter values.';
+  if (normalized.includes('compensation')) return 'Displays as compensation rows and feeds cost formulas rather than a single table value.';
+  if (normalized.includes('hours')) return 'Displays as hours, totals, chart values, and cost-per-hour denominators.';
+  return `Displays or configures the ${name} value wherever ${entity} records are shown, filtered, edited, or calculated.`;
+}
+
+function fieldDependency(entity, field, links) {
+  const name = readableFieldName(field);
+  const normalized = `${entity} ${name}`.toLowerCase();
+  if (normalized.includes('employee') || normalized.includes('name')) return 'Must stay synchronized with employee-linked records because this prototype uses name-based local links.';
+  if (normalized.includes('department')) return 'Feeds role scope, filters, work type eligibility, tag grouping, and department analytics.';
+  if (normalized.includes('type') || normalized.includes('worktype')) return 'Feeds selectors, eligibility, paid/unpaid logic, chart labels, and cost mapping.';
+  if (normalized.includes('date')) return 'Feeds period filters, working-day calculations, expiry rules, and timeline placement.';
+  if (normalized.includes('compensation') || normalized.includes('paid') || normalized.includes('cost')) return 'Feeds paid-hour inclusion, compensation row matching, and allocated cost formulas.';
+  if (normalized.includes('status') || normalized.includes('state')) return 'Feeds inclusion/exclusion rules, approvals, empty states, and audit visibility.';
+  return links;
+}
+
+function DataFieldMap({ entity, field, links }) {
+  const name = readableFieldName(field);
+  return (
+    <details className="field-map-card">
+      <summary>
+        <span>{name}</span>
+        <small>{entity}.{name}</small>
+        <b>Open field</b>
+      </summary>
+      <div className="field-map-body">
+        <div>
+          <strong>Where it is located</strong>
+          <p>{fieldLocation(entity, name)}</p>
+        </div>
+        <div>
+          <strong>What it displays</strong>
+          <p>{fieldDisplay(entity, name)}</p>
+        </div>
+        <div>
+          <strong>Logic dependency</strong>
+          <p>{fieldDependency(entity, name, links)}</p>
+        </div>
+        <div>
+          <strong>Validation and scope</strong>
+          <p>Included only when the parent {entity} record passes the role, date, status, and validation rules documented for this feature.</p>
+        </div>
+      </div>
+    </details>
+  );
+}
+
+function DataDependencyCard({ item }) {
+  const fields = splitDataFields(item.required);
+  return (
+    <details className="data-dependency-card">
+      <summary>
+        <span className="data-entity-name">{item.entity}</span>
+        <span className="data-entity-source">{fields.length} individual data points · {item.source}</span>
+        <span className="metric-map-action">Open map</span>
+      </summary>
+      <div className="data-dependency-body">
+        <div className="data-entity-context">
+          <div>
+            <strong>Entity source</strong>
+            <p>{item.source}</p>
+          </div>
+          <div>
+            <strong>Entity links</strong>
+            <p>{item.links}</p>
+          </div>
+        </div>
+        <div className="field-map-grid" aria-label={`${item.entity} individual data point maps`}>
+          {fields.map((field) => (
+            <DataFieldMap entity={item.entity} field={field} links={item.links} key={`${item.entity}-${field}`} />
+          ))}
+        </div>
+      </div>
+    </details>
+  );
+}
+
+function DependencyTree({ items }) {
+  if (!items?.length) return null;
+  return (
+    <ul className="dependency-tree">
+      {items.map((item) => (
+        <li key={`${item.node}-${item.detail}`}>
+          <div className="dependency-node">
+            <strong>{item.node}</strong>
+            <p>{item.detail}</p>
+          </div>
+          <DependencyTree items={item.children} />
+        </li>
+      ))}
+    </ul>
   );
 }
 
 function DocumentationView({ sections }) {
+  function scrollToDocumentationSection(sectionTitle) {
+    document.getElementById(documentationSlug(sectionTitle))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   return (
     <div className="documentation-page">
       <section className="documentation-hero">
@@ -4924,7 +5608,7 @@ function DocumentationView({ sections }) {
       <div className="documentation-layout">
         <aside className="documentation-index" aria-label="Documentation sections">
           {sections.map((section) => (
-            <a key={section.title} href={`#${documentationSlug(section.title)}`}>{section.title}</a>
+            <button key={section.title} type="button" onClick={() => scrollToDocumentationSection(section.title)}>{section.title}</button>
           ))}
         </aside>
 
@@ -4976,22 +5660,35 @@ function DocumentationView({ sections }) {
                         <strong>Data fields</strong>
                         <div className="data-schema-list">
                           {feature.dataFields.map((item) => (
-                            <div className="data-schema-row" key={item.entity}>
-                              <h4>{item.entity}</h4>
-                              <dl>
-                                <div>
-                                  <dt>Source</dt>
-                                  <dd>{item.source}</dd>
-                                </div>
-                                <div>
-                                  <dt>Required data</dt>
-                                  <dd>{item.required}</dd>
-                                </div>
-                                <div>
-                                  <dt>Links</dt>
-                                  <dd>{item.links}</dd>
-                                </div>
-                              </dl>
+                            <DataDependencyCard item={item} key={item.entity} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {feature.dependencyTree?.length > 0 && (
+                      <div className="documentation-block">
+                        <strong>Dependency tree</strong>
+                        <DependencyTree items={feature.dependencyTree} />
+                      </div>
+                    )}
+                    {feature.relationshipMatrix?.length > 0 && (
+                      <div className="documentation-block">
+                        <strong>Relationship matrix</strong>
+                        <div className="relationship-matrix" role="table" aria-label={`${feature.name} relationship matrix`}>
+                          <div className="relationship-row relationship-head" role="row">
+                            <span role="columnheader">Area</span>
+                            <span role="columnheader">Source data</span>
+                            <span role="columnheader">Included data</span>
+                            <span role="columnheader">Excluded data</span>
+                            <span role="columnheader">Output</span>
+                          </div>
+                          {feature.relationshipMatrix.map((item) => (
+                            <div className="relationship-row" role="row" key={item.area}>
+                              <span role="cell"><b>{item.area}</b></span>
+                              <span role="cell">{item.uses}</span>
+                              <span role="cell">{item.includes}</span>
+                              <span role="cell">{item.excludes}</span>
+                              <span role="cell">{item.output}</span>
                             </div>
                           ))}
                         </div>
@@ -5002,7 +5699,7 @@ function DocumentationView({ sections }) {
                         <strong>Metrics and formulas</strong>
                         <div className="metric-equation-list">
                           {feature.metrics.map((metric) => (
-                            <div key={metric}>{renderMetricLine(metric)}</div>
+                            <div key={metric}>{renderMetricLine(metric, feature)}</div>
                           ))}
                         </div>
                       </div>
@@ -7370,8 +8067,10 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
     departments: [],
     tags: [],
     employmentTypes: [],
+    compensationTypes: [],
     people: [],
   });
+  const [workloadMode, setWorkloadMode] = useState('general');
   const normalizedFilters = useMemo(() => {
     if (filters.from && filters.to && filters.from > filters.to) {
       return { from: filters.to, to: filters.from, reversed: true };
@@ -7382,6 +8081,7 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
     departments: sortedUnique(people.map((person) => person.department)).map((name) => ({ name })),
     tags: sortedUnique(people.flatMap((person) => person.tags || [])).map((name) => ({ name })),
     employmentTypes: sortedUnique(people.map((person) => person.employment)).map((name) => ({ name })),
+    compensationTypes: payTypeOptions,
     people: people
       .map((person) => ({ name: person.name, meta: person.department }))
       .sort((first, second) => first.name.localeCompare(second.name)),
@@ -7390,8 +8090,9 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
     (filters.departments.length === 0 || filters.departments.includes(person.department))
     && (filters.tags.length === 0 || (person.tags || []).some((tagName) => filters.tags.includes(tagName)))
     && (filters.employmentTypes.length === 0 || filters.employmentTypes.includes(person.employment))
+    && (filters.compensationTypes.length === 0 || employeeCompensationRows(person).some((row) => filters.compensationTypes.includes(row.payType)))
     && (filters.people.length === 0 || filters.people.includes(person.name))
-  )), [people, filters.departments, filters.tags, filters.employmentTypes, filters.people]);
+  )), [people, filters.departments, filters.tags, filters.employmentTypes, filters.compensationTypes, filters.people]);
   const filteredPeopleNames = useMemo(() => new Set(filteredPeople.map((person) => person.name)), [filteredPeople]);
   const periodEntries = useMemo(() => entries.filter((entry) => {
     const afterFrom = !normalizedFilters.from || entry.date >= normalizedFilters.from;
@@ -7404,9 +8105,15 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
   const analyticsEntries = useMemo(() => (
     [...periodEntries, ...periodAbsenceEntries]
   ), [periodEntries, periodAbsenceEntries]);
+  const workloadEntries = useMemo(() => (
+    buildWorkloadEntries(analyticsEntries, filteredPeople, absenceRules, normalizedFilters.from, normalizedFilters.to)
+  ), [analyticsEntries, filteredPeople, absenceRules, normalizedFilters.from, normalizedFilters.to]);
   const peopleByName = useMemo(() => new Map(filteredPeople.map((person) => [person.name, person])), [filteredPeople]);
-  const visibleTypeNames = useMemo(() => sortedWorkTypeNames(analyticsEntries), [analyticsEntries]);
+  const workloadTypeNames = useMemo(() => (
+    Array.from(new Set(workloadEntries.map((entry) => workloadSegmentName(entry, workloadMode)))).filter(Boolean).sort(compareWorkloadSegmentNames)
+  ), [workloadEntries, workloadMode]);
   const totalHours = analyticsEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
+  const workloadTotalHours = workloadEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
   const absenceHours = periodAbsenceEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
   const analyticsPeriodLabel = normalizedFilters.from && normalizedFilters.to
     ? `${displayDate(normalizedFilters.from)} to ${displayDate(normalizedFilters.to)}`
@@ -7438,45 +8145,38 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
     groupForEntry: (entry) => entry.employee,
   });
   const userWorkload = filteredPeople.map((person) => {
-    const personEntries = analyticsEntries.filter((entry) => entry.employee === person.name);
+    const personEntries = workloadEntries.filter((entry) => entry.employee === person.name);
+    const personAnalyticsEntries = analyticsEntries.filter((entry) => entry.employee === person.name);
     const hours = personEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
-    const cost = employeeRuleCost(person, employmentRules, personEntries, configuredWorkTypes);
-    const segments = visibleTypeNames.map((typeName) => ({
-      typeName,
-      hours: personEntries.filter((entry) => entry.type === typeName).reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0),
-      color: workTypeColor(typeName, configuredWorkTypes),
-    })).filter((segment) => segment.hours > 0);
+    const cost = employeeRuleCost(person, employmentRules, personAnalyticsEntries, configuredWorkTypes);
+    const segments = workloadSegmentsForEntries(personEntries, workloadMode, configuredWorkTypes);
     return { label: person.name, meta: person.department, hours, cost, segments };
   }).filter((row) => row.hours > 0).sort((first, second) => second.hours - first.hours);
   const departmentWorkload = departmentNames.map((department) => {
     const departmentPeople = new Set(filteredPeople.filter((person) => person.department === department).map((person) => person.name));
-    const departmentEntries = analyticsEntries.filter((entry) => departmentPeople.has(entry.employee));
+    const departmentEntries = workloadEntries.filter((entry) => departmentPeople.has(entry.employee));
+    const departmentAnalyticsEntries = analyticsEntries.filter((entry) => departmentPeople.has(entry.employee));
     const hours = departmentEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
     const cost = filteredPeople
       .filter((person) => person.department === department)
-      .reduce((sum, person) => sum + employeeRuleCost(person, employmentRules, departmentEntries, configuredWorkTypes), 0);
-    const segments = visibleTypeNames.map((typeName) => ({
-      typeName,
-      hours: departmentEntries.filter((entry) => entry.type === typeName).reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0),
-      color: workTypeColor(typeName, configuredWorkTypes),
-    })).filter((segment) => segment.hours > 0);
+      .reduce((sum, person) => sum + employeeRuleCost(person, employmentRules, departmentAnalyticsEntries, configuredWorkTypes), 0);
+    const segments = workloadSegmentsForEntries(departmentEntries, workloadMode, configuredWorkTypes);
     return { label: department, meta: `${departmentPeople.size} user${departmentPeople.size === 1 ? '' : 's'}`, hours, cost, segments };
   }).filter((row) => row.hours > 0).sort((first, second) => second.hours - first.hours);
   const payTypeWorkloads = payTypeOptions.map((payType) => {
-    const payTypeEntries = analyticsEntries.filter((entry) => {
+    const payTypeEntries = workloadEntries.filter((entry) => {
       const person = peopleByName.get(entry.employee);
       return person && compensationRowForEntry(person, entry)?.payType === payType.name;
     });
-    const payTypeTypeNames = sortedWorkTypeNames(payTypeEntries);
     const rows = filteredPeople.map((person) => {
       const personEntries = payTypeEntries.filter((entry) => entry.employee === person.name);
+      const personAnalyticsEntries = analyticsEntries.filter((entry) => {
+        const entryPerson = peopleByName.get(entry.employee);
+        return entry.employee === person.name && entryPerson && compensationRowForEntry(entryPerson, entry)?.payType === payType.name;
+      });
       const hours = personEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
-      const cost = employeeRuleCost(person, employmentRules, personEntries, configuredWorkTypes);
-      const segments = payTypeTypeNames.map((typeName) => ({
-        typeName,
-        hours: personEntries.filter((entry) => entry.type === typeName).reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0),
-        color: workTypeColor(typeName, configuredWorkTypes),
-      })).filter((segment) => segment.hours > 0);
+      const cost = employeeRuleCost(person, employmentRules, personAnalyticsEntries, configuredWorkTypes);
+      const segments = workloadSegmentsForEntries(personEntries, workloadMode, configuredWorkTypes);
       return { label: person.name, meta: person.department, hours, cost, segments };
     }).filter((row) => row.hours > 0).sort((first, second) => second.hours - first.hours);
     return {
@@ -7485,16 +8185,11 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
       rows,
     };
   });
-  const flowRows = visibleTypeNames.map((typeName) => {
-    const typeEntries = analyticsEntries.filter((entry) => entry.type === typeName);
-    const hours = typeEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
-    return {
-      typeName,
-      hours,
-      share: totalHours ? (hours / totalHours) * 100 : 0,
-      color: workTypeColor(typeName, configuredWorkTypes),
-    };
-  }).filter((row) => row.hours > 0).sort((first, second) => second.hours - first.hours);
+  const flowRows = workloadSegmentsForEntries(workloadEntries, workloadMode, configuredWorkTypes)
+    .map((segment) => ({
+      ...segment,
+      share: workloadTotalHours ? (segment.hours / workloadTotalHours) * 100 : 0,
+    }));
   return (
     <div className="workspace analytics-workspace">
       <section className="primary-panel">
@@ -7544,6 +8239,7 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
               departments: [],
               tags: [],
               employmentTypes: [],
+              compensationTypes: [],
               people: [],
             }))}
           >
@@ -7563,6 +8259,10 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
             <span>Employment type</span>
             <MultiSelectDropdown values={filters.employmentTypes} options={filterOptions.employmentTypes} placeholder="All employment types" onChange={(values) => setFilters((current) => ({ ...current, employmentTypes: values }))} />
           </label>
+          <label className="filter-field">
+            <span>Compensation type</span>
+            <MultiSelectDropdown values={filters.compensationTypes} options={filterOptions.compensationTypes} placeholder="All compensation types" onChange={(values) => setFilters((current) => ({ ...current, compensationTypes: values }))} />
+          </label>
           <label className="filter-field person-filter">
             <span>People</span>
             <MultiSelectDropdown values={filters.people} options={filterOptions.people} placeholder="All people" onChange={(values) => setFilters((current) => ({ ...current, people: values }))} />
@@ -7571,22 +8271,38 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
       </section>
 
       <section className="primary-panel analytics-chart-panel">
-        <ChartHeading kicker={visibleTypeNames.join(' / ') || 'No work types'} title="Workload hours by user" />
+        <ChartHeading
+          kicker={workloadTypeNames.join(' / ') || 'No workload'}
+          title="Workload hours by user"
+          actions={<WorkloadModeToggle value={workloadMode} onChange={setWorkloadMode} />}
+        />
         <StackedWorkloadChart rows={userWorkload} />
       </section>
 
       <section className="primary-panel analytics-chart-panel">
-        <ChartHeading kicker={activePlatform.stack} title="Workload hours by department" />
+        <ChartHeading
+          kicker={activePlatform.stack}
+          title="Workload hours by department"
+          actions={<WorkloadModeToggle value={workloadMode} onChange={setWorkloadMode} />}
+        />
         <StackedWorkloadChart rows={departmentWorkload} />
       </section>
 
       <section className="primary-panel analytics-chart-panel">
-        <ChartHeading kicker="Total scope" title="Workload flow" />
-        <WorkloadFlowChart rows={flowRows} totalHours={totalHours} />
+        <ChartHeading
+          kicker="Total scope"
+          title="Workload flow"
+          actions={<WorkloadModeToggle value={workloadMode} onChange={setWorkloadMode} />}
+        />
+        <WorkloadFlowChart rows={flowRows} totalHours={workloadTotalHours} />
       </section>
 
       <section className="primary-panel analytics-paytype-panel">
-        <ChartHeading kicker="Monthly salary / Project work / Hourly rate" title="Workload by pay type" />
+        <ChartHeading
+          kicker="Monthly salary / Project work / Hourly rate"
+          title="Workload by pay type"
+          actions={<WorkloadModeToggle value={workloadMode} onChange={setWorkloadMode} />}
+        />
         <div className="analytics-paytype-grid">
           {payTypeWorkloads.map((group) => (
             <article className="analytics-paytype-section" key={group.payType}>
@@ -7613,13 +8329,27 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
   );
 }
 
-function ChartHeading({ kicker, title }) {
+function ChartHeading({ kicker, title, actions }) {
   return (
     <div className="panel-heading compact">
       <div>
         <span className="eyebrow">{kicker}</span>
         <h2>{title}</h2>
       </div>
+      {actions}
+    </div>
+  );
+}
+
+function WorkloadModeToggle({ value, onChange }) {
+  return (
+    <div className="analytics-mode-toggle" aria-label="Workload detail level">
+      <button type="button" className={cx(value === 'general' && 'active')} onClick={() => onChange('general')}>
+        General
+      </button>
+      <button type="button" className={cx(value === 'detailed' && 'active')} onClick={() => onChange('detailed')}>
+        Detailed
+      </button>
     </div>
   );
 }
@@ -7659,7 +8389,7 @@ const sharedChartPlugins = {
 
 function StackedWorkloadChart({ rows, emptyMessage = 'No time entries match the selected analytics period.' }) {
   if (rows.length === 0) return <span className="empty-state">{emptyMessage}</span>;
-  const typeNames = Array.from(new Set(rows.flatMap((row) => row.segments.map((segment) => segment.typeName))));
+  const typeNames = Array.from(new Set(rows.flatMap((row) => row.segments.map((segment) => segment.typeName)))).sort(compareWorkloadSegmentNames);
   const colorByType = new Map(rows.flatMap((row) => row.segments.map((segment) => [segment.typeName, segment.color])));
   const data = {
     labels: rows.map((row) => row.label),
@@ -7667,12 +8397,11 @@ function StackedWorkloadChart({ rows, emptyMessage = 'No time entries match the 
       label: typeName,
       data: rows.map((row) => row.segments.find((segment) => segment.typeName === typeName)?.hours || 0),
       backgroundColor: colorByType.get(typeName) || '#2f65dc',
-      borderColor: '#ffffff',
-      borderWidth: 1,
-      borderRadius: 7,
+      borderWidth: 0,
+      borderRadius: 2,
       borderSkipped: false,
-      barPercentage: 0.72,
-      categoryPercentage: 0.74,
+      barPercentage: 0.66,
+      categoryPercentage: 0.82,
     })),
   };
   const rowDetails = new Map(rows.map((row) => [row.label, row]));
@@ -7685,7 +8414,7 @@ function StackedWorkloadChart({ rows, emptyMessage = 'No time entries match the 
       x: {
         stacked: true,
         beginAtZero: true,
-        grid: { color: '#eef2f6', drawBorder: false },
+        grid: { color: '#eef2f6', drawBorder: false, borderDash: [3, 4] },
         border: { display: false },
         ticks: {
           color: '#8b96a4',
@@ -7737,12 +8466,11 @@ function WorkloadFlowChart({ rows, totalHours }) {
         label: 'Hours',
         data: [totalHours, ...rows.map((row) => row.hours)],
         backgroundColor: ['#718096', ...rows.map((row) => row.color)],
-        borderColor: '#ffffff',
-        borderWidth: 1,
-        borderRadius: 8,
+        borderWidth: 0,
+        borderRadius: 3,
         borderSkipped: false,
-        barPercentage: 0.62,
-        categoryPercentage: 0.68,
+        barPercentage: 0.58,
+        categoryPercentage: 0.74,
       },
     ],
   };
@@ -7764,7 +8492,7 @@ function WorkloadFlowChart({ rows, totalHours }) {
       },
       y: {
         beginAtZero: true,
-        grid: { color: '#eef2f6', drawBorder: false },
+        grid: { color: '#eef2f6', drawBorder: false, borderDash: [3, 4] },
         border: { display: false },
         ticks: {
           color: '#8b96a4',
@@ -7897,8 +8625,8 @@ function SettingsView({
                 <span>{type.department}</span>
               </div>
               <em className={type.paid ? 'paid' : 'break'}>{type.paid ? 'Paid' : 'Unpaid'}</em>
-              <small className="worktype-tags">{type.tags?.length > 0 ? `Tags: ${type.tags.join(', ')}` : 'Tags: All'}</small>
-              {canManageSettings && (
+              <small className="worktype-tags">{isSystemWorkType(type.name) ? 'System category' : type.tags?.length > 0 ? `Tags: ${type.tags.join(', ')}` : 'Tags: All'}</small>
+              {canManageSettings && !isSystemWorkType(type.name) && (
                 <span className="settings-row-actions">
                   <button className="icon-btn table-action" onClick={() => onEditWorkType(type)} aria-label={`Edit ${type.name}`}><Pencil size={16} /></button>
                   <button className="icon-btn table-action danger" onClick={() => onDeleteWorkType(type)} aria-label={`Delete ${type.name}`}><Trash2 size={16} /></button>
@@ -8517,7 +9245,7 @@ function optionColor(option, index) {
     Testing: '#5b8df6',
     Meeting: '#6f7f92',
     'Lunch break': '#f4b740',
-    'Work from home': '#28a35a',
+    Undefined: '#9aa7b5',
   };
   return byName[option.name] || palette[index % palette.length];
 }

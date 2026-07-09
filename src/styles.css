@@ -834,7 +834,7 @@
   }
 
   .analytics-filter-grid {
-    @apply grid grid-cols-[repeat(4,minmax(0,1fr))] gap-3;
+    @apply grid grid-cols-[repeat(5,minmax(0,1fr))] gap-3;
   }
 
   .analytics-filter-grid .filter-field {
@@ -864,7 +864,7 @@
 
   .chartjs-shell {
     height: var(--chart-height, 320px);
-    @apply w-full overflow-x-auto rounded-[12px] border border-line bg-white px-3 py-4;
+    @apply w-full overflow-x-auto rounded-lg bg-white px-3 py-3;
   }
 
   .chartjs-shell canvas {
@@ -877,6 +877,18 @@
 
   .workload-flow-chart {
     @apply min-h-[300px];
+  }
+
+  .analytics-mode-toggle {
+    @apply inline-flex h-9 items-center rounded-lg border border-line bg-[#f8fafc] p-1;
+  }
+
+  .analytics-mode-toggle button {
+    @apply h-7 rounded-md bg-transparent px-3 text-[12px] font-black text-[#7b8797];
+  }
+
+  .analytics-mode-toggle button.active {
+    @apply bg-white text-[#263241] shadow-[0_1px_4px_rgba(15,23,42,0.08)];
   }
 
   .analytics-paytype-grid {
@@ -1459,11 +1471,12 @@
     @apply sticky top-[86px] grid max-h-[calc(100vh-112px)] content-start gap-2 self-start rounded-[12px] border border-line bg-white p-3 shadow-panel;
   }
 
-  .documentation-index a {
-    @apply rounded-[8px] border border-transparent px-3 py-2.5 text-sm font-black text-[#657286] no-underline transition-colors duration-150;
+  .documentation-index button {
+    @apply cursor-pointer rounded-[8px] border border-transparent bg-transparent px-3 py-2.5 text-left text-sm font-black text-[#657286] no-underline transition-colors duration-150;
   }
 
-  .documentation-index a:hover {
+  .documentation-index button:hover,
+  .documentation-index button:focus-visible {
     @apply border-[#cfe9da] bg-[#eef9f3] text-green-dark;
   }
 
@@ -1574,6 +1587,198 @@
     @apply grid gap-3;
   }
 
+  .data-dependency-card,
+  .metric-map {
+    @apply overflow-hidden rounded-[10px] border border-[#dce5ec] bg-white;
+  }
+
+  .data-dependency-card summary,
+  .metric-map summary {
+    @apply grid cursor-pointer list-none grid-cols-[minmax(170px,0.28fr)_minmax(260px,1fr)_auto] items-center gap-3 px-3.5 py-3;
+  }
+
+  .data-dependency-card summary::-webkit-details-marker,
+  .metric-map summary::-webkit-details-marker {
+    @apply hidden;
+  }
+
+  .data-dependency-card[open] summary,
+  .metric-map[open] summary {
+    @apply border-b border-[#e6edf2] bg-[#f7faf9];
+  }
+
+  .data-entity-name,
+  .metric-map-title {
+    @apply text-sm font-black leading-[1.25] text-[#263140];
+  }
+
+  .data-entity-source,
+  .metric-map-preview {
+    @apply min-w-0 truncate text-sm font-bold leading-[1.45] text-[#657286];
+  }
+
+  .metric-map-action {
+    @apply inline-flex min-h-7 items-center rounded-full bg-[#e9f7ef] px-3 text-[11px] font-black uppercase tracking-[0.08em] text-green-dark;
+  }
+
+  .data-dependency-card[open] .metric-map-action,
+  .metric-map[open] .metric-map-action {
+    @apply bg-[#263140] text-white;
+  }
+
+  .data-dependency-body,
+  .metric-map-body {
+    @apply grid gap-3 p-3.5;
+  }
+
+  .data-entity-context {
+    @apply grid grid-cols-[minmax(180px,0.42fr)_minmax(260px,1fr)] gap-3;
+  }
+
+  .data-entity-context > div {
+    @apply rounded-[10px] border border-[#dfe7ee] bg-[#fbfcfd] p-3;
+  }
+
+  .data-entity-context strong {
+    @apply mb-1 block text-xs font-black uppercase tracking-[0.08em] text-[#758292];
+  }
+
+  .data-entity-context p {
+    @apply text-sm font-bold leading-[1.55] text-[#526071];
+  }
+
+  .field-map-grid {
+    @apply grid gap-2;
+  }
+
+  .field-map-card {
+    @apply overflow-hidden rounded-[10px] border border-[#dce5ec] bg-[#fbfcfd];
+  }
+
+  .field-map-card summary {
+    @apply grid cursor-pointer list-none grid-cols-[minmax(150px,0.26fr)_minmax(220px,1fr)_auto] items-center gap-3 px-3 py-2.5;
+  }
+
+  .field-map-card summary::-webkit-details-marker {
+    @apply hidden;
+  }
+
+  .field-map-card[open] summary {
+    @apply border-b border-[#e6edf2] bg-white;
+  }
+
+  .field-map-card summary span {
+    @apply text-sm font-black text-[#263140];
+  }
+
+  .field-map-card summary small {
+    @apply min-w-0 truncate text-xs font-bold text-[#7b8797];
+  }
+
+  .field-map-card summary b {
+    @apply inline-flex min-h-6 items-center rounded-full bg-[#eef3f7] px-2.5 text-[10px] font-black uppercase tracking-[0.08em] text-[#657286];
+  }
+
+  .field-map-card[open] summary b {
+    @apply bg-[#263140] text-white;
+  }
+
+  .field-map-body {
+    @apply grid grid-cols-4 gap-2 p-2.5;
+  }
+
+  .field-map-body > div {
+    @apply rounded-[9px] border border-[#e2e9ef] bg-white p-3;
+  }
+
+  .field-map-body strong {
+    @apply mb-1.5 block text-[10px] font-black uppercase tracking-[0.1em] text-[#7f8c9b];
+  }
+
+  .field-map-body p {
+    @apply text-sm font-bold leading-[1.5] text-[#526071];
+  }
+
+  .data-flow-strip,
+  .logic-flow {
+    @apply grid gap-3;
+  }
+
+  .data-flow-strip {
+    @apply grid-cols-3;
+  }
+
+  .logic-flow {
+    @apply grid-cols-4;
+  }
+
+  .data-flow-strip > div,
+  .logic-stage {
+    @apply relative rounded-[10px] border border-[#dfe7ee] bg-[#fbfcfd] p-3;
+  }
+
+  .data-flow-strip > div:not(:last-child)::after,
+  .logic-stage:not(:last-child)::after {
+    content: "";
+    @apply absolute right-[-18px] top-1/2 z-10 h-px w-[18px] bg-[#b9c8d4];
+  }
+
+  .data-flow-strip span,
+  .logic-stage span {
+    @apply mb-2 inline-grid h-6 min-w-6 place-items-center rounded-full bg-[#263140] px-1 text-[10px] font-black text-white;
+  }
+
+  .data-flow-strip strong,
+  .logic-stage strong,
+  .logic-detail-grid strong {
+    @apply mb-1 block text-xs font-black uppercase tracking-[0.08em] text-[#758292];
+  }
+
+  .data-flow-strip p,
+  .logic-stage p {
+    @apply text-sm font-bold leading-[1.55] text-[#526071];
+  }
+
+  .data-dependency-body dl {
+    @apply m-0 grid gap-2;
+  }
+
+  .data-dependency-body dl div {
+    @apply grid grid-cols-[126px_minmax(0,1fr)] gap-3 rounded-[8px] bg-[#f7f9fa] px-3 py-2;
+  }
+
+  .data-dependency-body dt {
+    @apply text-[11px] font-black uppercase tracking-[0.08em] text-[#8d99a7];
+  }
+
+  .data-dependency-body dd {
+    @apply m-0 text-sm font-bold leading-[1.55] text-[#526071];
+  }
+
+  .logic-detail-grid {
+    @apply grid grid-cols-3 gap-3;
+  }
+
+  .logic-detail-grid > div {
+    @apply rounded-[10px] border border-[#e1e8ee] bg-[#fbfcfd] p-3;
+  }
+
+  .logic-detail-grid ul {
+    @apply m-0 grid gap-1.5 pl-4;
+  }
+
+  .logic-detail-grid li {
+    @apply text-sm font-bold leading-[1.5] text-[#526071];
+  }
+
+  .logic-chip-list {
+    @apply flex flex-wrap gap-1.5;
+  }
+
+  .logic-chip-list span {
+    @apply inline-flex min-h-7 items-center rounded-full border border-[#dce5ec] bg-white px-2.5 text-xs font-black text-[#526071];
+  }
+
   .data-schema-row {
     @apply rounded-[10px] border border-[#e1e8ee] bg-white p-3.5;
   }
@@ -1598,6 +1803,67 @@
     @apply m-0 text-sm font-bold leading-[1.55] text-[#526071];
   }
 
+  .dependency-tree {
+    @apply m-0 grid list-none gap-3 pl-0;
+  }
+
+  .dependency-tree .dependency-tree {
+    @apply relative ml-5 mt-3 gap-2 border-l border-[#dce5ec] pl-4;
+  }
+
+  .dependency-tree li {
+    @apply relative grid gap-0 pl-0;
+  }
+
+  .dependency-tree .dependency-tree > li::before {
+    content: "";
+    @apply absolute -left-4 top-5 h-px w-4 bg-[#dce5ec];
+  }
+
+  .dependency-node {
+    @apply rounded-[10px] border border-[#e1e8ee] bg-white px-3.5 py-3;
+  }
+
+  .dependency-node strong {
+    @apply mb-1 block text-sm font-black normal-case tracking-normal text-[#263140];
+  }
+
+  .dependency-node p {
+    @apply text-sm font-bold leading-[1.55] text-[#526071];
+  }
+
+  .relationship-matrix {
+    @apply overflow-x-auto rounded-[10px] border border-[#dce5ec] bg-white;
+  }
+
+  .relationship-row {
+    @apply grid min-w-[1120px] grid-cols-[150px_minmax(210px,1fr)_minmax(230px,1.1fr)_minmax(230px,1.1fr)_minmax(220px,1fr)] border-t border-[#e6edf2];
+  }
+
+  .relationship-row:first-child {
+    @apply border-t-0;
+  }
+
+  .relationship-head {
+    @apply bg-[#f3f7f6];
+  }
+
+  .relationship-row span {
+    @apply border-l border-[#e6edf2] px-3 py-3 text-sm font-bold leading-[1.5] text-[#526071];
+  }
+
+  .relationship-row span:first-child {
+    @apply border-l-0;
+  }
+
+  .relationship-head span {
+    @apply text-[11px] font-black uppercase tracking-[0.08em] text-[#7b8797];
+  }
+
+  .relationship-row b {
+    @apply text-sm font-black text-[#263140];
+  }
+
   .metric-doc-block {
     @apply rounded-[10px] border border-[#dfe6ea] bg-[#f3f5f6] px-4;
   }
@@ -1611,7 +1877,7 @@
   }
 
   .metric-equation {
-    @apply grid grid-cols-[minmax(150px,0.42fr)_minmax(260px,1fr)] items-center gap-3 rounded-[8px] border border-[#dce2e7] bg-[#f7f8f9] px-3.5 py-2.5;
+    @apply grid grid-cols-[minmax(120px,0.22fr)_minmax(260px,1fr)] items-center gap-3 rounded-[8px] border border-[#dce2e7] bg-[#f7f8f9] px-3.5 py-2.5;
   }
 
   .metric-equation span {
@@ -3739,6 +4005,22 @@
       @apply grid-cols-[minmax(130px,0.38fr)_minmax(220px,1fr)];
     }
 
+    .logic-flow {
+      @apply grid-cols-2;
+    }
+
+    .field-map-body {
+      @apply grid-cols-2;
+    }
+
+    .data-flow-strip {
+      @apply grid-cols-1;
+    }
+
+    .data-flow-strip > div:not(:last-child)::after {
+      @apply hidden;
+    }
+
     .employee-table th,
     .employee-table td {
       @apply px-3.5;
@@ -3939,6 +4221,20 @@
       @apply static max-h-none grid-cols-3;
     }
 
+    .data-dependency-card summary,
+    .metric-map summary {
+      @apply grid-cols-[minmax(150px,0.35fr)_minmax(200px,1fr)_auto];
+    }
+
+    .logic-detail-grid {
+      @apply grid-cols-1;
+    }
+
+    .data-entity-context,
+    .field-map-card summary {
+      @apply grid-cols-1;
+    }
+
     .employee-record-sidebar {
       @apply w-[min(860px,calc(100vw-24px))];
     }
@@ -4123,6 +4419,27 @@
       @apply grid-cols-1 gap-1;
     }
 
+    .data-dependency-card summary,
+    .metric-map summary,
+    .data-dependency-body dl div,
+    .field-map-body,
+    .metric-equation {
+      @apply grid-cols-1;
+    }
+
+    .data-entity-source,
+    .metric-map-preview {
+      @apply whitespace-normal;
+    }
+
+    .logic-flow {
+      @apply grid-cols-1;
+    }
+
+    .logic-stage:not(:last-child)::after {
+      @apply hidden;
+    }
+
     .tag-library-heading {
       @apply flex-col items-start;
     }
@@ -4144,10 +4461,6 @@
     }
 
     .tag-department-card.shared .department-tag-list {
-      @apply grid-cols-1;
-    }
-
-    .metric-equation {
       @apply grid-cols-1;
     }
 
