@@ -1059,6 +1059,7 @@ const documentationSections = [
           'The Documents tab lists local document records linked by employee name. It is intended for contracts, annexes, medical certificates, safety certificates, and other important employee files.',
           'Management and team leads can add document records from the Documents tab. Operations users can view documents but cannot add or delete them.',
           'Each document record stores title, employee name, document type, document date, start date, valid-until date, status, uploaded file name, file type, file size, local file data, and upload date. The visible date fields depend on the selected document type rule.',
+          'The employee Documents add form uses compact upload, title, type, date, and action controls so the date fields stay visually small inside the sidebar.',
           'A document file is required before a document record can be saved. Users can drag and drop one file onto the upload area or click the upload area to open the system file picker.',
           'Uploaded document files are stored locally in this browser as data URLs inside localStorage. Large files can consume browser storage quickly because this prototype does not upload files to a server.',
           'Saved documents with an attached file show the file name and size and include a download icon button for saving the file.',

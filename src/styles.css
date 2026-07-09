@@ -2014,7 +2014,7 @@
   }
 
   .employee-document-form {
-    @apply mb-4 grid gap-3 rounded-[8px] border border-line bg-[#fbfcfd] p-4 md:grid-cols-2;
+    @apply mb-4 grid gap-2.5 rounded-[8px] border border-line bg-[#fbfcfd] p-3 md:grid-cols-2;
   }
 
   .employee-document-form .document-title-field,
@@ -2026,19 +2026,19 @@
   }
 
   .document-upload-zone {
-    @apply grid cursor-pointer grid-cols-[40px_minmax(0,1fr)] items-center gap-3 rounded-[8px] border border-dashed border-[#cbd8e4] bg-white p-4 text-left transition-[border-color,background,box-shadow] duration-150;
+    @apply grid cursor-pointer grid-cols-[28px_minmax(0,1fr)] items-center gap-2.5 rounded-[8px] border border-dashed border-[#cbd8e4] bg-white px-3 py-2.5 text-left transition-[border-color,background,box-shadow] duration-150;
   }
 
   .document-upload-zone svg {
-    @apply text-[#7d8897];
+    @apply h-5 w-5 text-[#7d8897];
   }
 
   .document-upload-zone strong {
-    @apply block text-[15px] text-[#202937];
+    @apply block text-[13px] leading-tight text-[#202937];
   }
 
   .document-upload-zone span {
-    @apply mt-1 block text-sm font-semibold text-[#7d8897];
+    @apply mt-0.5 block text-[12px] font-semibold leading-tight text-[#7d8897];
   }
 
   .document-upload-zone.drag-active,
@@ -2052,7 +2052,24 @@
   }
 
   .document-upload-error {
-    @apply rounded-[8px] border border-[#ffd7d2] bg-[#fff5f3] px-3 py-2 text-sm font-bold text-[#b42318];
+    @apply rounded-[8px] border border-[#ffd7d2] bg-[#fff5f3] px-3 py-2 text-[12px] font-bold text-[#b42318];
+  }
+
+  .employee-document-form .field {
+    @apply gap-1.5;
+  }
+
+  .employee-document-form .field > span {
+    @apply text-[11px] tracking-normal;
+  }
+
+  .employee-document-form input,
+  .employee-document-form .custom-select-trigger {
+    @apply min-h-[34px] rounded-[8px] px-2.5 text-[13px] font-bold;
+  }
+
+  .employee-document-form input[type="date"] {
+    @apply text-[13px] tracking-normal;
   }
 
   .document-date-rules {
@@ -2061,6 +2078,11 @@
 
   .employee-document-form-actions {
     @apply flex justify-end gap-2;
+  }
+
+  .employee-document-form-actions .soft-btn,
+  .employee-document-form-actions .primary-btn {
+    @apply min-h-[34px] px-3 text-[13px];
   }
 
   .employee-comment-form {
