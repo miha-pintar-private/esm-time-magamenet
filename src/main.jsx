@@ -6,6 +6,7 @@ import {
   BarChart3,
   BriefcaseBusiness,
   CalendarClock,
+  CalendarDays,
   Check,
   ChevronDown,
   CircleDollarSign,
@@ -104,6 +105,7 @@ const people = [
     ],
     medical: 'Valid until 2027-04-12',
     safety: 'Valid until 2027-02-01',
+    vacationDaysAvailable: 25,
     cost: 6840,
     hours: 161,
     docs: 6,
@@ -137,6 +139,7 @@ const people = [
     ],
     medical: 'Valid until 2026-12-09',
     safety: 'Valid until 2026-09-22',
+    vacationDaysAvailable: 24,
     cost: 4120,
     hours: 174,
     docs: 5,
@@ -168,6 +171,7 @@ const people = [
     ],
     medical: 'Valid until 2026-10-18',
     safety: 'Valid until 2026-08-30',
+    vacationDaysAvailable: 22,
     cost: 2740,
     hours: 156,
     docs: 4,
@@ -200,6 +204,7 @@ const people = [
     ],
     medical: 'Expires in 21 days',
     safety: 'Valid until 2027-01-10',
+    vacationDaysAvailable: 20,
     cost: 2210,
     hours: 132,
     docs: 3,
@@ -231,6 +236,7 @@ const people = [
     ],
     medical: 'Not required',
     safety: 'Completed',
+    vacationDaysAvailable: 20,
     cost: 3860,
     hours: 148,
     docs: 2,
@@ -262,6 +268,7 @@ const people = [
     ],
     medical: 'Valid until 2026-12-13',
     safety: 'Valid until 2026-12-13',
+    vacationDaysAvailable: 24,
     cost: 3980,
     hours: 168,
     docs: 5,
@@ -645,6 +652,21 @@ const baseDocuments = [
   { id: 204, employee: 'Nika Zupan', title: 'Service contract', type: 'Contract', date: '2026-07-07', status: 'Review soon' },
 ];
 
+const baseAbsenceRequests = [
+  { id: 301, employee: 'Sara Kranjc', type: 'vacation', startDate: '2026-07-20', endDate: '2026-07-24', returnDate: '2026-07-25', status: 'pending', notes: 'Summer leave request.', submittedAt: '2026-07-08', approver: 'Ana Mlakar' },
+  { id: 302, employee: 'Marko Novak', type: 'vacation', startDate: '2026-06-22', endDate: '2026-06-26', returnDate: '2026-06-27', status: 'approved', notes: '', submittedAt: '2026-06-12', decidedAt: '2026-06-13', decidedBy: 'Ana Kovač' },
+  { id: 303, employee: 'Ana Mlakar', type: 'sick', startDate: '2026-07-06', endDate: '2026-07-07', returnDate: '2026-07-08', status: 'approved', notes: '', submittedAt: '2026-07-06', decidedAt: '2026-07-06', decidedBy: 'Ana Kovač' },
+  { id: 304, employee: 'Ana Kovač', type: 'vacation', startDate: '2025-12-29', endDate: '2025-12-31', returnDate: '2026-01-01', status: 'approved', notes: '', submittedAt: '2025-12-05', decidedAt: '2025-12-05', decidedBy: 'Ana Kovač' },
+];
+
+const baseAbsenceRules = [
+  { id: 401, type: 'holiday', startDate: '2026-01-01', endDate: '2026-01-02', name: 'New Year holidays' },
+  { id: 402, type: 'holiday', startDate: '2026-04-06', endDate: '2026-04-06', name: 'Easter Monday' },
+  { id: 403, type: 'holiday', startDate: '2026-05-01', endDate: '2026-05-02', name: 'May holidays' },
+  { id: 404, type: 'holiday', startDate: '2026-06-25', endDate: '2026-06-25', name: 'Statehood Day' },
+  { id: 405, type: 'warning', startDate: '2026-07-15', endDate: '2026-08-15', name: 'Summer capacity risk' },
+];
+
 const timeManagementTabs = [
   { icon: CalendarClock, label: 'Time Management', tab: 'time', path: '/time-management' },
   { icon: BarChart3, label: 'Analytics', tab: 'analytics', path: '/analytics' },
@@ -654,6 +676,7 @@ const timeManagementTabs = [
 const timeManagementTabIds = timeManagementTabs.map((item) => item.tab);
 const employeeTabs = [
   { icon: UsersRound, label: 'Employees', tab: 'hr', path: '/employees' },
+  { icon: CalendarDays, label: 'Vacation', tab: 'hr-vacation', path: '/employees/vacation' },
   { icon: BriefcaseBusiness, label: 'Departments', tab: 'hr-departments', path: '/employees/departments' },
   { icon: ListChecks, label: 'Rules', tab: 'hr-rules', path: '/employees/rules', requiresSettings: true },
   { icon: Tag, label: 'Tags', tab: 'hr-tags', path: '/employees/tags', requiresSettings: true },
@@ -944,36 +967,59 @@ const documentationSections = [
         ],
       },
       {
-        name: 'Work type distribution',
-        howItWorks: 'Analytics renders configured work types as bars based on the visible time-entry hours recorded for each work type.',
+        name: 'Department and user work-type analytics',
+        howItWorks: 'Analytics filters the active role scope by an independent date range, then shows how much time each department and user spent on every recorded work type. The page includes stacked workload-hour charts, a scope-level workload flow chart, and detail tables for departments and users.',
         userSteps: [
           'Open Time Management, then open the Analytics subtab.',
-          'Review the Work type distribution list.',
+          'Set From and To dates in the Analytics header, or click Last 30 days.',
+          'Review Workload hours by user and Workload hours by department to compare stacked work-type hours.',
+          'Review Workload flow to see the selected scope split by work type.',
+          'Use the Department analytics and User analytics tables to compare hours, percent of time, variance from average, allocated cost, cost per hour, and change over time.',
         ],
         specifics: [
-          'The bars use visible local time entries in the active role scope.',
-          'Role scope controls which work types are shown.',
+          'Analytics date filters do not change the Time Management entry table filters.',
+          'Role scope controls which users, departments, entries, and work types can appear.',
+          'Only work types with recorded hours in the selected date range are shown in the workload charts and tables.',
+          'The stacked workload bars use configured work type colors from Settings.',
+          'The detail table Change column groups the selected entries by calendar month and renders a compact trend bar for the row.',
+          'The variance column compares the row share with the average share for the same work type across all visible departments or all visible users.',
+          'When no entries match the selected period, charts and tables show an empty state instead of zero-filled rows.',
         ],
         metrics: [
-          'Work type hours = Σ entry.hours where entry.type matches the work type',
-          'Bar width = (work type hours / max visible work type hours) × 100%',
+          'Filtered analytics entries = entries in active role scope where From <= entry.date <= To',
+          'Department work-type hours = Σ entry.hours for entries whose employee belongs to the department and entry.type matches the work type',
+          'User work-type hours = Σ entry.hours where entry.employee matches the user and entry.type matches the work type',
+          'Work-type share = work-type hours / total hours for the same department or user × 100',
+          'Average share for variance = average(work-type share for the same work type across visible departments or users)',
+          'Variance vs average = row work-type share - average share for that work type',
+          'Workload bar segment width = work-type hours / total row hours × 100%',
+          'Workload row width = total row hours / max visible row hours × 100%',
+          'Workload flow percent = work-type hours / total selected analytics hours × 100%',
         ],
       },
       {
-        name: 'Employee workload',
-        howItWorks: 'Analytics shows each visible person with time-entry hours and real cost data.',
+        name: 'Analytics cost allocation',
+        howItWorks: 'Analytics allocates employee cost to the selected time entries before summarizing cost by user, department, and work type. Monthly salary cost is spread across recorded paid hours using monthly working hours, while hourly and project rows follow their configured cost rules.',
         userSteps: [
           'Open Time Management, then open the Analytics subtab.',
-          'Review Employee workload in the right panel.',
+          'Set the analytics date range.',
+          'Review Allocated cost in the KPI row.',
+          'Review Cost and Cost / h in the department and user detail tables.',
         ],
         specifics: [
-          'Role scope controls which employees are shown.',
-          'The displayed cost is calculated from employee compensation rows and visible local time entries.',
-          'The displayed hours are summed from visible local time entries linked by employee name.',
+          'Only paid, non-break entries are included in employee cost calculations.',
+          'Monthly salary rows distribute gross gross cost plus meal and transport allowances over monthly working days × 8 hours.',
+          'Hourly rows multiply matched entry hours by hourly rate and add configured meal and transport allowances once for each matched hourly row.',
+          'Project rows distribute project value evenly across calendar days between Project from and Project to, then include only unique visible paid-entry dates inside that project range.',
+          'If an employee has mapped compensation rows for specific work types, matching entries use those rows first; unmapped time rows are used as fallback rows.',
         ],
         metrics: [
-          'Employee workload hours = Σ entry.hours where entry.employee matches the employee',
-          'Workload cost bar width = (employee real cost / max visible employee real cost) × 100%',
+          'Allocated analytics cost = Σ employeeRuleCost(user, selected analytics entries, configured work types)',
+          'Row cost = Σ employeeRuleCost(user, row work-type entries, configured work types) for entries included in that department or user row',
+          'Cost per hour = row cost / max(row hours, 1)',
+          'Monthly entry cost = entry.hours × ((grossGrossCost + mealAllowance + transportAllowance) / max(monthlyWorkingDays × 8, 1))',
+          'Hourly entry cost = entry.hours × hourlyRate',
+          'Project visible cost = project daily cost × count(unique selected paid-entry dates inside the project period)',
         ],
       },
     ],
@@ -984,10 +1030,10 @@ const documentationSections = [
     features: [
       {
         name: 'Employees area navigation',
-        howItWorks: 'The Employees sidebar item groups role-scoped subtabs for Employees, Departments, Rules, and Tags.',
+        howItWorks: 'The Employees sidebar item groups role-scoped subtabs for Employees, Vacation, Departments, Rules, and Tags.',
         userSteps: [
           'Open Employees.',
-          'Use the nested sidebar links to switch between Employees, Departments, Rules, and Tags.',
+          'Use the nested sidebar links to switch between Employees, Vacation, Departments, Rules, and Tags.',
           'Switch role to compare Management, Team Lead, and Operations scope.',
         ],
         specifics: [
@@ -998,7 +1044,7 @@ const documentationSections = [
       },
       {
         name: 'Employee database',
-        howItWorks: 'The Employees tab shows a compact employee table in the active role scope. The table displays the employee initials, name, department, role level, and employment type. Open setup items and contract end-date alerts are shown as an alert icon next to the employee name instead of as full-width messages. Hover or click the alert icon to review the notices in a small popover. Clicking a table row opens a tabbed employee record. Management and team leads see Overview, Documents, Comments, and Archive / delete user sections; Operations users see only Overview and Documents. The employee edit form is organized into User info, Department and employment, Contract and compliance, and Compensation rows. The employee profile stores personal identity details, street address, post number, city, work email, phone number, private email, department and role level, segmentation tags, contract from/to dates, compliance dates, internal comments, compensation rows for each work arrangement, and active or archived status. The employee employment type is derived from the first compensation row. Documents are separate local document records linked to the employee by name.',
+        howItWorks: 'The Employees tab shows a compact employee table in the active role scope. The table displays the employee initials, name, department, role level, and employment type. Open setup items and contract end-date alerts are shown as an alert icon next to the employee name instead of as full-width messages. Hover or click the alert icon to review the notices in a small popover. Clicking a table row opens a tabbed employee record. Management and team leads see Overview, Vacation, Documents, Comments, and Archive / delete user sections; Operations users see Overview, Vacation, and Documents. The employee edit form is organized into User info, Department and employment, Contract and compliance, and Compensation rows. The employee profile stores personal identity details, street address, post number, city, work email, phone number, private email, annual vacation allowance, department and role level, segmentation tags, contract from/to dates, compliance dates, internal comments, compensation rows for each work arrangement, and active or archived status. The employee employment type is derived from the first compensation row. Documents are separate local document records linked to the employee by name.',
         userSteps: [
           'Open Employees, then open the Employees subtab.',
           'Use Status, Department, Level, or Tags in the inline employee filters row to narrow the employee table.',
@@ -1007,9 +1053,9 @@ const documentationSections = [
           'Hover the alert icon beside an employee name to see missing setup items and contract end-date notices. The popover stays visible while the pointer is on the icon or popover, then closes automatically.',
           'Management and team leads can click Add employee, complete the employee form, and save a local profile.',
           'Click an employee row to open the employee record sidebar.',
-          'Use the tabs at the top of the sidebar to switch between employee record sections. Management and team leads can open Overview, Documents, Comments, and Archive / delete user; Operations users can open only Overview and Documents.',
+          'Use the tabs at the top of the sidebar to switch between employee record sections. Management and team leads can open Overview, Vacation, Documents, Comments, and Archive / delete user; Operations users can open Overview, Vacation, and Documents.',
           'Management and team leads can edit the profile from the sidebar and save the employee.',
-          'In the employee form User info section, enter the full name, then Address, Post number, and City on one row, Personal ID / EMŠO and Tax number on one row, and Work email, Phone number, and Private email on one row.',
+          'In the employee form User info section, enter the full name, then Address, Post number, and City on one row, Personal ID / EMŠO and Tax number on one row, and Work email, Phone number, Private email, and Annual vacation allowance.',
           'Then enter department, role level, tags, contract from and contract to dates, medical exam completion date, safety training completion and expiry dates, and compensation rows.',
           'Use Add row in Compensation rows to add another work arrangement. Select the employment type from the Rules list; the pay type and visible compensation fields follow that rule.',
           'Open Documents, click Add document, drop a file onto the upload area or click it to choose a file from the system file picker, enter the document title, choose or create a document type, complete the required document dates, and save the document record.',
@@ -1028,7 +1074,7 @@ const documentationSections = [
           'The People visible and Documents metric cards update when Employees filters are active.',
           'Employee names are required and must be unique ignoring case.',
           'Saving an edited employee updates the selected employee record immediately, keeps the sidebar on that employee even when filters or role scope change, and persists the employee list in browser localStorage.',
-          'When an employee is renamed, linked time entries, document records, correction records, active correction windows, department team lead assignments, role preview users, table person filters, active timers, and employee comment authors that used the old name are updated to the new name.',
+          'When an employee is renamed, linked time entries, document records, vacation requests, correction records, active correction windows, department team lead assignments, role preview users, table person filters, active timers, and employee comment authors that used the old name are updated to the new name.',
           'Team lead users can add or edit employees only inside their lead department scope; the department field is fixed to the primary lead department from the Departments records.',
           'Management users can choose the employee department and can assign Management, Team Lead, or Operations role level.',
           'The employee add/edit form uses a compact four-column desktop layout with shorter inputs, separated section dividers with vertical padding above and below the upper dividers, smaller section headers, and row-based compliance fields so identity, department, contract, compliance, and compensation fields stay easier to scan. On narrow screens the fields collapse into a single-column layout.',
@@ -1036,7 +1082,8 @@ const documentationSections = [
           'Open rule to-dos and contract end-date notices in the employee table appear only as an alert icon next to the employee name. The popover lists the exact missing setup items or contract date notice and stays visible only while the pointer is on the icon or popover.',
           'Contract end-date notices appear 14 days before the Contract to date in both the employee table alert popover and the employee record Work setup list. On the Contract to date and after it, the notice becomes a critical red notice stating that the contract ended.',
           'The role level is shown as a compact pill in the employee table. The employee record sidebar uses a separate Active or Inactive status pill.',
-          'The employee record sidebar uses a compact detail layout with smaller text, icons, avatar, rows, tabs, and spacing. It shows the employee summary, active or inactive status, role, department, employment type, Contract from date, rule pay type, and segmentation tags.',
+          'The employee record sidebar uses a compact detail layout with smaller text, icons, avatar, rows, tabs, and spacing. It shows the employee summary, active or inactive status, role, department, employment type, Contract from date, annual vacation allowance, rule pay type, and segmentation tags.',
+          'The Vacation tab on an employee record shows the annual vacation allowance, whether the value is stored or using the 20-day fallback, the approval scope, and the 30 June carryover cut-off.',
           'The Overview tab identity table shows Address, Post number, City, EMŠO / Personal ID, Tax number, and Private email. Name, role, department, employment type, work email, phone number, Contract from date, pay type, and segmentation tags stay in the employee record sidebar so the Overview tab does not duplicate sidebar data.',
           'Address, Post number, City, Work email, Phone number, and Private email are optional fields stored directly on the employee record. Existing local employee records can remain blank until edited.',
           'For compatibility with older local records, the app still keeps a combined address value generated from Address, Post number, and City.',
@@ -1091,6 +1138,50 @@ const documentationSections = [
           'Monthly salary employee cost = Σ entry.hours × ((grossGrossCost + mealAllowance + transportAllowance) / max(monthlyWorkingDays × 8, 1)) for entries mapped to a monthly row',
           'Hourly rate employee cost = Σ entry.hours × hourlyRate for entries mapped to an hourly row + mealAllowance + transportAllowance once for each matched hourly row',
           'Project work employee cost = Σ ((projectValue / project calendar days) × unique visible paid-entry dates inside Project from and Project to)',
+        ],
+      },
+      {
+        name: 'Vacation module',
+        howItWorks: 'The Vacation subtab under Employees manages local absence requests, working-day vacation balances, sick leave counts, approvals, holidays, and risk periods. Requests are stored as absence request records in browser localStorage. Calendar rules are global and are stored as absence rule records. The employee annual allowance is stored on the employee card as Annual vacation allowance and falls back to 20 days when missing or invalid.',
+        userSteps: [
+          'Open Employees, then open the Vacation subtab.',
+          'Use Overview to review the current user balance, team absences this week, the yearly timeline, and request status lists.',
+          'In New absence request, select the user in scope, choose Vacation or Sick leave, enter From and Until dates, add optional notes, and click Submit request.',
+          'Open Approvals & analytics to review pending approvals and employee balances for the selected approval scope.',
+          'Management can add a calendar rule by choosing Holiday or Risk period, entering the rule name and date range, and clicking Add rule.',
+          'Management and authorized team leads can approve or reject pending requests from the pending approvals list or from pending request cards.',
+        ],
+        specifics: [
+          'The Overview timeline is visible for all active employees to every role, so everyone can see who is away and when.',
+          'Timeline rows are grouped by employee department.',
+          'Operations users can submit absence requests only for themselves and do not see the Approvals & analytics tab.',
+          'Team leads can submit requests for themselves and for employees in their lead department scope, but not for other team leads or management users.',
+          'Management can submit and manage requests for all employees.',
+          'Approvals are scope-limited: team leads can approve pending requests for employees in their lead department scope only when the employee is not a Team Lead or Management user.',
+          'Only Management can approve vacation for a Team Lead or Management user.',
+          'Management can add or delete calendar rules. Team leads and Operations users can view rules but cannot manage them.',
+          'Request validation requires an existing employee, From and Until dates, and an Until date that is not before From.',
+          'Holiday and Risk period overlaps are shown as warnings when submitting a request, but the request can still be submitted.',
+          'Deleting an absence request asks for confirmation: Are you sure you want to delete this record?',
+          'Rejecting a request requires an English rejection reason through the browser prompt.',
+          'Only approved Vacation requests reduce vacation balance. Pending, rejected, and Sick leave requests do not reduce vacation balance.',
+          'Approved Sick leave requests are counted separately as Sick days in analytics.',
+          'Holiday rules are excluded from working-day calculations globally. Risk periods do not change working-day counts.',
+          'The annual timeline shows active visible employees, pending and approved absences, weekends, holidays, risk periods, and today.',
+          'The Vacation tab on the employee record shows the allowance source and the approval scope for that employee.',
+        ],
+        metrics: [
+          'Working days = count of inclusive dates between From and Until, excluding Saturdays, Sundays, and Holiday rule dates',
+          'Vacation allowance = employee.vacationDaysAvailable when it is a valid non-negative number, otherwise 20 days',
+          'Planned and used vacation days = approved Vacation working days in the selected year',
+          'Vacation taken = approved Vacation working days from 1 January through today in the selected year',
+          'Vacation planned = max(planned and used vacation days - vacation taken, 0)',
+          'Previous-year carryover available = max(current employee allowance - approved Vacation working days in the previous year, 0)',
+          'Carryover consumed = min(carryover available, approved Vacation working days between 1 January and 30 June of the selected year)',
+          'Remaining carryover = 0 after 30 June; otherwise max(carryover available - first-half approved Vacation working days, 0)',
+          'Current-year allowance remaining = max(allowance - (planned and used vacation days - carryover consumed), 0)',
+          'Total remaining = current-year allowance remaining + remaining carryover',
+          'Analytics total row = sum of remaining, planned, taken, sick, pending, and rejected values across visible users',
         ],
       },
       {
@@ -1254,7 +1345,7 @@ const documentationSections = [
     features: [
       {
         name: 'Local browser storage',
-        howItWorks: 'The prototype stores app state in browser localStorage so the current role, role preview users, last tab fallback, employees, entries, corrections, settings, tags, employment rules, document type rules, documents, filters, and active timer can persist across reloads.',
+        howItWorks: 'The prototype stores app state in browser localStorage so the current role, role preview users, last tab fallback, employees, entries, absence requests, absence rules, corrections, settings, tags, employment rules, document type rules, documents, filters, and active timer can persist across reloads.',
         userSteps: [
           'Use the app normally.',
           'Reload the browser.',
@@ -1274,7 +1365,7 @@ const documentationSections = [
         howItWorks: 'Each main sidebar tab and nested Employees or Time Management subtab has a stable client-side hash URL. Clicking navigation updates the browser address without a full reload, and copied or refreshed URLs open the matching view on static hosting such as GitHub Pages.',
         userSteps: [
           'Click a sidebar item to open a main page.',
-          'Under Employees, click a nested sidebar subtab to open Employees, Departments, Rules, or Tags.',
+          'Under Employees, click a nested sidebar subtab to open Employees, Vacation, Departments, Rules, or Tags.',
           'Under Time Management, click a nested sidebar subtab to open a related workspace view.',
           'Copy or reload the browser URL to return to the same page.',
           'Use the browser Back and Forward buttons to move between recently opened pages.',
@@ -1282,6 +1373,7 @@ const documentationSections = [
         specifics: [
           'Dashboard uses #/dashboard.',
           'Employees uses #/employees.',
+          'Employee Vacation uses #/employees/vacation.',
           'Employee Departments uses #/employees/departments.',
           'Employee Rules uses #/employees/rules and is hidden for Operations users.',
           'Employee Tags uses #/employees/tags and is hidden for Operations users.',
@@ -1394,6 +1486,160 @@ function isoDateDiffDays(from, to) {
   const end = new Date(`${to}T00:00:00`);
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null;
   return Math.round((end - start) / 86400000);
+}
+
+function parseIsoDate(date) {
+  const [year, month, day] = String(date || '').split('-').map(Number);
+  if (!year || !month || !day) return null;
+  return new Date(year, month - 1, day);
+}
+
+function addIsoDays(date, days) {
+  const parsed = parseIsoDate(date);
+  if (!parsed) return '';
+  parsed.setDate(parsed.getDate() + days);
+  return localDate(parsed);
+}
+
+function datesBetween(from, to) {
+  const start = parseIsoDate(from);
+  const end = parseIsoDate(to);
+  if (!start || !end || end < start) return [];
+  const dates = [];
+  const cursor = new Date(start);
+  while (cursor <= end) {
+    dates.push(localDate(cursor));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return dates;
+}
+
+function rangesOverlap(firstStart, firstEnd, secondStart, secondEnd) {
+  if (!firstStart || !firstEnd || !secondStart || !secondEnd) return false;
+  return firstStart <= secondEnd && secondStart <= firstEnd;
+}
+
+function holidayDateSet(rules) {
+  return new Set(
+    rules
+      .filter((rule) => rule.type === 'holiday')
+      .flatMap((rule) => datesBetween(rule.startDate, rule.endDate)),
+  );
+}
+
+function countWorkingDays(startDate, endDate, holidayDates = new Set()) {
+  return datesBetween(startDate, endDate).filter((date) => {
+    const parsed = parseIsoDate(date);
+    const day = parsed?.getDay();
+    return day !== 0 && day !== 6 && !holidayDates.has(date);
+  }).length;
+}
+
+function calendarDaysCount(startDate, endDate) {
+  const days = isoDateDiffDays(startDate, endDate);
+  return days === null ? 0 : days + 1;
+}
+
+function vacationAllowance(employee) {
+  const value = Number(employee?.vacationDaysAvailable);
+  return Number.isFinite(value) && value >= 0 ? value : 20;
+}
+
+function requestWorkingDays(request, holidayDates) {
+  return countWorkingDays(request.startDate, request.endDate, holidayDates);
+}
+
+function absenceTypeLabel(type) {
+  if (type === 'sick') return 'Sick leave';
+  if (type === 'personal') return 'Personal';
+  if (type === 'remote') return 'Remote';
+  return 'Vacation';
+}
+
+function absenceStatusLabel(status) {
+  if (status === 'approved') return 'Approved';
+  if (status === 'rejected') return 'Rejected';
+  if (status === 'cancelled') return 'Cancelled';
+  return 'Pending';
+}
+
+function absenceRuleLabel(type) {
+  return type === 'warning' ? 'Risk period' : 'Holiday';
+}
+
+function absenceRequestsForYear(requests, year) {
+  const from = `${year}-01-01`;
+  const to = `${year}-12-31`;
+  return requests.filter((request) => rangesOverlap(request.startDate, request.endDate, from, to));
+}
+
+function approvedWorkingDaysInRange(requests, employeeName, type, from, to, holidayDates) {
+  return requests
+    .filter((request) => (
+      request.employee === employeeName
+      && request.status === 'approved'
+      && request.type === type
+      && rangesOverlap(request.startDate, request.endDate, from, to)
+    ))
+    .reduce((sum, request) => {
+      const start = request.startDate < from ? from : request.startDate;
+      const end = request.endDate > to ? to : request.endDate;
+      return sum + countWorkingDays(start, end, holidayDates);
+    }, 0);
+}
+
+function vacationBalance(employee, requests, rules, year = new Date().getFullYear(), today = TODAY) {
+  const holidayDates = holidayDateSet(rules);
+  const yearStart = `${year}-01-01`;
+  const yearEnd = `${year}-12-31`;
+  const previousYearStart = `${year - 1}-01-01`;
+  const previousYearEnd = `${year - 1}-12-31`;
+  const firstHalfEnd = `${year}-06-30`;
+  const allowance = vacationAllowance(employee);
+  const plannedAndUsedVacationDays = approvedWorkingDaysInRange(requests, employee.name, 'vacation', yearStart, yearEnd, holidayDates);
+  const takenVacationDaysThisYear = approvedWorkingDaysInRange(requests, employee.name, 'vacation', yearStart, today < yearStart ? yearStart : today, holidayDates);
+  const plannedVacationDaysThisYear = Math.max(plannedAndUsedVacationDays - takenVacationDaysThisYear, 0);
+  const previousYearUsedVacationDays = approvedWorkingDaysInRange(requests, employee.name, 'vacation', previousYearStart, previousYearEnd, holidayDates);
+  const carryoverAvailable = Math.max(allowance - previousYearUsedVacationDays, 0);
+  const firstHalfPlannedVacationDays = approvedWorkingDaysInRange(requests, employee.name, 'vacation', yearStart, firstHalfEnd, holidayDates);
+  const carryoverConsumed = Math.min(carryoverAvailable, firstHalfPlannedVacationDays);
+  const remainingCarryoverDays = today > firstHalfEnd ? 0 : Math.max(carryoverAvailable - firstHalfPlannedVacationDays, 0);
+  const currentYearAllowanceRemaining = Math.max(allowance - (plannedAndUsedVacationDays - carryoverConsumed), 0);
+  return {
+    allowance,
+    plannedAndUsedVacationDays,
+    takenVacationDaysThisYear,
+    plannedVacationDaysThisYear,
+    previousYearUsedVacationDays,
+    carryoverAvailable,
+    carryoverConsumed,
+    remainingCarryoverDays,
+    currentYearAllowanceRemaining,
+    remainingVacationDaysThisYear: currentYearAllowanceRemaining + remainingCarryoverDays,
+    sickDays: approvedWorkingDaysInRange(requests, employee.name, 'sick', yearStart, yearEnd, holidayDates),
+    pendingCount: requests.filter((request) => request.employee === employee.name && request.status === 'pending' && rangesOverlap(request.startDate, request.endDate, yearStart, yearEnd)).length,
+    rejectedCount: requests.filter((request) => request.employee === employee.name && request.status === 'rejected' && rangesOverlap(request.startDate, request.endDate, yearStart, yearEnd)).length,
+  };
+}
+
+function canApproveAbsenceRequest(request, role, activePerson, people, activeLeadDepartments) {
+  if (!request || !activePerson) return false;
+  if (role === 'management') return true;
+  if (role !== 'lead') return false;
+  const employee = people.find((person) => person.name === request.employee);
+  if (!employee || employee.level === 'Team Lead' || employee.level === 'Management') return false;
+  return departmentInScope(employee.department, activeLeadDepartments);
+}
+
+function timelineRequestStyle(request, monthStart, monthEnd) {
+  const visibleStart = request.startDate < monthStart ? monthStart : request.startDate;
+  const visibleEnd = request.endDate > monthEnd ? monthEnd : request.endDate;
+  const startIndex = Math.max(0, isoDateDiffDays(monthStart, visibleStart) || 0);
+  const daySpan = Math.max(1, calendarDaysCount(visibleStart, visibleEnd));
+  return {
+    left: `${startIndex * 28 + 3}px`,
+    width: `${daySpan * 28 - 6}px`,
+  };
 }
 
 function contractPeriodLabel(employee) {
@@ -1574,6 +1820,101 @@ function employeeRuleCost(employee, ruleItems, entries = [], configuredTypes = [
   ), 0);
   const projectCost = projectRows.reduce((sum, row) => sum + projectRowCost(row, employeeEntries), 0);
   return timeCost + allowances + projectCost;
+}
+
+function percent(value, digits = 1) {
+  return `${(Number(value) || 0).toFixed(digits)}%`;
+}
+
+function compactHours(value) {
+  return `${(Number(value) || 0).toFixed(1)} h`;
+}
+
+function workTypeColor(typeName, configuredTypes = []) {
+  const configured = configuredTypes.find((type) => type.name === typeName);
+  return configured?.color || '#8b96a4';
+}
+
+function sortedWorkTypeNames(entries = []) {
+  return Array.from(new Set(entries.map((entry) => entry.type).filter(Boolean))).sort((first, second) => first.localeCompare(second));
+}
+
+function periodLabel(dateValue) {
+  if (!dateValue) return 'No date';
+  return dateValue.slice(0, 7);
+}
+
+function entryCostForEmployee(employee, entries, employmentRules, configuredTypes) {
+  return employeeRuleCost(employee, employmentRules, entries, configuredTypes);
+}
+
+function buildAnalyticsGroupRows({
+  groups,
+  entries,
+  people,
+  configuredTypes,
+  employmentRules,
+  groupLabel,
+  groupForEntry,
+}) {
+  const peopleByName = new Map(people.map((person) => [person.name, person]));
+  const workTypeNames = sortedWorkTypeNames(entries);
+  const groupTotals = new Map(groups.map((group) => [group, 0]));
+  const groupTypeHours = new Map();
+  const groupTypePeriods = new Map();
+
+  entries.forEach((entry) => {
+    const group = groupForEntry(entry);
+    if (!groups.includes(group)) return;
+    const key = `${group}|||${entry.type}`;
+    const hours = Number(entry.hours) || 0;
+    groupTotals.set(group, (groupTotals.get(group) || 0) + hours);
+    groupTypeHours.set(key, (groupTypeHours.get(key) || 0) + hours);
+    const periodKey = `${key}|||${periodLabel(entry.date)}`;
+    groupTypePeriods.set(periodKey, (groupTypePeriods.get(periodKey) || 0) + hours);
+  });
+
+  const averageByType = new Map(workTypeNames.map((typeName) => {
+    const shares = groups.map((group) => {
+      const total = groupTotals.get(group) || 0;
+      if (!total) return 0;
+      return ((groupTypeHours.get(`${group}|||${typeName}`) || 0) / total) * 100;
+    });
+    return [typeName, shares.reduce((sum, value) => sum + value, 0) / Math.max(shares.length, 1)];
+  }));
+
+  return groups.flatMap((group) => {
+    const groupEntries = entries.filter((entry) => groupForEntry(entry) === group);
+    const totalHours = groupTotals.get(group) || 0;
+    return workTypeNames.map((typeName) => {
+      const typeEntries = groupEntries.filter((entry) => entry.type === typeName);
+      const hours = groupTypeHours.get(`${group}|||${typeName}`) || 0;
+      const share = totalHours ? (hours / totalHours) * 100 : 0;
+      const entriesByPerson = new Map();
+      typeEntries.forEach((entry) => {
+        entriesByPerson.set(entry.employee, [...(entriesByPerson.get(entry.employee) || []), entry]);
+      });
+      const cost = Array.from(entriesByPerson.entries()).reduce((sum, [employeeName, personEntries]) => {
+        const person = peopleByName.get(employeeName);
+        return person ? sum + entryCostForEmployee(person, personEntries, employmentRules, configuredTypes) : sum;
+      }, 0);
+      const periods = Array.from(new Set(groupEntries.map((entry) => periodLabel(entry.date)))).sort();
+      const trend = periods.map((period) => groupTypePeriods.get(`${group}|||${typeName}|||${period}`) || 0);
+      const averageShare = averageByType.get(typeName) || 0;
+      return {
+        id: `${groupLabel}-${group}-${typeName}`,
+        group,
+        typeName,
+        hours,
+        share,
+        cost,
+        costPerHour: hours ? cost / hours : 0,
+        averageShare,
+        deltaShare: share - averageShare,
+        trend,
+      };
+    }).filter((row) => row.hours > 0);
+  }).sort((first, second) => second.hours - first.hours || first.group.localeCompare(second.group));
 }
 
 function employeeCostFormula(employee, ruleItems) {
@@ -1943,6 +2284,8 @@ function App() {
   const [employees, setEmployees] = useState(initialEmployees);
   const [entries, setEntries] = useState(() => normalizeEntryDepartments(stored.entries || baseEntries, initialDepartmentItems));
   const [documents, setDocuments] = useState(stored.documents || baseDocuments);
+  const [absenceRequests, setAbsenceRequests] = useState(stored.absenceRequests || baseAbsenceRequests);
+  const [absenceRules, setAbsenceRules] = useState(stored.absenceRules || baseAbsenceRules);
   const [corrections, setCorrections] = useState(stored.corrections || correctionLog);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedWorkType, setSelectedWorkType] = useState(stored.selectedWorkType || '');
@@ -2011,6 +2354,8 @@ function App() {
       employees,
       entries,
       documents,
+      absenceRequests,
+      absenceRules,
       corrections,
       selectedWorkType,
       tableFilters,
@@ -2025,7 +2370,7 @@ function App() {
       employmentRuleItems,
       documentTypeItems,
     });
-  }, [role, rolePeople, tab, employees, entries, documents, corrections, selectedWorkType, tableFilters, activeSession, wfh, lunch, currentCorrectionWindows, departmentItems, managementTypes, leadTypes, tagItems, employmentRuleItems, documentTypeItems]);
+  }, [role, rolePeople, tab, employees, entries, documents, absenceRequests, absenceRules, corrections, selectedWorkType, tableFilters, activeSession, wfh, lunch, currentCorrectionWindows, departmentItems, managementTypes, leadTypes, tagItems, employmentRuleItems, documentTypeItems]);
 
   useEffect(() => {
     const routeTab = tabFromLocation(stored.tab);
@@ -2597,6 +2942,7 @@ function App() {
       email: form.email.trim(),
       phone: form.phone.trim(),
       privateEmail: form.privateEmail.trim(),
+      vacationDaysAvailable: Number(form.vacationDaysAvailable) >= 0 ? Number(form.vacationDaysAvailable) : 20,
       employment: primaryEmployment,
       start: startDate,
       contractStartDate,
@@ -2652,6 +2998,20 @@ function App() {
       )));
       setDocuments((items) => items.map((document) => (
         document.employee === original.name ? { ...document, employee: nextEmployee.name } : document
+      )));
+      setAbsenceRequests((items) => items.map((request) => (
+        request.employee === original.name
+          ? {
+              ...request,
+              employee: nextEmployee.name,
+              approver: request.approver === original.name ? nextEmployee.name : request.approver,
+              decidedBy: request.decidedBy === original.name ? nextEmployee.name : request.decidedBy,
+            }
+          : {
+              ...request,
+              approver: request.approver === original.name ? nextEmployee.name : request.approver,
+              decidedBy: request.decidedBy === original.name ? nextEmployee.name : request.decidedBy,
+            }
       )));
       setCorrections((items) => items.map((item) => (
         item.employee === original.name
@@ -2789,6 +3149,136 @@ function App() {
     return true;
   }
 
+  function saveAbsenceRequest(form) {
+    const employee = employees.find((person) => person.name === form.employee);
+    if (!employee) {
+      showToast('Employee is required');
+      return;
+    }
+    const canSubmitForEmployee = role === 'management'
+      || form.employee === activeRole.person
+      || (role === 'lead' && employee.level !== 'Team Lead' && employee.level !== 'Management' && departmentInScope(employee.department, activeLeadDepartments));
+    if (!canSubmitForEmployee) {
+      showToast('You cannot submit absences for this employee');
+      return;
+    }
+    if (!form.startDate || !form.endDate) {
+      showToast('Start and end dates are required');
+      return;
+    }
+    if (form.endDate < form.startDate) {
+      showToast('End date cannot be before start date');
+      return;
+    }
+    const blockedRule = absenceRules.find((rule) => rule.type === 'blocked' && rangesOverlap(form.startDate, form.endDate, rule.startDate, rule.endDate));
+    if (blockedRule) {
+      showToast(`This period is blocked by ${blockedRule.name || 'a calendar rule'}`);
+      return;
+    }
+    const warningRules = absenceRules.filter((rule) => ['holiday', 'warning'].includes(rule.type) && rangesOverlap(form.startDate, form.endDate, rule.startDate, rule.endDate));
+    const next = {
+      id: form.id || Date.now(),
+      employee: employee.name,
+      type: form.type || 'vacation',
+      startDate: form.startDate,
+      endDate: form.endDate,
+      returnDate: addIsoDays(form.endDate, 1),
+      status: form.status || 'pending',
+      notes: form.notes.trim(),
+      approver: role === 'lead' ? activeRole.person : '',
+      submittedAt: form.submittedAt || localDate(),
+      decidedAt: '',
+      decidedBy: '',
+      decisionNote: '',
+      meta: form.meta || {},
+    };
+    setAbsenceRequests((items) => (
+      form.id ? items.map((item) => (item.id === form.id ? { ...item, ...next } : item)) : [next, ...items]
+    ));
+    showToast(warningRules.length > 0 ? 'Absence request saved with calendar warnings' : 'Absence request submitted');
+  }
+
+  function approveAbsenceRequest(request) {
+    if (!canApproveAbsenceRequest(request, role, activePerson, employees, activeLeadDepartments)) {
+      showToast('You cannot approve this request');
+      return;
+    }
+    setAbsenceRequests((items) => items.map((item) => (
+      item.id === request.id
+        ? { ...item, status: 'approved', decidedAt: localDate(), decidedBy: activeRole.person, decisionNote: '' }
+        : item
+    )));
+    showToast(`${request.employee} absence approved`);
+  }
+
+  function rejectAbsenceRequest(request) {
+    if (!canApproveAbsenceRequest(request, role, activePerson, employees, activeLeadDepartments)) {
+      showToast('You cannot reject this request');
+      return;
+    }
+    const reason = window.prompt('Reason for rejection');
+    if (!reason?.trim()) {
+      showToast('Reject reason is required');
+      return;
+    }
+    setAbsenceRequests((items) => items.map((item) => (
+      item.id === request.id
+        ? { ...item, status: 'rejected', decidedAt: localDate(), decidedBy: activeRole.person, decisionNote: reason.trim() }
+        : item
+    )));
+    showToast(`${request.employee} absence rejected`);
+  }
+
+  function deleteAbsenceRequest(request) {
+    const canDelete = role === 'management' || request.employee === activeRole.person || canApproveAbsenceRequest(request, role, activePerson, employees, activeLeadDepartments);
+    if (!canDelete) {
+      showToast('You cannot delete this request');
+      return;
+    }
+    if (!window.confirm('Are you sure you want to delete this record?')) return;
+    setAbsenceRequests((items) => items.filter((item) => item.id !== request.id));
+    showToast('Absence request deleted');
+  }
+
+  function saveAbsenceRule(form) {
+    if (role !== 'management') {
+      showToast('Only management can manage calendar rules');
+      return;
+    }
+    const name = form.name.trim();
+    if (!name) {
+      showToast('Rule name is required');
+      return;
+    }
+    if (!form.startDate || !form.endDate) {
+      showToast('Rule start and end dates are required');
+      return;
+    }
+    if (form.endDate < form.startDate) {
+      showToast('Rule end date cannot be before start date');
+      return;
+    }
+    const next = {
+      id: form.id || Date.now(),
+      type: form.type === 'warning' ? 'warning' : 'holiday',
+      name,
+      startDate: form.startDate,
+      endDate: form.endDate,
+    };
+    setAbsenceRules((items) => (form.id ? items.map((item) => (item.id === form.id ? next : item)) : [next, ...items]));
+    showToast(`${absenceRuleLabel(next.type)} rule saved`);
+  }
+
+  function deleteAbsenceRule(rule) {
+    if (role !== 'management') {
+      showToast('Only management can delete calendar rules');
+      return;
+    }
+    if (!window.confirm('Are you sure you want to delete this calendar rule?')) return;
+    setAbsenceRules((items) => items.filter((item) => item.id !== rule.id));
+    showToast('Calendar rule deleted');
+  }
+
   function deleteEmployeeDocument(document) {
     if (!canEditPeople) {
       showToast('Operations cannot delete employee documents');
@@ -2839,6 +3329,7 @@ function App() {
     setEmployees((items) => items.filter((person) => person.id !== employee.id));
     setEntries((items) => items.filter((entry) => entry.employee !== employee.name));
     setDocuments((items) => items.filter((document) => document.employee !== employee.name));
+    setAbsenceRequests((items) => items.filter((request) => request.employee !== employee.name));
     setCorrections((items) => items.filter((item) => item.employee !== employee.name));
     setCorrectionWindows((items) => items.filter((window) => window.employee !== employee.name));
     setTableFilters((current) => (
@@ -3431,15 +3922,20 @@ function App() {
           />
         )}
         {tab === 'corrections' && <CorrectionLogView corrections={corrections} role={role} activeRole={activeRole} people={activeVisiblePeople} />}
-        {['hr', 'hr-departments', 'hr-rules', 'hr-tags'].includes(tab) && (
+        {['hr', 'hr-vacation', 'hr-departments', 'hr-rules', 'hr-tags'].includes(tab) && (
           <HrView
-            section={tab === 'hr-departments' ? 'departments' : tab === 'hr-rules' ? 'rules' : tab === 'hr-tags' ? 'tags' : 'employees'}
+            section={tab === 'hr-vacation' ? 'vacation' : tab === 'hr-departments' ? 'departments' : tab === 'hr-rules' ? 'rules' : tab === 'hr-tags' ? 'tags' : 'employees'}
             role={role}
             platform={platform}
             activePlatform={activePlatform}
+            activeRole={activeRole}
+            activePerson={activePerson}
             people={visiblePeople}
+            allPeople={employees}
             activePeople={activeVisiblePeople}
             entries={entries}
+            absenceRequests={absenceRequests}
+            absenceRules={absenceRules}
             configuredWorkTypes={configuredWorkTypes}
             documents={documents}
             activeLeadDepartments={activeLeadDepartments}
@@ -3465,6 +3961,12 @@ function App() {
             onAddDocumentTypeRule={addDocumentTypeRule}
             onEditDocumentTypeRule={editDocumentTypeRule}
             onDeleteDocumentTypeRule={deleteDocumentTypeRule}
+            onSaveAbsenceRequest={saveAbsenceRequest}
+            onApproveAbsenceRequest={approveAbsenceRequest}
+            onRejectAbsenceRequest={rejectAbsenceRequest}
+            onDeleteAbsenceRequest={deleteAbsenceRequest}
+            onSaveAbsenceRule={saveAbsenceRule}
+            onDeleteAbsenceRule={deleteAbsenceRule}
           />
         )}
         {tab === 'documentation' && <DocumentationView sections={documentationSections} />}
@@ -4071,9 +4573,14 @@ function HrView({
   role,
   platform,
   activePlatform,
+  activeRole,
+  activePerson,
   people,
+  allPeople,
   activePeople,
   entries,
+  absenceRequests,
+  absenceRules,
   configuredWorkTypes,
   documents,
   activeLeadDepartments,
@@ -4099,6 +4606,12 @@ function HrView({
   onAddDocumentTypeRule,
   onEditDocumentTypeRule,
   onDeleteDocumentTypeRule,
+  onSaveAbsenceRequest,
+  onApproveAbsenceRequest,
+  onRejectAbsenceRequest,
+  onDeleteAbsenceRequest,
+  onSaveAbsenceRule,
+  onDeleteAbsenceRule,
 }) {
   const [employeeFilters, setEmployeeFilters] = useState({ status: 'Active users', department: 'All departments', level: 'All levels', tags: [] });
   const operationalPeople = activePeople || people.filter((person) => !isArchivedEmployee(person));
@@ -4279,6 +4792,25 @@ function HrView({
         />
       )}
 
+      {section === 'vacation' && (
+        <VacationView
+          role={role}
+          activeRole={activeRole}
+          activePerson={activePerson}
+          people={(allPeople || people).filter((person) => !isArchivedEmployee(person))}
+          activePeople={activePeople}
+          activeLeadDepartments={activeLeadDepartments}
+          requests={absenceRequests}
+          rules={absenceRules}
+          onSaveRequest={onSaveAbsenceRequest}
+          onApproveRequest={onApproveAbsenceRequest}
+          onRejectRequest={onRejectAbsenceRequest}
+          onDeleteRequest={onDeleteAbsenceRequest}
+          onSaveRule={onSaveAbsenceRule}
+          onDeleteRule={onDeleteAbsenceRule}
+        />
+      )}
+
       {section === 'rules' && role !== 'operations' && (
         <EmploymentRulesView
           rules={employmentRules}
@@ -4306,6 +4838,477 @@ function HrView({
           onDeleteTag={onDeleteTag}
         />
       )}
+    </div>
+  );
+}
+
+function VacationView({
+  role,
+  activeRole,
+  activePerson,
+  people,
+  activePeople,
+  activeLeadDepartments,
+  requests,
+  rules,
+  onSaveRequest,
+  onApproveRequest,
+  onRejectRequest,
+  onDeleteRequest,
+  onSaveRule,
+  onDeleteRule,
+}) {
+  const currentYear = new Date().getFullYear();
+  const [view, setView] = useState('overview');
+  const [year, setYear] = useState(currentYear);
+  const [requestForm, setRequestForm] = useState({
+    employee: activeRole.person,
+    type: 'vacation',
+    startDate: TODAY,
+    endDate: TODAY,
+    notes: '',
+  });
+  const [ruleForm, setRuleForm] = useState({
+    type: 'holiday',
+    name: '',
+    startDate: TODAY,
+    endDate: TODAY,
+  });
+  const holidayDates = useMemo(() => holidayDateSet(rules), [rules]);
+  const calendarPeople = useMemo(() => people.filter((person) => !isArchivedEmployee(person)), [people]);
+  const canUseApprovals = role !== 'operations';
+  const approvalPeople = useMemo(() => {
+    if (role === 'management') return calendarPeople;
+    if (role === 'lead') {
+      return calendarPeople.filter((person) => (
+        person.name === activeRole.person || departmentInScope(person.department, activeLeadDepartments)
+      ));
+    }
+    return [];
+  }, [role, calendarPeople, activeRole.person, activeLeadDepartments]);
+  const requestPeople = useMemo(() => {
+    if (role === 'management') return calendarPeople;
+    if (role === 'lead') {
+      return calendarPeople.filter((person) => (
+        person.name === activeRole.person
+        || (person.level !== 'Team Lead' && person.level !== 'Management' && departmentInScope(person.department, activeLeadDepartments))
+      ));
+    }
+    return calendarPeople.filter((person) => person.name === activeRole.person);
+  }, [role, calendarPeople, activeRole.person, activeLeadDepartments]);
+  const activeEmployee = calendarPeople.find((person) => person.name === activeRole.person) || activePerson || calendarPeople[0];
+  const activeBalance = activeEmployee ? vacationBalance(activeEmployee, requests, rules, year) : null;
+  const visibleRequests = useMemo(() => absenceRequestsForYear(requests, year).filter((request) => (
+    calendarPeople.some((person) => person.name === request.employee)
+  )), [requests, year, calendarPeople]);
+  const pendingApprovals = visibleRequests.filter((request) => (
+    request.status === 'pending' && canApproveAbsenceRequest(request, role, activePerson, people, activeLeadDepartments)
+  ));
+  const yearRules = rules.filter((rule) => rangesOverlap(rule.startDate, rule.endDate, `${year}-01-01`, `${year}-12-31`));
+  const weekStart = addIsoDays(TODAY, -((parseIsoDate(TODAY)?.getDay() || 7) - 1));
+  const weekEnd = addIsoDays(weekStart, 6);
+  const awayThisWeek = visibleRequests.filter((request) => (
+    request.status === 'approved' && rangesOverlap(request.startDate, request.endDate, weekStart, weekEnd)
+  ));
+  const requestWarnings = rules.filter((rule) => (
+    ['holiday', 'warning'].includes(rule.type)
+    && rangesOverlap(requestForm.startDate, requestForm.endDate, rule.startDate, rule.endDate)
+  ));
+  const selectedWorkingDays = countWorkingDays(requestForm.startDate, requestForm.endDate, holidayDates);
+  const selectedTotalDays = calendarDaysCount(requestForm.startDate, requestForm.endDate);
+  const yearOptions = [year - 1, year, year + 1].map((item) => ({ name: String(item) }));
+  const employeeOptions = requestPeople.map((person) => ({ name: person.name, meta: person.department }));
+  const analyticsRows = approvalPeople.map((person) => ({
+    person,
+    balance: vacationBalance(person, requests, rules, year),
+  }));
+  const analyticsTotal = analyticsRows.reduce((total, row) => ({
+    remainingVacationDaysThisYear: total.remainingVacationDaysThisYear + row.balance.remainingVacationDaysThisYear,
+    plannedVacationDaysThisYear: total.plannedVacationDaysThisYear + row.balance.plannedVacationDaysThisYear,
+    takenVacationDaysThisYear: total.takenVacationDaysThisYear + row.balance.takenVacationDaysThisYear,
+    sickDays: total.sickDays + row.balance.sickDays,
+    pendingCount: total.pendingCount + row.balance.pendingCount,
+    rejectedCount: total.rejectedCount + row.balance.rejectedCount,
+  }), { remainingVacationDaysThisYear: 0, plannedVacationDaysThisYear: 0, takenVacationDaysThisYear: 0, sickDays: 0, pendingCount: 0, rejectedCount: 0 });
+
+  useEffect(() => {
+    if (employeeOptions.length === 0) return;
+    if (!employeeOptions.some((option) => option.name === requestForm.employee)) {
+      setRequestForm((current) => ({ ...current, employee: employeeOptions[0].name }));
+    }
+  }, [employeeOptions, requestForm.employee]);
+
+  useEffect(() => {
+    if (!canUseApprovals && view === 'analytics') {
+      setView('overview');
+    }
+  }, [canUseApprovals, view]);
+
+  function updateRequest(field, value) {
+    setRequestForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function submitRequest() {
+    onSaveRequest(requestForm);
+    setRequestForm((current) => ({ ...current, notes: '' }));
+  }
+
+  function submitRule() {
+    onSaveRule(ruleForm);
+    setRuleForm((current) => ({ ...current, name: '' }));
+  }
+
+  return (
+    <div className="vacation-workspace">
+      <section className="vacation-head">
+        <div>
+          <span className="eyebrow">Vacation</span>
+          <h2>Absence planning</h2>
+        </div>
+        <div className="vacation-tabs" aria-label="Vacation sections">
+          <button className={view === 'overview' ? 'active' : ''} onClick={() => setView('overview')}>Overview</button>
+          {canUseApprovals && (
+            <button className={view === 'analytics' ? 'active' : ''} onClick={() => setView('analytics')}>Approvals & analytics</button>
+          )}
+        </div>
+      </section>
+
+      {view === 'overview' && (
+        <div className="vacation-overview-layout">
+          <div className="vacation-main-column">
+            <div className="vacation-metrics">
+              <Metric icon={CalendarClock} label="Used this year" value={`${activeBalance?.takenVacationDaysThisYear || 0} days`} delta={`Already used in ${year}`} />
+              <Metric icon={CalendarDays} label="Planned" value={`${activeBalance?.plannedVacationDaysThisYear || 0} days`} delta="Approved future vacation" />
+              <Metric icon={Clock3} label="Remaining this year" value={`${activeBalance?.remainingVacationDaysThisYear || 0} days`} delta={`${activeBalance?.remainingCarryoverDays || 0} carryover days left`} />
+              <div className="vacation-week-card">
+                <div>
+                  <CalendarClock size={18} />
+                  <span>Absent this week</span>
+                  <strong>{awayThisWeek.length} teammate{awayThisWeek.length === 1 ? '' : 's'} away</strong>
+                  <small>{displayDate(weekStart)} - {displayDate(weekEnd)}</small>
+                </div>
+                <b>{awayThisWeek.length}</b>
+              </div>
+            </div>
+
+            <section className="primary-panel vacation-calendar-panel">
+              <div className="vacation-calendar-toolbar">
+                <div className="vacation-legend">
+                  <span><i className="approved" />Approved</span>
+                  <span><i className="pending" />Pending</span>
+                  <span><i className="weekend" />Weekend</span>
+                  <span><i className="holiday" />Holiday</span>
+                  <span><i className="warning" />Risk period</span>
+                  <span><i className="today" />Today</span>
+                </div>
+                <SimpleDropdown value={String(year)} options={yearOptions} onChange={(value) => setYear(Number(value))} />
+              </div>
+              <VacationTimeline people={calendarPeople} requests={visibleRequests} rules={yearRules} year={year} holidayDates={holidayDates} />
+            </section>
+
+            <div className="vacation-request-columns">
+              {['approved', 'pending', 'rejected'].map((status) => {
+                const items = visibleRequests.filter((request) => request.status === status);
+                return (
+                  <section className={`vacation-status-panel ${status}`} key={status}>
+                    <div className="vacation-status-head">
+                      <h3><i />{absenceStatusLabel(status)} requests</h3>
+                      <span>{items.length} total</span>
+                    </div>
+                    <div className="vacation-request-list">
+                      {items.map((request) => (
+                        <VacationRequestItem
+                          key={request.id}
+                          request={request}
+                          holidayDates={holidayDates}
+                          canApprove={view === 'analytics' && canApproveAbsenceRequest(request, role, activePerson, people, activeLeadDepartments)}
+                          canDelete={role === 'management' || request.employee === activeRole.person || canApproveAbsenceRequest(request, role, activePerson, people, activeLeadDepartments)}
+                          onApprove={onApproveRequest}
+                          onReject={onRejectRequest}
+                          onDelete={onDeleteRequest}
+                        />
+                      ))}
+                      {items.length === 0 && <span className="empty-state">No {status} requests.</span>}
+                    </div>
+                  </section>
+                );
+              })}
+            </div>
+          </div>
+
+          <aside className="vacation-side">
+            <section className="primary-panel vacation-form-panel">
+              <div className="panel-heading compact">
+                <div>
+                  <span className="eyebrow">Request</span>
+                  <h2>New absence request</h2>
+                </div>
+              </div>
+              <label className="field">
+                <span>User</span>
+                <SimpleDropdown value={requestForm.employee} options={employeeOptions} onChange={(value) => updateRequest('employee', value)} disabled={role === 'operations'} />
+              </label>
+              <div className="segmented-control">
+                <button className={requestForm.type === 'vacation' ? 'active' : ''} onClick={() => updateRequest('type', 'vacation')}>Vacation</button>
+                <button className={requestForm.type === 'sick' ? 'active' : ''} onClick={() => updateRequest('type', 'sick')}>Sick leave</button>
+              </div>
+              <div className="vacation-date-grid">
+                <label className="field">
+                  <span>From</span>
+                  <input type="date" value={requestForm.startDate} onInput={(event) => updateRequest('startDate', event.target.value)} onChange={(event) => updateRequest('startDate', event.target.value)} />
+                </label>
+                <label className="field">
+                  <span>Until</span>
+                  <input type="date" value={requestForm.endDate} onInput={(event) => updateRequest('endDate', event.target.value)} onChange={(event) => updateRequest('endDate', event.target.value)} />
+                </label>
+              </div>
+              <div className="vacation-duration-box">
+                <span><b>{selectedTotalDays}</b> total days</span>
+                <span><b>{selectedWorkingDays}</b> working days</span>
+              </div>
+              {requestWarnings.length > 0 && (
+                <div className="modal-warning">
+                  <AlertCircle size={16} />
+                  {requestWarnings.map((rule) => `${absenceRuleLabel(rule.type)}: ${rule.name}`).join(' | ')}
+                </div>
+              )}
+              <label className="field modal-note">
+                <span>Notes</span>
+                <textarea value={requestForm.notes} onChange={(event) => updateRequest('notes', event.target.value)} placeholder="Optional context for the approver." />
+              </label>
+              <button className="primary-btn" onClick={submitRequest}>Submit request</button>
+            </section>
+          </aside>
+        </div>
+      )}
+
+      {view === 'analytics' && (
+        <div className="vacation-analytics-layout">
+          <section className="primary-panel vacation-analytics-table-panel">
+            <div className="panel-heading">
+              <div>
+                <span className="eyebrow">Balances</span>
+                <h2>Team breakdown</h2>
+              </div>
+              <SimpleDropdown value={String(year)} options={yearOptions} onChange={(value) => setYear(Number(value))} />
+            </div>
+            <div className="vacation-analytics-table">
+              <div className="vacation-analytics-head">
+                <span>User</span>
+                <span>Total remaining {year}</span>
+                <span>Vacation planned</span>
+                <span>Vacation taken</span>
+                <span>Sick days</span>
+                <span>Pending</span>
+                <span>Rejected</span>
+              </div>
+              {analyticsRows.map(({ person, balance }) => (
+                <div className="vacation-analytics-row" key={person.id}>
+                  <strong><span className="person-avatar small" style={personAvatarStyle(person.name)}>{initials(person.name)}</span>{person.name}</strong>
+                  <span><b>{balance.remainingVacationDaysThisYear} days</b><small>Allowance {balance.allowance} days</small></span>
+                  <span>{balance.plannedVacationDaysThisYear}</span>
+                  <span>{balance.takenVacationDaysThisYear}</span>
+                  <span>{balance.sickDays}</span>
+                  <span>{balance.pendingCount}</span>
+                  <span>{balance.rejectedCount}</span>
+                </div>
+              ))}
+              <div className="vacation-analytics-row total">
+                <strong>Total</strong>
+                <span><b>{analyticsTotal.remainingVacationDaysThisYear}</b></span>
+                <span>{analyticsTotal.plannedVacationDaysThisYear}</span>
+                <span>{analyticsTotal.takenVacationDaysThisYear}</span>
+                <span>{analyticsTotal.sickDays}</span>
+                <span>{analyticsTotal.pendingCount}</span>
+                <span>{analyticsTotal.rejectedCount}</span>
+              </div>
+            </div>
+          </section>
+
+          <aside className="vacation-analytics-side">
+            <section className="primary-panel vacation-approvals-panel">
+              <div className="vacation-status-head">
+                <h3>Pending approvals</h3>
+                <span>{pendingApprovals.length} waiting</span>
+              </div>
+              <div className="vacation-request-list">
+                {pendingApprovals.map((request) => (
+                  <VacationRequestItem
+                    key={request.id}
+                    request={request}
+                    holidayDates={holidayDates}
+                    canApprove
+                    canDelete
+                    onApprove={onApproveRequest}
+                    onReject={onRejectRequest}
+                    onDelete={onDeleteRequest}
+                  />
+                ))}
+                {pendingApprovals.length === 0 && <span className="empty-state">No requests are waiting for approval.</span>}
+              </div>
+            </section>
+
+            <section className="primary-panel vacation-rules-panel">
+              <div className="panel-heading compact">
+                <div>
+                  <span className="eyebrow">Calendar rules</span>
+                  <h2>Holidays and risk periods</h2>
+                </div>
+              </div>
+              {role === 'management' && (
+                <div className="vacation-rule-form">
+                  <div className="segmented-control">
+                    <button className={ruleForm.type === 'holiday' ? 'active' : ''} onClick={() => setRuleForm((current) => ({ ...current, type: 'holiday' }))}>Holiday</button>
+                    <button className={ruleForm.type === 'warning' ? 'active' : ''} onClick={() => setRuleForm((current) => ({ ...current, type: 'warning' }))}>Risk period</button>
+                  </div>
+                  <label className="field">
+                    <span>Name</span>
+                    <input value={ruleForm.name} onChange={(event) => setRuleForm((current) => ({ ...current, name: event.target.value }))} placeholder="Rule name" />
+                  </label>
+                  <div className="vacation-date-grid">
+                    <label className="field">
+                      <span>From</span>
+                      <input type="date" value={ruleForm.startDate} onInput={(event) => setRuleForm((current) => ({ ...current, startDate: event.target.value }))} onChange={(event) => setRuleForm((current) => ({ ...current, startDate: event.target.value }))} />
+                    </label>
+                    <label className="field">
+                      <span>Until</span>
+                      <input type="date" value={ruleForm.endDate} onInput={(event) => setRuleForm((current) => ({ ...current, endDate: event.target.value }))} onChange={(event) => setRuleForm((current) => ({ ...current, endDate: event.target.value }))} />
+                    </label>
+                  </div>
+                  <button className="primary-btn" onClick={submitRule}>Add rule</button>
+                </div>
+              )}
+              <div className="vacation-rule-list">
+                {rules.map((rule) => (
+                  <div className={`vacation-rule-item ${rule.type}`} key={rule.id}>
+                    <div>
+                      <strong>{absenceRuleLabel(rule.type)}</strong>
+                      <span>{rule.name} · {displayDate(rule.startDate)} - {displayDate(rule.endDate)}</span>
+                    </div>
+                    {role === 'management' && (
+                      <button className="icon-btn table-action" onClick={() => onDeleteRule(rule)} aria-label={`Delete ${rule.name}`}><X size={16} /></button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+          </aside>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function VacationRequestItem({ request, holidayDates, canApprove, canDelete, onApprove, onReject, onDelete }) {
+  const workingDays = requestWorkingDays(request, holidayDates);
+  return (
+    <article className={`vacation-request-item ${request.status}`}>
+      <div>
+        <span className={`absence-chip ${request.type}`}>{absenceTypeLabel(request.type)}</span>
+        <span className="absence-days-chip">{workingDays} working day{workingDays === 1 ? '' : 's'}</span>
+        <strong>{request.employee}</strong>
+        <small>{displayDate(request.startDate)} - {displayDate(request.endDate)}</small>
+        {request.notes && <em>{request.notes}</em>}
+        {request.decisionNote && <em>Decision note: {request.decisionNote}</em>}
+      </div>
+      <div className="vacation-request-actions">
+        <span className={`status-pill ${request.status}`}>{absenceStatusLabel(request.status)}</span>
+        {canApprove && request.status === 'pending' && (
+          <>
+            <button className="soft-btn success-soft" onClick={() => onApprove(request)}>Approve</button>
+            <button className="soft-btn danger-soft" onClick={() => onReject(request)}>Reject</button>
+          </>
+        )}
+        {canDelete && (
+          <button className="icon-btn table-action danger" onClick={() => onDelete(request)} aria-label="Delete absence request"><Trash2 size={16} /></button>
+        )}
+      </div>
+    </article>
+  );
+}
+
+function VacationTimeline({ people, requests, rules, year, holidayDates }) {
+  const months = useMemo(() => Array.from({ length: 12 }, (_, index) => index), []);
+  const todayYear = TODAY.slice(0, 4) === String(year);
+  const scrollRef = useRef(null);
+  const groupedPeople = useMemo(() => {
+    const groups = new Map();
+    people.forEach((person) => {
+      const department = person.department || 'No department';
+      if (!groups.has(department)) groups.set(department, []);
+      groups.get(department).push(person);
+    });
+    return Array.from(groups.entries())
+      .sort(([first], [second]) => first.localeCompare(second))
+      .map(([department, members]) => ({
+        department,
+        members: members.slice().sort((first, second) => first.name.localeCompare(second.name)),
+      }));
+  }, [people]);
+
+  useEffect(() => {
+    if (!scrollRef.current || !todayYear) return;
+    const currentMonth = Number(TODAY.slice(5, 7)) - 1;
+    const monthOffset = months.slice(0, currentMonth).reduce((sum, month) => (
+      sum + datesBetween(localDate(new Date(year, month, 1)), localDate(new Date(year, month + 1, 0))).length * 28
+    ), 0);
+    scrollRef.current.scrollLeft = Math.max(0, monthOffset - 84);
+  }, [todayYear, year, months]);
+
+  return (
+    <div className="vacation-timeline">
+      <div className="vacation-timeline-users">
+        <strong>Users</strong>
+        <span className="vacation-date-spacer" aria-hidden="true" />
+        {groupedPeople.map((group) => (
+          <React.Fragment key={group.department}>
+            <span className="vacation-department-row">{group.department}</span>
+            {group.members.map((person) => (
+              <span key={person.id}><span className="person-avatar small" style={personAvatarStyle(person.name)}>{initials(person.name)}</span>{person.name}</span>
+            ))}
+          </React.Fragment>
+        ))}
+      </div>
+      <div className="vacation-timeline-scroll" ref={scrollRef}>
+        <div className="vacation-months">
+          {months.map((month) => {
+            const monthStart = localDate(new Date(year, month, 1));
+            const monthEnd = localDate(new Date(year, month + 1, 0));
+            const monthDates = datesBetween(monthStart, monthEnd);
+            return (
+              <div className="vacation-month" key={month}>
+                <strong>{new Date(year, month, 1).toLocaleString('en-US', { month: 'short' })}</strong>
+                <div className="vacation-month-days">
+                  {monthDates.map((date) => {
+                    const day = parseIsoDate(date)?.getDay();
+                    const warning = rules.some((rule) => rule.type === 'warning' && rangesOverlap(date, date, rule.startDate, rule.endDate));
+                    return (
+                      <span className={cx((day === 0 || day === 6) && 'weekend', holidayDates.has(date) && 'holiday', warning && 'warning', todayYear && date === TODAY && 'today')} key={date}>
+                        {Number(date.slice(8))}
+                      </span>
+                    );
+                  })}
+                </div>
+                {groupedPeople.map((group) => (
+                  <React.Fragment key={`${group.department}-${month}`}>
+                    <div className="vacation-month-row vacation-department-row" aria-hidden="true">
+                      {monthDates.map((date) => <i key={date} />)}
+                    </div>
+                    {group.members.map((person) => (
+                      <div className="vacation-month-row" key={`${person.id}-${month}`}>
+                        {monthDates.map((date) => {
+                          const request = requests.find((item) => item.employee === person.name && ['pending', 'approved'].includes(item.status) && rangesOverlap(date, date, item.startDate, item.endDate));
+                          return <i className={request ? `${request.status} ${request.type}` : ''} title={request ? `${person.name}: ${absenceTypeLabel(request.type)} ${displayDate(request.startDate)} - ${displayDate(request.endDate)}` : date} key={date}>{request && date === request.startDate ? ' ' : ''}</i>;
+                        })}
+                      </div>
+                    ))}
+                  </React.Fragment>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
@@ -4639,6 +5642,7 @@ function EmployeeRecordSidebar({
   ];
   const recordTabs = [
     { id: 'overview', label: 'Overview', icon: BriefcaseBusiness },
+    { id: 'vacation', label: 'Vacation', icon: CalendarDays },
     { id: 'documents', label: 'Documents', icon: FileText },
     { id: 'comments', label: 'Comments', icon: ReceiptText },
     { id: 'admin', label: 'Archive / delete user', icon: FolderLock },
@@ -4646,7 +5650,7 @@ function EmployeeRecordSidebar({
   const visibleRecordTabs = useMemo(() => (
     canEditPeople
       ? recordTabs
-      : recordTabs.filter((tab) => ['overview', 'documents'].includes(tab.id))
+      : recordTabs.filter((tab) => ['overview', 'vacation', 'documents'].includes(tab.id))
   ), [canEditPeople]);
 
   useEffect(() => {
@@ -4751,6 +5755,7 @@ function EmployeeRecordSidebar({
               <EmployeeFact icon={Mail} label="Work email" value={compactValue(employee.email)} />
               <EmployeeFact icon={Phone} label="Phone" value={compactValue(employee.phone)} />
               <EmployeeFact icon={CalendarClock} label="Contract from" value={displayDate(employee.contractStartDate || employee.start)} />
+              <EmployeeFact icon={CalendarDays} label="Vacation allowance" value={`${vacationAllowance(employee)} days`} />
               <EmployeeFact icon={CircleDollarSign} label="Pay type" value={employmentRule?.payType || 'No rule'} />
             </div>
             <div className="employee-record-divider" />
@@ -4993,6 +5998,24 @@ function EmployeeRecordSidebar({
                 </div>
               </div>
             )}
+            {activeRecordTab === 'vacation' && (
+              <div className="employee-overview-card">
+                <div className="overview-title">
+                  <span><CalendarDays size={19} /></span>
+                  <h3>Vacation setup</h3>
+                </div>
+                <div className="overview-grid employee-identity-grid">
+                  <EmployeeOverviewItem label="Annual vacation allowance" value={`${vacationAllowance(employee)} days`} />
+                  <EmployeeOverviewItem label="Fallback rule" value={employee.vacationDaysAvailable === undefined || employee.vacationDaysAvailable === '' ? 'Uses 20 days' : 'Stored on employee card'} />
+                  <EmployeeOverviewItem label="Approval scope" value={employee.level === 'Team Lead' ? 'Management approval only' : 'Team lead or management approval'} />
+                  <EmployeeOverviewItem label="Carryover cut-off" value="Valid until 30-06 each year" />
+                </div>
+                <div className="settings-tag-note employee-admin-note">
+                  <CalendarClock size={16} />
+                  <span>Vacation balances use approved vacation requests, working days, global holidays, and the annual allowance stored on this employee card.</span>
+                </div>
+              </div>
+            )}
             {activeRecordTab === 'comments' && canEditPeople && (
               <div className="employee-overview-card">
                 <div className="overview-title">
@@ -5123,6 +6146,7 @@ function EmployeeModal({ mode, employee, role, primaryLeadDepartment, employees,
     email: employee?.email || '',
     phone: employee?.phone || '',
     privateEmail: employee?.privateEmail || '',
+    vacationDaysAvailable: employee?.vacationDaysAvailable ?? 20,
     employment: employee?.employment || 'Trial period',
     start: employee?.start || TODAY,
     contractStartDate: employee?.contractStartDate || employee?.start || TODAY,
@@ -5293,6 +6317,10 @@ function EmployeeModal({ mode, employee, role, primaryLeadDepartment, employees,
               <label className="field user-info-third">
                 <span>Private email</span>
                 <input type="email" value={form.privateEmail} onChange={(event) => update('privateEmail', event.target.value)} placeholder="Private email address" />
+              </label>
+              <label className="field user-info-third">
+                <span>Annual vacation allowance</span>
+                <input type="number" min="0" value={form.vacationDaysAvailable} onChange={(event) => update('vacationDaysAvailable', event.target.value)} placeholder="20" />
               </label>
             </div>
           </section>
@@ -5682,69 +6710,242 @@ function DocumentTypeRuleModal({ mode, rule, existingRules, onClose, onSave }) {
   );
 }
 
-function AnalyticsView({ role, platform, activePlatform, people, entries, workTypes, configuredWorkTypes, employmentRules, totals, activeRole, onFilters }) {
-  const workTypeHours = new Map(workTypes.map((type) => [
-    type.name,
-    entries.filter((entry) => entry.type === type.name).reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0),
-  ]));
-  const peopleStats = people.map((person) => {
-    const personEntries = entries.filter((entry) => entry.employee === person.name);
-    return {
-      person,
-      hours: personEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0),
-      cost: employeeRuleCost(person, employmentRules, entries, configuredWorkTypes),
-    };
+function AnalyticsView({ role, activePlatform, people, entries, configuredWorkTypes, employmentRules, activeRole }) {
+  const [filters, setFilters] = useState({ from: relativeLocalDate(-30), to: TODAY });
+  const periodEntries = useMemo(() => entries.filter((entry) => {
+    const afterFrom = !filters.from || entry.date >= filters.from;
+    const beforeTo = !filters.to || entry.date <= filters.to;
+    return afterFrom && beforeTo;
+  }), [entries, filters]);
+  const peopleByName = useMemo(() => new Map(people.map((person) => [person.name, person])), [people]);
+  const visibleTypeNames = useMemo(() => sortedWorkTypeNames(periodEntries), [periodEntries]);
+  const totalHours = periodEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
+  const totalCost = people.reduce((sum, person) => sum + employeeRuleCost(person, employmentRules, periodEntries, configuredWorkTypes), 0);
+  const departmentNames = Array.from(new Set(people.map((person) => person.department))).sort();
+  const departmentRows = buildAnalyticsGroupRows({
+    groups: departmentNames,
+    entries: periodEntries,
+    people,
+    configuredTypes: configuredWorkTypes,
+    employmentRules,
+    groupLabel: 'department',
+    groupForEntry: (entry) => peopleByName.get(entry.employee)?.department || entry.department,
   });
-  const maxHours = Math.max(...Array.from(workTypeHours.values()), 1);
-  const maxCost = Math.max(...peopleStats.map((item) => item.cost), 1);
+  const userRows = buildAnalyticsGroupRows({
+    groups: people.map((person) => person.name),
+    entries: periodEntries,
+    people,
+    configuredTypes: configuredWorkTypes,
+    employmentRules,
+    groupLabel: 'user',
+    groupForEntry: (entry) => entry.employee,
+  });
+  const userWorkload = people.map((person) => {
+    const personEntries = periodEntries.filter((entry) => entry.employee === person.name);
+    const hours = personEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
+    const cost = employeeRuleCost(person, employmentRules, personEntries, configuredWorkTypes);
+    const segments = visibleTypeNames.map((typeName) => ({
+      typeName,
+      hours: personEntries.filter((entry) => entry.type === typeName).reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0),
+      color: workTypeColor(typeName, configuredWorkTypes),
+    })).filter((segment) => segment.hours > 0);
+    return { label: person.name, meta: person.department, hours, cost, segments };
+  }).filter((row) => row.hours > 0).sort((first, second) => second.hours - first.hours);
+  const departmentWorkload = departmentNames.map((department) => {
+    const departmentPeople = new Set(people.filter((person) => person.department === department).map((person) => person.name));
+    const departmentEntries = periodEntries.filter((entry) => departmentPeople.has(entry.employee));
+    const hours = departmentEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
+    const cost = people
+      .filter((person) => person.department === department)
+      .reduce((sum, person) => sum + employeeRuleCost(person, employmentRules, departmentEntries, configuredWorkTypes), 0);
+    const segments = visibleTypeNames.map((typeName) => ({
+      typeName,
+      hours: departmentEntries.filter((entry) => entry.type === typeName).reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0),
+      color: workTypeColor(typeName, configuredWorkTypes),
+    })).filter((segment) => segment.hours > 0);
+    return { label: department, meta: `${departmentPeople.size} user${departmentPeople.size === 1 ? '' : 's'}`, hours, cost, segments };
+  }).filter((row) => row.hours > 0).sort((first, second) => second.hours - first.hours);
+  const flowRows = visibleTypeNames.map((typeName) => {
+    const typeEntries = periodEntries.filter((entry) => entry.type === typeName);
+    const hours = typeEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
+    return {
+      typeName,
+      hours,
+      share: totalHours ? (hours / totalHours) * 100 : 0,
+      color: workTypeColor(typeName, configuredWorkTypes),
+    };
+  }).filter((row) => row.hours > 0).sort((first, second) => second.hours - first.hours);
   return (
-    <div className="workspace two-col">
+    <div className="workspace analytics-workspace">
       <section className="primary-panel">
         <div className="panel-heading">
           <div>
             <span className="eyebrow">Analytics</span>
             <h2>{role === 'management' ? 'Company overview' : role === 'lead' ? `${activeRole.dept} overview` : 'My work overview'}</h2>
           </div>
-          <button className="soft-btn" onClick={onFilters}><Filter size={17} /> Filters</button>
+          <div className="analytics-date-filters">
+            <label>
+              <span>From</span>
+              <input type="date" value={filters.from} onChange={(event) => setFilters((current) => ({ ...current, from: event.target.value }))} />
+            </label>
+            <label>
+              <span>To</span>
+              <input type="date" value={filters.to} onChange={(event) => setFilters((current) => ({ ...current, to: event.target.value }))} />
+            </label>
+            <button className="soft-btn" onClick={() => setFilters({ from: relativeLocalDate(-30), to: TODAY })}><Filter size={17} /> Last 30 days</button>
+          </div>
         </div>
         <div className="analytics-kpis">
-          <Metric icon={Clock3} label="Total working hours" value={`${totals.hours.toFixed(1)} h`} delta="Current visible scope" />
-          <Metric icon={Activity} label="Average hours / employee" value={`${(totals.hours / Math.max(people.length, 1)).toFixed(1)} h`} delta="Last 30 days" />
-          <Metric icon={CircleDollarSign} label="Cost by scope" value={money(totals.entryCost)} delta="Available through React analytics API" />
-        </div>
-        <div className="bar-list">
-          <h3>Work type distribution</h3>
-          {workTypes.map((type) => (
-            <div className="bar-row" key={`${type.department}-${type.name}`}>
-              <div><strong>{type.name}</strong><span>{type.department}</span></div>
-              <div className="bar-track"><i style={{ width: `${(workTypeHours.get(type.name) / maxHours) * 100}%` }} /></div>
-              <b>{(workTypeHours.get(type.name) || 0).toFixed(1)} h</b>
-            </div>
-          ))}
+          <Metric icon={Clock3} label="Total working hours" value={compactHours(totalHours)} delta="Selected date range" />
+          <Metric icon={Activity} label="Average hours / user" value={compactHours(totalHours / Math.max(people.length, 1))} delta={`${people.length} users in scope`} />
+          <Metric icon={CircleDollarSign} label="Allocated cost" value={money(totalCost)} delta="Monthly, hourly, and project rows" />
         </div>
       </section>
 
-      <aside className="primary-panel">
-        <div className="panel-heading compact">
-          <div>
-            <span className="eyebrow">{activePlatform.stack}</span>
-            <h2>Employee workload</h2>
+      <section className="primary-panel analytics-chart-panel">
+        <ChartHeading kicker={visibleTypeNames.join(' / ') || 'No work types'} title="Workload hours by user" />
+        <StackedWorkloadChart rows={userWorkload} totalMax={Math.max(...userWorkload.map((row) => row.hours), 1)} />
+      </section>
+
+      <section className="primary-panel analytics-chart-panel">
+        <ChartHeading kicker={activePlatform.stack} title="Workload hours by department" />
+        <StackedWorkloadChart rows={departmentWorkload} totalMax={Math.max(...departmentWorkload.map((row) => row.hours), 1)} />
+      </section>
+
+      <section className="primary-panel analytics-chart-panel">
+        <ChartHeading kicker="Total scope" title="Workload flow" />
+        <WorkloadFlowChart rows={flowRows} totalHours={totalHours} />
+      </section>
+
+      <section className="primary-panel analytics-table-panel">
+        <ChartHeading kicker="Department analytics" title="Hours, share, variance, cost, and change" />
+        <AnalyticsDetailTable rows={departmentRows} firstColumn="Department" />
+      </section>
+
+      <section className="primary-panel analytics-table-panel">
+        <ChartHeading kicker="User analytics" title="Hours, share, variance, cost, and change" />
+        <AnalyticsDetailTable rows={userRows} firstColumn="User" />
+      </section>
+    </div>
+  );
+}
+
+function ChartHeading({ kicker, title }) {
+  return (
+    <div className="panel-heading compact">
+      <div>
+        <span className="eyebrow">{kicker}</span>
+        <h2>{title}</h2>
+      </div>
+    </div>
+  );
+}
+
+function StackedWorkloadChart({ rows, totalMax }) {
+  if (rows.length === 0) return <span className="empty-state">No time entries match the selected analytics period.</span>;
+  return (
+    <div className="stacked-workload-chart">
+      {rows.map((row) => (
+        <div className="stacked-workload-row" key={row.label}>
+          <div className="stacked-workload-label">
+            <strong>{row.label}</strong>
+            <span>{row.meta} · {compactHours(row.hours)} · {money(row.cost)}</span>
+          </div>
+          <div className="stacked-workload-track" style={{ '--row-width': `${Math.max((row.hours / totalMax) * 100, 2)}%` }}>
+            <div className="stacked-workload-segments">
+              {row.segments.map((segment) => (
+                <i
+                  key={segment.typeName}
+                  title={`${segment.typeName}: ${compactHours(segment.hours)}`}
+                  style={{
+                    width: `${Math.max((segment.hours / row.hours) * 100, 2)}%`,
+                    background: segment.color,
+                  }}
+                />
+              ))}
+            </div>
           </div>
         </div>
-        <div className="cost-list">
-          {peopleStats.map(({ person, hours, cost }) => (
-            <div className="cost-row" key={person.id}>
-              <div>
-                <strong>{person.name}</strong>
-                <span>{person.department} · {hours.toFixed(1)} h</span>
-              </div>
-              <div className="cost-meter"><i style={{ width: `${(cost / maxCost) * 100}%` }} /></div>
-              <b>{money(cost)}</b>
-            </div>
-          ))}
-        </div>
-      </aside>
+      ))}
+      <AnalyticsLegend rows={rows.flatMap((row) => row.segments)} />
     </div>
+  );
+}
+
+function WorkloadFlowChart({ rows, totalHours }) {
+  if (rows.length === 0) return <span className="empty-state">No workload flow is available for this period.</span>;
+  return (
+    <div className="workload-flow-chart">
+      <div className="flow-grid">
+        <div className="flow-step capacity">
+          <span style={{ height: '100%' }} />
+          <strong>{compactHours(totalHours)}</strong>
+          <em>Capacity</em>
+        </div>
+        {rows.map((row) => {
+          return (
+            <div className="flow-step" key={row.typeName}>
+              <span style={{ height: `${Math.max(row.share, 4)}%`, background: row.color }} />
+              <strong>{percent(row.share)}</strong>
+              <em>{row.typeName}</em>
+              <small>{compactHours(row.hours)}</small>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function AnalyticsLegend({ rows }) {
+  const items = Array.from(new Map(rows.map((row) => [row.typeName, row])).values());
+  return (
+    <div className="analytics-legend">
+      {items.map((item) => (
+        <span key={item.typeName}><i style={{ background: item.color }} />{item.typeName}</span>
+      ))}
+    </div>
+  );
+}
+
+function AnalyticsDetailTable({ rows, firstColumn }) {
+  if (rows.length === 0) return <span className="empty-state table-empty">No analytics rows match the selected period.</span>;
+  return (
+    <div className="analytics-data-table">
+      <div className="analytics-data-head">
+        <span>{firstColumn}</span>
+        <span>Work type</span>
+        <span>Hours</span>
+        <span>Share</span>
+        <span>vs avg</span>
+        <span>Cost</span>
+        <span>Cost / h</span>
+        <span>Change</span>
+      </div>
+      {rows.map((row) => (
+        <div className="analytics-data-row" key={row.id}>
+          <strong>{row.group}</strong>
+          <span>{row.typeName}</span>
+          <span>{compactHours(row.hours)}</span>
+          <span>{percent(row.share)}</span>
+          <span className={cx('delta-cell', row.deltaShare > 0 ? 'positive' : row.deltaShare < 0 ? 'negative' : '')}>{row.deltaShare >= 0 ? '+' : ''}{percent(row.deltaShare)}</span>
+          <span>{money(row.cost)}</span>
+          <span>{money(row.costPerHour)}</span>
+          <MiniTrend values={row.trend} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function MiniTrend({ values }) {
+  const max = Math.max(...values, 1);
+  return (
+    <span className="mini-trend">
+      {values.map((value, index) => (
+        <i key={`${value}-${index}`} style={{ height: `${Math.max((value / max) * 100, 12)}%` }} />
+      ))}
+    </span>
   );
 }
 

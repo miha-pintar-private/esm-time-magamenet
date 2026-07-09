@@ -837,6 +837,159 @@
     @apply mb-6 grid-cols-3;
   }
 
+  .analytics-workspace {
+    @apply grid-cols-1;
+  }
+
+  .analytics-date-filters {
+    @apply flex flex-wrap items-end justify-end gap-2.5;
+  }
+
+  .analytics-date-filters label {
+    @apply grid w-[148px] gap-1.5;
+  }
+
+  .analytics-date-filters label span {
+    @apply text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#9aa5b4];
+  }
+
+  .analytics-date-filters input,
+  .analytics-date-filters .soft-btn {
+    @apply min-h-[34px] rounded-[8px] text-[12px] font-[750];
+  }
+
+  .analytics-chart-panel,
+  .analytics-table-panel {
+    @apply overflow-hidden;
+  }
+
+  .stacked-workload-chart {
+    @apply grid gap-4;
+  }
+
+  .stacked-workload-row {
+    @apply grid grid-cols-[220px_minmax(0,1fr)] items-center gap-4;
+  }
+
+  .stacked-workload-label {
+    @apply grid min-w-0 gap-1;
+  }
+
+  .stacked-workload-label strong {
+    @apply truncate text-sm font-extrabold text-[#334052];
+  }
+
+  .stacked-workload-label span {
+    @apply truncate text-xs font-bold text-[#8b96a4];
+  }
+
+  .stacked-workload-track {
+    @apply h-[28px] rounded-[8px] bg-[#f0f3f6];
+  }
+
+  .stacked-workload-segments {
+    width: var(--row-width);
+    @apply flex h-full min-w-[18px] overflow-hidden rounded-[8px] [animation:grow_560ms_ease_both];
+  }
+
+  .stacked-workload-segments i {
+    @apply block h-full;
+  }
+
+  .analytics-legend {
+    @apply flex flex-wrap justify-center gap-x-4 gap-y-2 pt-3;
+  }
+
+  .analytics-legend span {
+    @apply inline-flex items-center gap-2 text-xs font-extrabold text-[#526070];
+  }
+
+  .analytics-legend i {
+    @apply h-3 w-3 rounded-[3px];
+  }
+
+  .workload-flow-chart {
+    @apply min-h-[260px] overflow-x-auto px-2 pb-2 pt-6;
+  }
+
+  .flow-grid {
+    @apply grid min-w-[860px] grid-flow-col auto-cols-fr items-end gap-7 border-b border-dashed border-[#d9e1e9] pb-8;
+  }
+
+  .flow-step {
+    @apply grid min-h-[210px] grid-rows-[1fr_auto_auto_auto] justify-items-center gap-1.5 text-center;
+  }
+
+  .flow-step span {
+    @apply mt-auto block w-[58px] rounded-t-[4px] bg-[#2f65dc] shadow-[0_10px_20px_rgba(39,75,129,0.08)];
+  }
+
+  .flow-step.capacity span {
+    @apply bg-[#718096];
+  }
+
+  .flow-step strong {
+    @apply text-sm font-black text-[#637083];
+  }
+
+  .flow-step em {
+    @apply text-sm font-extrabold not-italic text-[#6f7b8b];
+  }
+
+  .flow-step small {
+    @apply text-xs font-bold text-[#9aa5b4];
+  }
+
+  .analytics-data-table {
+    @apply block w-full overflow-x-auto rounded-[12px] border border-line bg-white;
+  }
+
+  .analytics-data-head,
+  .analytics-data-row {
+    display: grid;
+    grid-template-columns: minmax(160px, 1.2fr) minmax(150px, 1.1fr) 90px 82px 82px 100px 100px 104px;
+    min-width: 940px;
+    align-items: center;
+    gap: 12px;
+    padding: 0 14px;
+  }
+
+  .analytics-data-head {
+    @apply min-h-10 border-b border-line bg-[#f8fafc] text-[11px] font-black uppercase tracking-[0.08em] text-[#9aa6b2];
+  }
+
+  .analytics-data-row {
+    @apply min-h-[52px] border-b border-line text-sm font-bold text-[#526070];
+  }
+
+  .analytics-data-row:last-child {
+    @apply border-b-0;
+  }
+
+  .analytics-data-row strong {
+    @apply min-w-0 truncate text-[#334052];
+  }
+
+  .delta-cell {
+    @apply font-black text-[#687586];
+  }
+
+  .delta-cell.positive {
+    @apply text-[#168853];
+  }
+
+  .delta-cell.negative {
+    @apply text-[#b42318];
+  }
+
+  .mini-trend {
+    @apply flex h-7 items-end gap-1;
+  }
+
+  .mini-trend i {
+    @apply block w-2 rounded-t-sm bg-[#90a4bd];
+  }
+
   .time-metrics {
     @apply grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-[18px];
   }
@@ -2606,6 +2759,412 @@
     @apply flex flex-wrap gap-2.5 p-[26px] pt-5;
   }
 
+  .vacation-workspace {
+    @apply grid gap-5 pt-3 [animation:enter_320ms_ease_both];
+  }
+
+  .vacation-head {
+    @apply grid justify-items-start gap-3;
+  }
+
+  .vacation-head h2 {
+    @apply m-0 mt-1 text-[28px] leading-tight text-[#263140];
+  }
+
+  .vacation-tabs {
+    @apply inline-flex rounded-[10px] border border-[#dfe7ef] bg-white p-1;
+  }
+
+  .vacation-tabs button,
+  .segmented-control button {
+    @apply min-h-9 cursor-pointer rounded-[8px] bg-transparent px-3.5 text-[13px] font-black text-[#657286] transition;
+  }
+
+  .vacation-tabs button.active,
+  .segmented-control button.active {
+    @apply bg-[#2f6df6] text-white shadow-[0_6px_14px_rgba(47,109,246,0.22)];
+  }
+
+  .vacation-overview-layout,
+  .vacation-analytics-layout {
+    @apply grid items-start gap-5;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
+  }
+
+  .vacation-main-column,
+  .vacation-analytics-side {
+    @apply grid gap-5;
+  }
+
+  .vacation-metrics {
+    @apply grid gap-4;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .vacation-week-card {
+    @apply flex min-h-[118px] items-start justify-between gap-4 rounded-[12px] border border-[#dfe7ef] bg-white p-5 shadow-[0_6px_20px_rgba(37,49,65,0.04)];
+  }
+
+  .vacation-week-card div {
+    @apply grid gap-1;
+  }
+
+  .vacation-week-card svg {
+    @apply text-[#7c5cf5];
+  }
+
+  .vacation-week-card span {
+    @apply text-[12px] font-black uppercase tracking-[0.08em] text-[#758398];
+  }
+
+  .vacation-week-card strong {
+    @apply text-[16px] font-black text-[#263140];
+  }
+
+  .vacation-week-card small {
+    @apply text-[13px] font-bold text-[#7d8897];
+  }
+
+  .vacation-week-card b {
+    @apply grid h-9 min-w-9 place-items-center rounded-full border border-[#d8e4ef] text-[16px] font-black text-[#657286];
+  }
+
+  .vacation-calendar-panel,
+  .vacation-form-panel,
+  .vacation-status-panel,
+  .vacation-analytics-table-panel,
+  .vacation-approvals-panel,
+  .vacation-rules-panel {
+    @apply rounded-[14px] border border-[#e1e8ef] bg-white shadow-[0_10px_28px_rgba(36,48,65,0.04)];
+  }
+
+  .vacation-calendar-toolbar {
+    @apply flex flex-wrap items-center justify-between gap-3 border-b border-[#edf1f4] p-4;
+  }
+
+  .vacation-legend {
+    @apply flex flex-wrap gap-2;
+  }
+
+  .vacation-legend span {
+    @apply inline-flex min-h-7 items-center gap-1.5 rounded-[7px] border border-[#dfe7ef] bg-white px-2.5 text-[11px] font-black uppercase tracking-[0.08em] text-[#6f7d8e];
+  }
+
+  .vacation-legend i {
+    @apply h-2.5 w-2.5 rounded-full border;
+  }
+
+  .vacation-legend i.approved { @apply border-[#9ee6c4] bg-[#dff9ec]; }
+  .vacation-legend i.pending { @apply border-[#ffd875] bg-[#fff5c7]; }
+  .vacation-legend i.weekend { @apply border-[#cbdcf8] bg-[#edf4ff]; }
+  .vacation-legend i.holiday { @apply border-[#afe7c2] bg-[#ebfbf1]; }
+  .vacation-legend i.warning { @apply border-[#ffc79b] bg-[#fff2e7]; }
+  .vacation-legend i.today { @apply border-[#df2424] bg-[#df2424]; }
+
+  .vacation-timeline {
+    @apply grid p-4 pt-0;
+    grid-template-columns: 230px minmax(0, 1fr);
+  }
+
+  .vacation-timeline-users {
+    @apply sticky left-0 z-10 grid content-start border-r border-[#e5ebf1] bg-white;
+  }
+
+  .vacation-timeline-users > strong {
+    @apply flex h-[42px] items-center text-[11px] font-black uppercase tracking-[0.12em] text-[#758398];
+  }
+
+  .vacation-timeline-users > .vacation-date-spacer {
+    @apply h-[30px] border-t border-[#edf1f4] bg-white;
+  }
+
+  .vacation-timeline-users > span {
+    @apply flex h-[42px] min-w-0 items-center gap-2 border-t border-[#edf1f4] pr-3 text-[13px] font-black text-[#263140];
+  }
+
+  .vacation-timeline-users > span.vacation-department-row,
+  .vacation-month-row.vacation-department-row {
+    @apply h-[30px] bg-[#f8fafc];
+  }
+
+  .vacation-timeline-users > span.vacation-department-row {
+    @apply items-center border-t border-[#dfe7ef] text-[11px] uppercase tracking-[0.12em] text-[#7c8998];
+  }
+
+  .vacation-month-row.vacation-department-row {
+    @apply border-t border-[#dfe7ef];
+  }
+
+  .vacation-month-row.vacation-department-row i {
+    @apply my-0 border-l-0 bg-[#f8fafc];
+  }
+
+  .person-avatar.small {
+    @apply grid h-6 w-6 shrink-0 place-items-center rounded-full text-[10px] font-black text-white;
+  }
+
+  .vacation-timeline-scroll {
+    @apply overflow-x-auto pb-2 [scrollbar-color:#bac4ce_transparent];
+  }
+
+  .vacation-months {
+    @apply flex min-w-max;
+  }
+
+  .vacation-month {
+    @apply grid min-w-max border-r border-[#edf1f4] pt-0;
+  }
+
+  .vacation-month > strong {
+    @apply flex h-[42px] items-center justify-center text-[13px] font-black text-[#202937];
+  }
+
+  .vacation-month-days,
+  .vacation-month-row {
+    @apply grid;
+    grid-template-columns: repeat(var(--days, 31), 28px);
+  }
+
+  .vacation-month:nth-child(2) .vacation-month-days,
+  .vacation-month:nth-child(2) .vacation-month-row {
+    --days: 28;
+  }
+
+  .vacation-month:nth-child(4) .vacation-month-days,
+  .vacation-month:nth-child(4) .vacation-month-row,
+  .vacation-month:nth-child(6) .vacation-month-days,
+  .vacation-month:nth-child(6) .vacation-month-row,
+  .vacation-month:nth-child(9) .vacation-month-days,
+  .vacation-month:nth-child(9) .vacation-month-row,
+  .vacation-month:nth-child(11) .vacation-month-days,
+  .vacation-month:nth-child(11) .vacation-month-row {
+    --days: 30;
+  }
+
+  .vacation-month-days span {
+    @apply grid h-[30px] place-items-center border-t border-[#edf1f4] text-[11px] font-black text-[#4f5d6e];
+  }
+
+  .vacation-month-days span.weekend {
+    @apply bg-[#edf4ff] text-[#2367ff];
+  }
+
+  .vacation-month-days span.holiday {
+    @apply bg-[#eafbf2] text-[#087d45];
+  }
+
+  .vacation-month-days span.warning {
+    @apply bg-[#fff1e5] text-[#a65716];
+  }
+
+  .vacation-month-days span.today {
+    @apply relative text-[#df2424];
+  }
+
+  .vacation-month-days span.today::after {
+    @apply absolute top-1 h-1.5 w-1.5 rounded-full bg-[#df2424] content-[''];
+  }
+
+  .vacation-month-row {
+    @apply h-[42px] border-t border-[#edf1f4];
+  }
+
+  .vacation-month-row i {
+    @apply my-2 border-l border-[#e7edf3] bg-transparent;
+  }
+
+  .vacation-month-row i.approved {
+    @apply border-l-0 bg-[#dff9ec] shadow-[inset_0_0_0_1px_#78d8aa];
+  }
+
+  .vacation-month-row i.pending {
+    @apply border-l-0 bg-[#fff4c7] shadow-[inset_0_0_0_1px_#f4c842];
+  }
+
+  .vacation-month-row i.sick {
+    @apply bg-[#ffe7e9] shadow-[inset_0_0_0_1px_#ff9ba6];
+  }
+
+  .vacation-side,
+  .vacation-analytics-side {
+    @apply grid gap-5;
+  }
+
+  .vacation-form-panel,
+  .vacation-rules-panel,
+  .vacation-approvals-panel {
+    @apply grid gap-3 p-5;
+  }
+
+  .segmented-control {
+    @apply inline-flex w-fit rounded-[10px] border border-[#dfe7ef] bg-[#f8fafc] p-1;
+  }
+
+  .vacation-date-grid {
+    @apply grid grid-cols-2 gap-3;
+  }
+
+  .vacation-duration-box {
+    @apply grid grid-cols-2 overflow-hidden rounded-[10px] border border-[#dfe7ef] bg-[#f8fafc];
+  }
+
+  .vacation-duration-box span {
+    @apply grid min-h-[58px] place-items-center border-r border-[#dfe7ef] text-[12px] font-black uppercase tracking-[0.08em] text-[#758398];
+  }
+
+  .vacation-duration-box span:last-child {
+    @apply border-r-0;
+  }
+
+  .vacation-duration-box b {
+    @apply text-[20px] text-[#111827];
+  }
+
+  .vacation-request-columns {
+    @apply grid grid-cols-3 gap-4;
+  }
+
+  .vacation-status-panel {
+    @apply p-4;
+  }
+
+  .vacation-status-head {
+    @apply mb-3 flex items-center justify-between gap-3;
+  }
+
+  .vacation-status-head h3 {
+    @apply m-0 flex items-center gap-2 text-[18px] font-black text-[#202937];
+  }
+
+  .vacation-status-head h3 i {
+    @apply h-2.5 w-2.5 rounded-full bg-[#94a3b8];
+  }
+
+  .vacation-status-panel.approved .vacation-status-head h3 i { @apply bg-[#12b76a]; }
+  .vacation-status-panel.pending .vacation-status-head h3 i { @apply bg-[#f4be0b]; }
+  .vacation-status-panel.rejected .vacation-status-head h3 i { @apply bg-[#ff3347]; }
+
+  .vacation-status-head span {
+    @apply rounded-full border border-[#d8e4ef] px-3 py-1 text-[13px] font-black text-[#657286];
+  }
+
+  .vacation-request-list {
+    @apply grid gap-3;
+  }
+
+  .vacation-request-item {
+    @apply grid gap-3 rounded-[10px] border border-[#dfe7ef] bg-white p-3.5;
+  }
+
+  .vacation-request-item.pending {
+    @apply border-[#ffdc69] bg-[#fffbea];
+  }
+
+  .vacation-request-item.rejected {
+    @apply border-[#ffc9d0] bg-[#fff7f8];
+  }
+
+  .vacation-request-item > div:first-child {
+    @apply flex flex-wrap items-center gap-2;
+  }
+
+  .vacation-request-item strong {
+    @apply w-full text-[15px] font-black text-[#202937];
+  }
+
+  .vacation-request-item small,
+  .vacation-request-item em {
+    @apply w-full text-[13px] font-bold not-italic text-[#657286];
+  }
+
+  .absence-chip,
+  .absence-days-chip,
+  .status-pill {
+    @apply inline-flex min-h-7 items-center rounded-full px-3 text-[12px] font-black;
+  }
+
+  .absence-chip.vacation {
+    @apply bg-[#dfeaff] text-[#1f5df4];
+  }
+
+  .absence-chip.sick {
+    @apply bg-[#ffe5e9] text-[#b42335];
+  }
+
+  .absence-days-chip {
+    @apply border border-[#d8e4ef] bg-white text-[#435166];
+  }
+
+  .vacation-request-actions {
+    @apply flex flex-wrap items-center gap-2;
+  }
+
+  .success-soft {
+    @apply bg-[#e8fbf1] text-[#067647];
+  }
+
+  .vacation-analytics-table {
+    @apply overflow-hidden rounded-[12px] border border-[#e4e9ee];
+  }
+
+  .vacation-analytics-head,
+  .vacation-analytics-row {
+    @apply grid items-center gap-4 px-4;
+    grid-template-columns: minmax(180px,1.25fr) minmax(150px,1fr) repeat(5,minmax(90px,0.65fr));
+  }
+
+  .vacation-analytics-head {
+    @apply min-h-11 bg-[#fbfcfd] text-[11px] font-black uppercase tracking-[0.08em] text-[#758398];
+  }
+
+  .vacation-analytics-row {
+    @apply min-h-[62px] border-t border-[#edf1f4] text-[13px] font-black text-[#334155];
+  }
+
+  .vacation-analytics-row strong {
+    @apply flex min-w-0 items-center gap-2 text-[#202937];
+  }
+
+  .vacation-analytics-row span b {
+    @apply block text-[15px] text-[#202937];
+  }
+
+  .vacation-analytics-row span small {
+    @apply block text-[11px] font-bold text-[#7d8897];
+  }
+
+  .vacation-analytics-row.total {
+    @apply bg-[#eef6ff];
+  }
+
+  .vacation-rule-form {
+    @apply grid gap-3 border-b border-[#edf1f4] pb-4;
+  }
+
+  .vacation-rule-list {
+    @apply grid gap-2;
+  }
+
+  .vacation-rule-item {
+    @apply grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-[10px] border p-3;
+  }
+
+  .vacation-rule-item.holiday {
+    @apply border-[#bcefcf] bg-[#effbf4];
+  }
+
+  .vacation-rule-item.warning {
+    @apply border-[#ffd3ae] bg-[#fff6ed];
+  }
+
+  .vacation-rule-item strong {
+    @apply block text-[14px] font-black text-[#202937];
+  }
+
+  .vacation-rule-item span {
+    @apply mt-0.5 block text-[13px] font-bold text-[#657286];
+  }
+
   .settings-tags > span {
     @apply inline-flex min-h-[34px] items-center rounded-full border border-[#dfe6ea] bg-[#f7faf9] px-[17px] font-extrabold text-[#5f6d7d] shadow-[inset_0_-1px_0_rgba(38,50,65,0.04)];
   }
@@ -2775,6 +3334,16 @@
       @apply justify-center p-0;
     }
 
+    .vacation-overview-layout,
+    .vacation-analytics-layout {
+      @apply grid-cols-1;
+    }
+
+    .vacation-metrics,
+    .vacation-request-columns {
+      @apply grid-cols-2;
+    }
+
     .nav-expand-icon,
     .nav-subitems {
       @apply hidden;
@@ -2839,6 +3408,44 @@
 
     .topbar-right {
       @apply flex-wrap justify-start;
+    }
+
+    .vacation-head {
+      @apply items-start;
+    }
+
+    .vacation-tabs,
+    .segmented-control {
+      @apply w-full;
+    }
+
+    .vacation-tabs button,
+    .segmented-control button {
+      @apply flex-1;
+    }
+
+    .vacation-metrics,
+    .vacation-request-columns,
+    .vacation-date-grid,
+    .vacation-duration-box {
+      @apply grid-cols-1;
+    }
+
+    .vacation-timeline {
+      @apply grid-cols-[150px_minmax(0,1fr)] p-3 pt-0;
+    }
+
+    .vacation-timeline-users > span {
+      @apply text-[12px];
+    }
+
+    .vacation-analytics-table {
+      @apply overflow-x-auto;
+    }
+
+    .vacation-analytics-head,
+    .vacation-analytics-row {
+      min-width: 760px;
     }
 
     .header-tracker {
@@ -3099,6 +3706,19 @@
 
     .bar-row {
       @apply grid-cols-1 gap-2;
+    }
+
+    .stacked-workload-row {
+      @apply grid-cols-1 gap-2;
+    }
+
+    .analytics-date-filters {
+      @apply w-full justify-start;
+    }
+
+    .analytics-date-filters label,
+    .analytics-date-filters .soft-btn {
+      @apply w-full;
     }
 
     .my-request-row {
