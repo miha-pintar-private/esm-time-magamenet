@@ -1956,12 +1956,49 @@
     @apply mt-1 block text-sm font-semibold text-[#7d8897];
   }
 
-  .document-file-link {
-    @apply mt-2 inline-flex text-sm font-black text-[#2f6df6] no-underline;
+  .employee-document-list {
+    @apply gap-2.5;
   }
 
-  .document-file-link:hover {
-    @apply underline;
+  .employee-document-item {
+    @apply grid-cols-[34px_minmax(0,1fr)_auto] items-start gap-3 border-[#dfe6ee] bg-white px-3.5 py-3 shadow-[0_1px_2px_rgba(32,41,55,0.04)];
+  }
+
+  .employee-document-item:has(.table-action) {
+    @apply grid-cols-[34px_minmax(0,1fr)_auto];
+  }
+
+  .employee-document-icon {
+    @apply grid h-8 w-8 place-items-center rounded-[8px] bg-[#f4f7fb] text-[#7d8897];
+  }
+
+  .employee-record-list-item .employee-document-icon svg {
+    @apply m-0;
+  }
+
+  .employee-document-details {
+    @apply min-w-0;
+  }
+
+  .employee-document-heading {
+    @apply flex min-w-0 items-center gap-2;
+  }
+
+  .employee-document-heading strong {
+    @apply min-w-0 flex-1 truncate text-[14px];
+  }
+
+  .employee-document-heading .document-download-action {
+    @apply h-8 w-8 shrink-0 border-[#d7e1ec] bg-[#f8fafc] text-[#64748b];
+  }
+
+  .employee-document-heading .document-download-action:hover,
+  .employee-document-heading .document-download-action:focus-visible {
+    @apply border-[#b8c8d9] bg-white text-[#2f6df6];
+  }
+
+  .employee-document-details span {
+    @apply mt-1.5 text-[13px] font-semibold leading-snug text-[#7d8897];
   }
 
   .employee-record-empty {

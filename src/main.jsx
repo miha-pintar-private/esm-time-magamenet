@@ -10,6 +10,7 @@ import {
   ChevronDown,
   CircleDollarSign,
   Clock3,
+  Download,
   FileText,
   Filter,
   FolderLock,
@@ -1060,7 +1061,7 @@ const documentationSections = [
           'Each document record stores title, employee name, document type, document date, start date, valid-until date, status, uploaded file name, file type, file size, local file data, and upload date. The visible date fields depend on the selected document type rule.',
           'A document file is required before a document record can be saved. Users can drag and drop one file onto the upload area or click the upload area to open the system file picker.',
           'Uploaded document files are stored locally in this browser as data URLs inside localStorage. Large files can consume browser storage quickly because this prototype does not upload files to a server.',
-          'Saved documents with an attached file show the file name and size and include an Open file link.',
+          'Saved documents with an attached file show the file name and size and include a download icon button for saving the file.',
           'Document type can be selected from existing Rules records or created from the employee Documents form. A newly created type is added to the same Document type tags library in Rules.',
           'If the selected document type requires Document date, Start date, or Valid until, that date must be completed before saving the document. Start date cannot be after Valid until.',
           'Document status is Valid when Valid until is today or later, Expired when Valid until is before today, and Stored locally when no Valid until date is saved.',
@@ -1289,6 +1290,7 @@ const documentationSections = [
           'Settings is a Time Management subtab, uses #/settings, and is hidden for Operations users.',
           'Correction log is a Time Management subtab and uses #/correction-log.',
           'Documentation uses #/documentation.',
+          'Static builds use relative asset paths so the app can load from a GitHub Pages project path such as /esm-time-magamenet/ and keep the same hash routes.',
           'When an Operations user lands on Settings, the app redirects to the Time Management table subtab because Operations users cannot manage settings.',
           'When an Operations user lands on Employee Rules or Employee Tags, the app redirects to the Employees list because Operations users cannot manage settings records.',
           'Unknown routes fall back to Time Management.',
@@ -4891,12 +4893,28 @@ function EmployeeRecordSidebar({
                     </div>
                   </div>
                 )}
-                <div className="employee-record-list">
+                <div className="employee-record-list employee-document-list">
                   {employeeDocuments.map((document) => (
-                    <div className="employee-record-list-item" key={document.id}>
-                      <FileText size={20} />
-                      <div>
-                        <strong>{document.title}</strong>
+                    <div className="employee-record-list-item employee-document-item" key={document.id}>
+                      <div className="employee-document-icon" aria-hidden="true">
+                        <FileText size={18} />
+                      </div>
+                      <div className="employee-document-details">
+                        <div className="employee-document-heading">
+                          <strong>{document.title}</strong>
+                          {document.fileDataUrl && (
+                            <a
+                              className="icon-btn document-download-action"
+                              href={document.fileDataUrl}
+                              download={document.fileName || document.title}
+                              onClick={(event) => event.stopPropagation()}
+                              aria-label={`Download ${document.fileName || document.title}`}
+                              title="Download file"
+                            >
+                              <Download size={16} />
+                            </a>
+                          )}
+                        </div>
                         <span>
                           {document.type}
                           {document.documentDate || document.date ? ` · Document ${displayDate(document.documentDate || document.date)}` : ''}
@@ -4905,11 +4923,6 @@ function EmployeeRecordSidebar({
                           {` · ${document.status}`}
                           {document.fileName ? ` · ${document.fileName} (${fileSizeLabel(document.fileSize)})` : ''}
                         </span>
-                        {document.fileDataUrl && (
-                          <a className="document-file-link" href={document.fileDataUrl} download={document.fileName || document.title} onClick={(event) => event.stopPropagation()}>
-                            Open file
-                          </a>
-                        )}
                       </div>
                       {canEditPeople && (
                         <button className="icon-btn table-action danger" onClick={() => onDeleteDocument(document)} aria-label={`Delete ${document.title}`}><Trash2 size={16} /></button>
