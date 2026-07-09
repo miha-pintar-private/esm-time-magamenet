@@ -32,6 +32,7 @@ import {
   TimerReset,
   Trash2,
   Unlock,
+  UploadCloud,
   Utensils,
   UsersRound,
   X,
@@ -1007,7 +1008,7 @@ const documentationSections = [
           'In the employee form User info section, enter the full name, then Address, Post number, and City on one row, Personal ID / EMŠO and Tax number on one row, and Work email, Phone number, and Private email on one row.',
           'Then enter department, role level, tags, contract from and contract to dates, medical exam completion date, safety training completion and expiry dates, and compensation rows.',
           'Use Add row in Compensation rows to add another work arrangement. Select the employment type from the Rules list; the pay type and visible compensation fields follow that rule.',
-          'Open Documents, click Add document, enter the document title, choose or create a document type, complete the required document dates, and save the document record.',
+          'Open Documents, click Add document, drop a file onto the upload area or click it to choose a file from the system file picker, enter the document title, choose or create a document type, complete the required document dates, and save the document record.',
           'Open Comments, enter an internal note, and click Add comment to store it on the employee record.',
           'Open Archive / delete user to archive an employee as inactive, restore an archived employee, or delete the employee and linked local records.',
         ],
@@ -1046,7 +1047,10 @@ const documentationSections = [
           'Archiving an employee stops that employee\'s active timer if one is running.',
           'The Documents tab lists local document records linked by employee name. It is intended for contracts, annexes, medical certificates, safety certificates, and other important employee files.',
           'Management and team leads can add document records from the Documents tab. Operations users can view documents but cannot add or delete them.',
-          'Each document record stores title, employee name, document type, document date, start date, valid-until date, and status. The visible date fields depend on the selected document type rule.',
+          'Each document record stores title, employee name, document type, document date, start date, valid-until date, status, uploaded file name, file type, file size, local file data, and upload date. The visible date fields depend on the selected document type rule.',
+          'A document file is required before a document record can be saved. Users can drag and drop one file onto the upload area or click the upload area to open the system file picker.',
+          'Uploaded document files are stored locally in this browser as data URLs inside localStorage. Large files can consume browser storage quickly because this prototype does not upload files to a server.',
+          'Saved documents with an attached file show the file name and size and include an Open file link.',
           'Document type can be selected from existing Rules records or created from the employee Documents form. A newly created type is added to the same Document type tags library in Rules.',
           'If the selected document type requires Document date, Start date, or Valid until, that date must be completed before saving the document. Start date cannot be after Valid until.',
           'Document status is Valid when Valid until is today or later, Expired when Valid until is before today, and Stored locally when no Valid until date is saved.',
@@ -1323,6 +1327,13 @@ function cx(...classes) {
 
 function money(value) {
   return new Intl.NumberFormat('sl-SI', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(value);
+}
+
+function fileSizeLabel(bytes) {
+  const size = Number(bytes) || 0;
+  if (size >= 1048576) return `${(size / 1048576).toFixed(1)} MB`;
+  if (size >= 1024) return `${Math.round(size / 1024)} KB`;
+  return `${size} B`;
 }
 
 function compactValue(value, fallback = 'Not specified') {
@@ -2692,6 +2703,10 @@ function App() {
       showToast('Document type is required');
       return false;
     }
+    if (!form.fileDataUrl) {
+      showToast('Document file is required');
+      return false;
+    }
     const typeRule = documentTypeItems.find((item) => item.name.toLowerCase() === typeName.toLowerCase()) || {
       id: Date.now(),
       name: typeName,
@@ -2727,6 +2742,11 @@ function App() {
       documentDate: form.documentDate,
       startDate: form.startDate,
       endDate: form.endDate,
+      fileName: form.fileName,
+      fileSize: form.fileSize,
+      fileType: form.fileType,
+      fileDataUrl: form.fileDataUrl,
+      uploadedAt: form.uploadedAt || localDate(),
       status: form.endDate ? (form.endDate < TODAY ? 'Expired' : 'Valid') : 'Stored locally',
     };
     setDocuments((items) => [nextDocument, ...items]);
@@ -4515,6 +4535,9 @@ function EmployeeRecordSidebar({
   const [activeRecordTab, setActiveRecordTab] = useState('overview');
   const [commentText, setCommentText] = useState('');
   const [documentFormOpen, setDocumentFormOpen] = useState(false);
+  const [documentDragActive, setDocumentDragActive] = useState(false);
+  const [documentFileError, setDocumentFileError] = useState('');
+  const documentFileInputRef = useRef(null);
   const [documentForm, setDocumentForm] = useState({
     title: '',
     typeName: documentTypes[0]?.name || '',
@@ -4525,6 +4548,11 @@ function EmployeeRecordSidebar({
     requiresDocumentDate: true,
     requiresStartDate: false,
     requiresEndDate: false,
+    fileName: '',
+    fileSize: 0,
+    fileType: '',
+    fileDataUrl: '',
+    uploadedAt: '',
   });
   const employeeDocuments = documents.filter((document) => document.employee === employee.name);
   const employeeComments = Array.isArray(employee.comments) ? employee.comments : [];
@@ -4572,6 +4600,31 @@ function EmployeeRecordSidebar({
     }));
   }
 
+  function attachDocumentFile(file) {
+    if (!file) return;
+    setDocumentFileError('');
+    const reader = new FileReader();
+    reader.onload = () => {
+      setDocumentForm((current) => ({
+        ...current,
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type || 'Unknown file type',
+        fileDataUrl: String(reader.result || ''),
+        uploadedAt: localDate(),
+        title: current.title || file.name.replace(/\.[^/.]+$/, ''),
+      }));
+    };
+    reader.onerror = () => setDocumentFileError('The file could not be loaded. Try selecting it again.');
+    reader.readAsDataURL(file);
+  }
+
+  function handleDocumentDrop(event) {
+    event.preventDefault();
+    setDocumentDragActive(false);
+    attachDocumentFile(event.dataTransfer.files?.[0]);
+  }
+
   function submitDocument() {
     const typeName = creatingDocumentType ? documentForm.newTypeName : documentForm.typeName;
     const saved = onAddDocument(employee, {
@@ -4582,6 +4635,7 @@ function EmployeeRecordSidebar({
       requiresEndDate: Boolean(activeDocumentType?.requiresEndDate),
     });
     if (!saved) return;
+    if (documentFileInputRef.current) documentFileInputRef.current.value = '';
     setDocumentForm((current) => ({
       ...current,
       title: '',
@@ -4593,7 +4647,13 @@ function EmployeeRecordSidebar({
       requiresDocumentDate: true,
       requiresStartDate: false,
       requiresEndDate: false,
+      fileName: '',
+      fileSize: 0,
+      fileType: '',
+      fileDataUrl: '',
+      uploadedAt: '',
     }));
+    setDocumentFileError('');
     setDocumentFormOpen(false);
   }
 
@@ -4727,6 +4787,42 @@ function EmployeeRecordSidebar({
                 </div>
                 {documentFormOpen && (
                   <div className="employee-document-form">
+                    <div
+                      className={cx('document-upload-zone', documentDragActive && 'drag-active', documentForm.fileName && 'has-file')}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => documentFileInputRef.current?.click()}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          documentFileInputRef.current?.click();
+                        }
+                      }}
+                      onDragOver={(event) => {
+                        event.preventDefault();
+                        setDocumentDragActive(true);
+                      }}
+                      onDragLeave={() => setDocumentDragActive(false)}
+                      onDrop={handleDocumentDrop}
+                      aria-label="Upload document file"
+                    >
+                      <input
+                        ref={documentFileInputRef}
+                        type="file"
+                        className="sr-only"
+                        onChange={(event) => attachDocumentFile(event.target.files?.[0])}
+                      />
+                      <UploadCloud size={24} />
+                      <div>
+                        <strong>{documentForm.fileName || 'Drop document here or click to upload'}</strong>
+                        <span>
+                          {documentForm.fileName
+                            ? `${documentForm.fileType || 'File'} · ${fileSizeLabel(documentForm.fileSize)}`
+                            : 'PDF, image, document, or spreadsheet stored locally in this browser'}
+                        </span>
+                      </div>
+                    </div>
+                    {documentFileError && <div className="document-upload-error">{documentFileError}</div>}
                     <label className="field document-title-field">
                       <span>Document title</span>
                       <input value={documentForm.title} onChange={(event) => updateDocumentForm('title', event.target.value)} placeholder="Employment contract, annex, certificate..." />
@@ -4793,7 +4889,13 @@ function EmployeeRecordSidebar({
                           {document.startDate ? ` · From ${displayDate(document.startDate)}` : ''}
                           {document.endDate ? ` · Valid until ${displayDate(document.endDate)}` : ''}
                           {` · ${document.status}`}
+                          {document.fileName ? ` · ${document.fileName} (${fileSizeLabel(document.fileSize)})` : ''}
                         </span>
+                        {document.fileDataUrl && (
+                          <a className="document-file-link" href={document.fileDataUrl} download={document.fileName || document.title} onClick={(event) => event.stopPropagation()}>
+                            Open file
+                          </a>
+                        )}
                       </div>
                       {canEditPeople && (
                         <button className="icon-btn table-action danger" onClick={() => onDeleteDocument(document)} aria-label={`Delete ${document.title}`}><Trash2 size={16} /></button>
