@@ -1177,14 +1177,15 @@ const documentationSections = [
         ],
         specifics: [
           'The Overview timeline is visible for all active employees to every role, so everyone can see who is away and when.',
-          'The Absent this week card lists approved absences that overlap the current Monday-through-Sunday week. Each listed absence shows the employee name, department, From-to-Until date range, the absence type, and a separate Today badge when today falls inside that approved absence range.',
+          'The Absent this week card lists approved absences that overlap the current Monday-through-Sunday week in a compact row layout. Each listed absence shows the employee name, department, From-to-Until date range, the absence type, and a separate Today badge when today falls inside that approved absence range.',
           'Vacation and Sick leave requests are submitted as Pending and must be approved or rejected by an authorized approver before they count as approved absence.',
           'Employees can edit or delete their own requests, including approved requests. Changes to requests that start after today are applied immediately.',
           'When an employee edits or deletes a request that starts today or in the past, the original request stays unchanged and a Pending edit or delete request is added to the approval queue. The change is applied only after an authorized team lead or Management user approves it.',
           'Approving a Pending edit request updates the original absence request with the proposed employee, type, dates, return date, and notes, then removes the pending edit request. Rejecting it keeps the original request unchanged and stores the rejection reason on the pending edit request.',
           'Approving a Pending delete request removes both the original absence request and the pending delete request. Rejecting it keeps the original request unchanged and stores the rejection reason on the pending delete request.',
           'The Vacation year selector filters the visible timeline, balance table, and year-based absence calculations. The Today button switches the timeline to the current year when needed and scrolls the calendar to the current date marker.',
-          'Timeline rows are grouped by employee department. The Users column stays pinned while scrolling horizontally and moves with the calendar rows while scrolling vertically.',
+          'Timeline rows are grouped by employee department. The Users column stays pinned while scrolling horizontally, moves with the calendar rows while scrolling vertically, and stays above timeline markers and absence blocks.',
+          'The New absence request panel stays sticky in the Overview layout on desktop-sized screens, so the form remains visible while scrolling through the vacation calendar and request lists.',
           'The Approved, Pending, and Rejected request panels in Overview show only the active user\'s own requests where the Until date is today or later.',
           'The Past absences panel in Overview shows the active user\'s requests from the selected year where the absence Until date is before today. Past absence rows use a muted gray treatment and keep the absence type, working-day count, employee, date range, status, and actions on one row when space allows.',
           'The Past absences panel in Approvals & analytics shows past absences for the visible management or team lead analytics scope where the Until date is before today. Management sees all active employees, while team leads see their scoped employees according to the same Vacation analytics scope. Past absence rows use the same muted one-row layout as the Overview past absence list.',
@@ -1585,6 +1586,21 @@ const documentationSections = [
         specifics: [
           'Laravel mode references controllers, jobs, policies, Sanctum API access, Eloquent models, migrations, scheduler jobs, queues, and guarded React routes.',
           'The platform profile is not currently exposed through a user-facing platform switcher.',
+        ],
+      },
+      {
+        name: 'Responsive laptop layout',
+        howItWorks: 'The app uses compact layout rules on smaller laptop screens so navigation, top-bar controls, panels, tables, charts, employee records, settings, vacation planning, and documentation remain readable without oversized spacing.',
+        userSteps: [
+          'Open the app on a smaller laptop display or narrow the browser window.',
+          'Use the sidebar, top timer controls, filters, tables, employee record drawer, settings pages, vacation timeline, and documentation normally.',
+          'Scroll horizontally inside intentionally wide data areas such as detailed tables, charts, and vacation timelines when all columns cannot fit at once.',
+        ],
+        specifics: [
+          'Below wide desktop sizes, the app reduces sidebar width, page padding, panel spacing, metric card height, table column widths, chart minimum width, and drawer width.',
+          'Below compact laptop sizes, the sidebar switches to icon-only navigation, the top bar stacks into two rows, documentation index links move above the content, settings use one column, and employee forms use fewer columns.',
+          'Wide tabular data keeps horizontal scrolling instead of hiding columns so records, metrics, formulas, and audit details remain available.',
+          'Mobile rules still take over below the existing phone breakpoint.',
         ],
       },
       {
