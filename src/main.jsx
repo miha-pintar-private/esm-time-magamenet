@@ -1169,6 +1169,8 @@ const documentationSections = [
           'Open Employees, then open the Vacation subtab.',
           'Use Overview to review the current user balance, team absences this week with who is away and until when, the yearly timeline, and request status lists. Click Today next to the year selector to return the timeline to the current date.',
           'In New absence request, select the user in scope, choose Vacation or Sick leave, enter From and Until dates, add optional notes, and click Submit request.',
+          'To change an existing request, click the pencil icon on the request card, update the same request form, and click Save changes.',
+          'To delete an existing request, click the trash icon on the request card and confirm the deletion dialog.',
           'Open Approvals & analytics to review the employee balance table for the selected approval scope, manage Pending, Approved, and Rejected request blocks below the table, then review Calendar rules at the bottom.',
           'Management can add a calendar rule by choosing Holiday or Risk period, entering the rule name and date range, and clicking Add rule.',
           'Management and authorized team leads can approve, reject, or correct request status from the request blocks when the request is inside their approval scope.',
@@ -1177,6 +1179,10 @@ const documentationSections = [
           'The Overview timeline is visible for all active employees to every role, so everyone can see who is away and when.',
           'The Absent this week card lists approved absences that overlap the current Monday-through-Sunday week. Each listed absence shows the employee name, department, From-to-Until date range, the absence type, and a separate Today badge when today falls inside that approved absence range.',
           'Vacation and Sick leave requests are submitted as Pending and must be approved or rejected by an authorized approver before they count as approved absence.',
+          'Employees can edit or delete their own requests, including approved requests. Changes to requests that start after today are applied immediately.',
+          'When an employee edits or deletes a request that starts today or in the past, the original request stays unchanged and a Pending edit or delete request is added to the approval queue. The change is applied only after an authorized team lead or Management user approves it.',
+          'Approving a Pending edit request updates the original absence request with the proposed employee, type, dates, return date, and notes, then removes the pending edit request. Rejecting it keeps the original request unchanged and stores the rejection reason on the pending edit request.',
+          'Approving a Pending delete request removes both the original absence request and the pending delete request. Rejecting it keeps the original request unchanged and stores the rejection reason on the pending delete request.',
           'The Vacation year selector filters the visible timeline, balance table, and year-based absence calculations. The Today button switches the timeline to the current year when needed and scrolls the calendar to the current date marker.',
           'Timeline rows are grouped by employee department.',
           'The Approved, Pending, and Rejected request panels in Overview show only the active user\'s own requests.',
@@ -1189,6 +1195,7 @@ const documentationSections = [
           'Management can add or delete calendar rules. Team leads and Operations users can view rules but cannot manage them.',
           'Request validation requires an existing employee, From and Until dates, and an Until date that is not before From.',
           'Holiday and Risk period overlaps are shown as warnings when submitting a request. The warning tells the user to consult their manager before taking leave in that period, but the request can still be submitted.',
+          'Editing a request uses the same validation as a new request: an existing employee, From and Until dates, and an Until date that is not before From.',
           'Deleting an absence request asks for confirmation: Are you sure you want to delete this record?',
           'Rejecting a request requires an English rejection reason through the browser prompt.',
           'Only approved Vacation requests reduce vacation balance. Pending, rejected, and Sick leave requests do not reduce vacation balance.',
@@ -1442,8 +1449,8 @@ const documentationSections = [
           {
             entity: 'absenceRequests',
             source: 'Employees > Vacation > New absence request; initial sample data from baseAbsenceRequests',
-            required: 'id, employee, type, startDate, endDate, returnDate, status, submittedAt, optional notes and approval fields',
-            links: 'Uses employees.name, active role scope, absenceRules for warnings and blocked periods, employee vacation allowance for balances',
+            required: 'id, employee, type, startDate, endDate, returnDate, status, submittedAt, optional notes, approval fields, and optional meta.changeAction/originalRequestId/originalRequest for approved edit or delete requests',
+            links: 'Uses employees.name, active role scope, absenceRules for warnings and blocked periods, employee vacation allowance for balances; approved edit and delete requests link back to the original absence request by meta.originalRequestId',
           },
           {
             entity: 'absenceRules',
@@ -1723,6 +1730,25 @@ function vacationAllowance(employee) {
 
 function requestWorkingDays(request, holidayDates) {
   return countWorkingDays(request.startDate, request.endDate, holidayDates);
+}
+
+function isCurrentOrPastAbsenceRequest(request) {
+  return Boolean(request?.startDate && request.startDate <= TODAY);
+}
+
+function absenceChangeActionLabel(request) {
+  if (request?.meta?.changeAction === 'edit') return 'Edit request';
+  if (request?.meta?.changeAction === 'delete') return 'Delete request';
+  return '';
+}
+
+function absenceChangeDetails(request) {
+  const action = request?.meta?.changeAction;
+  if (!action) return '';
+  if (action === 'delete') return 'Requested deletion of an approved or historical request.';
+  const original = request.meta?.originalRequest;
+  if (!original) return 'Requested change to the existing absence request.';
+  return `Requested change from ${displayDate(original.startDate)} - ${displayDate(original.endDate)} to ${displayDate(request.startDate)} - ${displayDate(request.endDate)}.`;
 }
 
 function absenceTypeLabel(type) {
@@ -3417,6 +3443,38 @@ function App() {
       return;
     }
     const warningRules = absenceRules.filter((rule) => ['holiday', 'warning'].includes(rule.type) && rangesOverlap(form.startDate, form.endDate, rule.startDate, rule.endDate));
+    const originalRequest = form.id ? absenceRequests.find((request) => request.id === form.id) : null;
+    const requiresChangeApproval = Boolean(
+      originalRequest
+      && originalRequest.employee === activeRole.person
+      && !canApproveAbsenceRequest(originalRequest, role, activePerson, employees, activeLeadDepartments)
+      && isCurrentOrPastAbsenceRequest(originalRequest)
+    );
+    if (requiresChangeApproval) {
+      const changeRequest = {
+        id: Date.now(),
+        employee: employee.name,
+        type: form.type || originalRequest.type || 'vacation',
+        startDate: form.startDate,
+        endDate: form.endDate,
+        returnDate: addIsoDays(form.endDate, 1),
+        status: 'pending',
+        notes: form.notes.trim(),
+        approver: originalRequest.approver || '',
+        submittedAt: localDate(),
+        decidedAt: '',
+        decidedBy: '',
+        decisionNote: '',
+        meta: {
+          changeAction: 'edit',
+          originalRequestId: originalRequest.id,
+          originalRequest,
+        },
+      };
+      setAbsenceRequests((items) => [changeRequest, ...items]);
+      showToast(warningRules.length > 0 ? 'Edit request sent with calendar warnings' : 'Edit request sent for approval');
+      return;
+    }
     const next = {
       id: form.id || Date.now(),
       employee: employee.name,
@@ -3424,24 +3482,54 @@ function App() {
       startDate: form.startDate,
       endDate: form.endDate,
       returnDate: addIsoDays(form.endDate, 1),
-      status: form.status || 'pending',
+      status: form.status || originalRequest?.status || 'pending',
       notes: form.notes.trim(),
-      approver: role === 'lead' ? activeRole.person : '',
-      submittedAt: form.submittedAt || localDate(),
-      decidedAt: '',
-      decidedBy: '',
-      decisionNote: '',
+      approver: form.approver || originalRequest?.approver || (role === 'lead' ? activeRole.person : ''),
+      submittedAt: form.submittedAt || originalRequest?.submittedAt || localDate(),
+      decidedAt: originalRequest?.decidedAt || '',
+      decidedBy: originalRequest?.decidedBy || '',
+      decisionNote: originalRequest?.decisionNote || '',
       meta: form.meta || {},
     };
     setAbsenceRequests((items) => (
       form.id ? items.map((item) => (item.id === form.id ? { ...item, ...next } : item)) : [next, ...items]
     ));
-    showToast(warningRules.length > 0 ? 'Absence request saved with calendar warnings' : 'Absence request submitted');
+    showToast(warningRules.length > 0 ? 'Absence request saved with calendar warnings' : (form.id ? 'Absence request updated' : 'Absence request submitted'));
   }
 
   function approveAbsenceRequest(request) {
     if (!canApproveAbsenceRequest(request, role, activePerson, employees, activeLeadDepartments)) {
       showToast('You cannot approve this request');
+      return;
+    }
+    if (request.meta?.changeAction === 'delete') {
+      setAbsenceRequests((items) => items.filter((item) => (
+        item.id !== request.id && item.id !== request.meta.originalRequestId
+      )));
+      showToast(`${request.employee} deletion approved`);
+      return;
+    }
+    if (request.meta?.changeAction === 'edit') {
+      setAbsenceRequests((items) => items
+        .map((item) => (
+          item.id === request.meta.originalRequestId
+            ? {
+                ...item,
+                employee: request.employee,
+                type: request.type,
+                startDate: request.startDate,
+                endDate: request.endDate,
+                returnDate: request.returnDate,
+                notes: request.notes,
+                status: item.status || 'approved',
+                decidedAt: localDate(),
+                decidedBy: activeRole.person,
+                decisionNote: '',
+              }
+            : item
+        ))
+        .filter((item) => item.id !== request.id));
+      showToast(`${request.employee} edit approved`);
       return;
     }
     setAbsenceRequests((items) => items.map((item) => (
@@ -3477,6 +3565,30 @@ function App() {
       return;
     }
     if (!window.confirm('Are you sure you want to delete this record?')) return;
+    const requiresChangeApproval = !request.meta?.changeAction
+      && request.employee === activeRole.person
+      && !canApproveAbsenceRequest(request, role, activePerson, employees, activeLeadDepartments)
+      && isCurrentOrPastAbsenceRequest(request);
+    if (requiresChangeApproval) {
+      const changeRequest = {
+        ...request,
+        id: Date.now(),
+        status: 'pending',
+        submittedAt: localDate(),
+        decidedAt: '',
+        decidedBy: '',
+        decisionNote: '',
+        notes: request.notes || 'Deletion requested by employee.',
+        meta: {
+          changeAction: 'delete',
+          originalRequestId: request.id,
+          originalRequest: request,
+        },
+      };
+      setAbsenceRequests((items) => [changeRequest, ...items]);
+      showToast('Delete request sent for approval');
+      return;
+    }
     setAbsenceRequests((items) => items.filter((item) => item.id !== request.id));
     showToast('Absence request deleted');
   }
@@ -5227,9 +5339,33 @@ function VacationView({
     setRequestForm((current) => ({ ...current, [field]: value }));
   }
 
+  function resetRequestForm() {
+    setRequestForm({
+      employee: activeRole.person,
+      type: 'vacation',
+      startDate: TODAY,
+      endDate: TODAY,
+      notes: '',
+    });
+  }
+
+  function editRequest(request) {
+    setRequestForm({
+      id: request.id,
+      employee: request.employee,
+      type: request.type,
+      startDate: request.startDate,
+      endDate: request.endDate,
+      notes: request.notes || '',
+      status: request.status,
+      submittedAt: request.submittedAt,
+      approver: request.approver,
+    });
+  }
+
   function submitRequest() {
     onSaveRequest(requestForm);
-    setRequestForm((current) => ({ ...current, notes: '' }));
+    resetRequestForm();
   }
 
   function submitRule() {
@@ -5333,7 +5469,9 @@ function VacationView({
                           request={request}
                           holidayDates={holidayDates}
                           canApprove={view === 'analytics' && canApproveAbsenceRequest(request, role, activePerson, people, activeLeadDepartments)}
+                          canEdit={!request.meta?.changeAction && (request.employee === activeRole.person || canApproveAbsenceRequest(request, role, activePerson, people, activeLeadDepartments))}
                           canDelete={role === 'management' || request.employee === activeRole.person || canApproveAbsenceRequest(request, role, activePerson, people, activeLeadDepartments)}
+                          onEdit={editRequest}
                           onApprove={onApproveRequest}
                           onReject={onRejectRequest}
                           onDelete={onDeleteRequest}
@@ -5352,7 +5490,7 @@ function VacationView({
               <div className="panel-heading compact">
                 <div>
                   <span className="eyebrow">Request</span>
-                  <h2>New absence request</h2>
+                  <h2>{requestForm.id ? 'Edit absence request' : 'New absence request'}</h2>
                 </div>
               </div>
               <label className="field">
@@ -5391,7 +5529,16 @@ function VacationView({
                 <span>Notes</span>
                 <textarea value={requestForm.notes} onChange={(event) => updateRequest('notes', event.target.value)} placeholder="Optional context for the approver." />
               </label>
-              <button className="primary-btn" onClick={submitRequest}>Submit request</button>
+              {requestForm.id && isCurrentOrPastAbsenceRequest(requestForm) && requestForm.employee === activeRole.person && (
+                <div className="modal-warning vacation-request-warning">
+                  <AlertCircle size={16} />
+                  <span>Changes to today or past absence requests are sent to the approval queue before they are applied.</span>
+                </div>
+              )}
+              <div className="vacation-form-actions">
+                {requestForm.id && <button className="soft-btn" type="button" onClick={resetRequestForm}>Cancel edit</button>}
+                <button className="primary-btn" onClick={submitRequest}>{requestForm.id ? 'Save changes' : 'Submit request'}</button>
+              </div>
             </section>
           </aside>
         </div>
@@ -5455,7 +5602,9 @@ function VacationView({
                         request={request}
                         holidayDates={holidayDates}
                         canApprove
+                        canEdit={!request.meta?.changeAction}
                         canDelete
+                        onEdit={editRequest}
                         onApprove={onApproveRequest}
                         onReject={onRejectRequest}
                         onDelete={onDeleteRequest}
@@ -5518,20 +5667,27 @@ function VacationView({
   );
 }
 
-function VacationRequestItem({ request, holidayDates, canApprove, canDelete, onApprove, onReject, onDelete }) {
+function VacationRequestItem({ request, holidayDates, canApprove, canEdit, canDelete, onEdit, onApprove, onReject, onDelete }) {
   const workingDays = requestWorkingDays(request, holidayDates);
+  const changeActionLabel = absenceChangeActionLabel(request);
+  const changeDetails = absenceChangeDetails(request);
   return (
     <article className={`vacation-request-item ${request.status}`}>
       <div>
         <span className={`absence-chip ${request.type}`}>{absenceTypeLabel(request.type)}</span>
+        {changeActionLabel && <span className="absence-change-chip">{changeActionLabel}</span>}
         <span className="absence-days-chip">{workingDays} working day{workingDays === 1 ? '' : 's'}</span>
         <strong>{request.employee}</strong>
         <small>{displayDate(request.startDate)} - {displayDate(request.endDate)}</small>
+        {changeDetails && <em>{changeDetails}</em>}
         {request.notes && <em>{request.notes}</em>}
         {request.decisionNote && <em>Decision note: {request.decisionNote}</em>}
       </div>
       <div className="vacation-request-actions">
         <span className={`status-pill ${request.status}`}>{absenceStatusLabel(request.status)}</span>
+        {canEdit && (
+          <button className="icon-btn table-action" onClick={() => onEdit(request)} aria-label="Edit absence request"><Pencil size={16} /></button>
+        )}
         {canApprove && request.status !== 'approved' && (
           <button className="soft-btn success-soft" onClick={() => onApprove(request)}>Approve</button>
         )}

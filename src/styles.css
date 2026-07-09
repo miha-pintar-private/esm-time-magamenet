@@ -3093,6 +3093,10 @@
     @apply mt-0.5 h-3.5 w-3.5 shrink-0;
   }
 
+  .vacation-form-actions {
+    @apply flex flex-wrap items-center gap-2;
+  }
+
   .vacation-request-columns {
     @apply grid grid-cols-3 gap-4;
   }
@@ -3152,6 +3156,7 @@
 
   .absence-chip,
   .absence-days-chip,
+  .absence-change-chip,
   .status-pill {
     @apply inline-flex min-h-7 items-center rounded-full px-3 text-[12px] font-black;
   }
@@ -3166,6 +3171,10 @@
 
   .absence-days-chip {
     @apply border border-[#d8e4ef] bg-white text-[#435166];
+  }
+
+  .absence-change-chip {
+    @apply border border-[#f8d479] bg-[#fff7d6] text-[#8a5c00];
   }
 
   .vacation-request-actions {
