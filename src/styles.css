@@ -3062,6 +3062,26 @@
     @apply grid gap-3 p-5;
   }
 
+  .vacation-form-panel.editing {
+    @apply border-[#f2b84b] bg-[#fffaf0] shadow-[0_16px_36px_rgba(138,92,0,0.12)];
+  }
+
+  .vacation-edit-banner {
+    @apply -mx-1 -mt-1 flex items-center gap-3 rounded-[10px] border border-[#f3c56b] bg-[#fff2c7] px-3.5 py-3 text-[#6f4700];
+  }
+
+  .vacation-edit-banner > span {
+    @apply grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white text-[#a36500] shadow-[0_6px_14px_rgba(138,92,0,0.12)];
+  }
+
+  .vacation-edit-banner strong {
+    @apply block text-[13px] font-black uppercase tracking-[0.08em] text-[#6f4700];
+  }
+
+  .vacation-edit-banner small {
+    @apply mt-0.5 block text-[13px] font-extrabold text-[#8a5c00];
+  }
+
   .segmented-control {
     @apply inline-flex w-fit rounded-[10px] border border-[#dfe7ef] bg-[#f8fafc] p-1;
   }
