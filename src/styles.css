@@ -2273,7 +2273,7 @@
   }
 
   .employment-requirement-item {
-    @apply grid min-h-6 grid-cols-[16px_minmax(130px,1fr)_92px] items-center gap-2 text-[13px] leading-none;
+    @apply grid min-h-6 grid-cols-[16px_minmax(130px,1fr)] items-center gap-2 text-[13px] leading-none;
   }
 
   .employment-requirement-item svg {
@@ -2292,12 +2292,8 @@
     @apply min-w-0 truncate font-extrabold text-[#4f5d6e];
   }
 
-  .employment-requirement-item small {
-    @apply text-xs font-black text-[#8a96a7];
-  }
-
-  .employment-requirement-item.required small {
-    @apply text-[#348b5f];
+  .employment-requirement-item.not-required b {
+    @apply text-[#9aa5b4];
   }
 
   .employment-rule-count {
@@ -2892,7 +2888,7 @@
     }
 
     .employment-requirement-item {
-      @apply grid-cols-[16px_minmax(0,1fr)_86px];
+      @apply grid-cols-[16px_minmax(0,1fr)];
     }
 
     .employment-rule-actions {

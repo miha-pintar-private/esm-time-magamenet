@@ -1114,7 +1114,7 @@ const documentationSections = [
           'Monthly salary defaults to requiring employment contract, medical exam, and safety training.',
           'Project work and Hourly rate default to requiring an employment contract only, but medical exam and safety training can be enabled manually.',
           'Rules assigned to employees cannot be deleted.',
-          'The Employment type rules table shows the rule name, pay type, three requirement status rows for Employment contract, Medical exam, and Safety training, assigned employee count, and edit or delete actions when the user can manage rules.',
+          'The Employment type rules table shows the rule name, pay type, three requirement rows for Employment contract, Medical exam, and Safety training with an icon showing whether each item is required, assigned employee count, and edit or delete actions when the user can manage rules.',
           'Deleting an unassigned rule asks for confirmation: Are you sure you want to delete this employment rule?',
           'Renaming a rule updates employees that used the old employment type name.',
           'Document types already used by documents cannot be deleted.',
@@ -4367,7 +4367,6 @@ function EmploymentRulesView({
                     <span className={cx('employment-requirement-item', requirement.required ? 'required' : 'not-required')} key={requirement.label}>
                       <RequirementIcon size={13} />
                       <b>{requirement.label}</b>
-                      <small>{requirement.required ? 'Required' : 'Not required'}</small>
                     </span>
                   );
                 })}
