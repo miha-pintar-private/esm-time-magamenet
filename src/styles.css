@@ -2435,7 +2435,7 @@
 
   .tag-department-grid {
     @apply items-start;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .department-org-grid {
@@ -2485,7 +2485,7 @@
 
   .department-card-head,
   .tag-department-head {
-    @apply mb-4 flex items-start justify-between gap-4 border-b border-[#e7edf2] pb-4;
+    @apply mb-4 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 border-b border-[#e7edf2] pb-4;
   }
 
   .department-card-head strong,
@@ -2502,12 +2502,16 @@
     @apply bg-white transition-[border-color,box-shadow,transform] duration-200;
   }
 
+  .tag-department-card.shared {
+    @apply col-span-full;
+  }
+
   .tag-department-card:hover {
     @apply border-[#d5e5dc] shadow-[0_18px_36px_rgba(38,50,65,0.07)] -translate-y-0.5;
   }
 
   .tag-department-title {
-    @apply flex min-w-0 items-start gap-3;
+    @apply flex min-w-0 items-start gap-3 overflow-hidden;
   }
 
   .tag-department-title > div {
@@ -2523,11 +2527,11 @@
   }
 
   .tag-department-stats {
-    @apply flex shrink-0 flex-wrap justify-end gap-2;
+    @apply flex shrink-0 flex-nowrap justify-end gap-2;
   }
 
   .tag-department-stats small {
-    @apply inline-flex min-h-7 items-center rounded-full border border-[#dfe8e2] bg-[#f8fbf9] px-2.5 text-xs font-black text-[#607284];
+    @apply inline-flex min-h-7 shrink-0 items-center whitespace-nowrap rounded-full border border-[#dfe8e2] bg-[#f8fbf9] px-2.5 text-xs font-black text-[#607284];
   }
 
   .org-lane {
@@ -2640,6 +2644,10 @@
 
   .department-tag-list {
     @apply p-0 pt-0;
+  }
+
+  .tag-department-card.shared .department-tag-list {
+    @apply grid grid-cols-3 gap-2.5;
   }
 
   .department-tag-list .settings-tag-chip {
@@ -2809,6 +2817,14 @@
       @apply col-span-full;
     }
 
+    .tag-department-grid {
+      @apply grid-cols-2;
+    }
+
+    .tag-department-card.shared .department-tag-list {
+      @apply grid-cols-2;
+    }
+
   }
 }
 
@@ -2874,7 +2890,11 @@
     }
 
     .tag-library-heading {
-      @apply items-start;
+      @apply flex-col items-start;
+    }
+
+    .tag-library-heading .soft-btn {
+      @apply w-full;
     }
 
     .tag-library-overview {
@@ -2886,7 +2906,7 @@
     }
 
     .tag-department-head {
-      @apply flex-col;
+      @apply grid-cols-1;
     }
 
     .tag-department-stats {
@@ -2895,6 +2915,10 @@
 
     .tag-chip-main {
       @apply flex-col items-start gap-1;
+    }
+
+    .tag-department-card.shared .department-tag-list {
+      @apply grid-cols-1;
     }
 
     .metric-equation {

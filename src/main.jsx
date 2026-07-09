@@ -1205,6 +1205,7 @@ const documentationSections = [
         specifics: [
           'The Tags subtab shows a summary strip for active tags, tagged groups, and work type rules, then groups tag cards by department.',
           'Each department card shows whether the group is shared across departments or department-scoped, plus tag and people counts.',
+          'Shared All departments tags appear in a full-width group, while department cards use a responsive grid: three columns on wide screens, two columns on medium screens, and one column on mobile screens.',
           'Tags assigned to All departments are grouped separately from concrete department tags.',
           'Tags whose stored department is outside the visible department list are grouped under Other tags.',
           'Tag department choices come from the same Departments records used by Employees. All departments is the only special shared-scope option.',
@@ -4561,7 +4562,7 @@ function DepartmentTagsView({ canManageTags, departments, tags, people, onAddTag
       </div>
       <div className="tag-department-grid">
         {groupedDepartments.map((department) => (
-          <article className="tag-department-card" key={department.name}>
+          <article className={cx('tag-department-card', department.shared && 'shared')} key={department.name}>
             <div className="tag-department-head">
               <div className="tag-department-title">
                 <span className="tag-department-icon"><Tag size={17} /></span>
