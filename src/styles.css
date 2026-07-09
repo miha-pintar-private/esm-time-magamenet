@@ -3521,6 +3521,10 @@
       @apply static max-h-none;
     }
 
+    .data-schema-row dl div {
+      @apply grid-cols-1 gap-1;
+    }
+
     .tag-library-heading {
       @apply flex-col items-start;
     }
