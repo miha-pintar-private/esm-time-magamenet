@@ -1052,12 +1052,8 @@
   }
 
   .entry-date {
-    color: #596677;
     font-size: 14px;
     font-weight: 760;
-  }
-
-  .entry-date {
     color: #7b8797;
   }
 
@@ -1067,10 +1063,6 @@
     align-items: center;
     justify-content: flex-end;
     gap: 6px;
-  }
-
-  .locked-label {
-    @apply inline-flex items-center gap-1.5 text-xs font-extrabold text-[#8b96a4];
   }
 
   .work-type-cell {
@@ -1377,12 +1369,7 @@
     @apply bg-[#eef1f4] text-[#687586];
   }
 
-  .time-entry-row small,
-  .person-main span,
-  .person-meta span,
-  .bar-row span,
-  .cost-row span,
-  .worktype span {
+  .time-entry-row small {
     @apply mt-1 block text-xs font-bold text-[#8b96a4];
   }
 
@@ -1585,6 +1572,34 @@
   .specifics-list li::before {
     content: "";
     @apply absolute left-0 top-[0.72em] h-2 w-2 rounded-full bg-[#35bfae];
+  }
+
+  .data-schema-list {
+    @apply grid gap-3;
+  }
+
+  .data-schema-row {
+    @apply rounded-[10px] border border-[#e1e8ee] bg-white p-3.5;
+  }
+
+  .data-schema-row h4 {
+    @apply m-0 mb-3 text-sm font-black text-[#263140];
+  }
+
+  .data-schema-row dl {
+    @apply m-0 grid gap-2;
+  }
+
+  .data-schema-row dl div {
+    @apply grid grid-cols-[126px_minmax(0,1fr)] gap-3 rounded-[8px] bg-[#f7f9fa] px-3 py-2;
+  }
+
+  .data-schema-row dt {
+    @apply text-[11px] font-black uppercase tracking-[0.08em] text-[#8d99a7];
+  }
+
+  .data-schema-row dd {
+    @apply m-0 text-sm font-bold leading-[1.55] text-[#526071];
   }
 
   .metric-doc-block {
@@ -2424,29 +2439,6 @@
     @apply mt-0.5 shrink-0 text-green-dark;
   }
 
-  .bar-list,
-  .cost-list {
-    @apply grid gap-[15px];
-  }
-
-  .bar-row {
-    @apply grid grid-cols-[180px_minmax(120px,1fr)_70px] items-center gap-4;
-  }
-
-  .bar-track,
-  .cost-meter {
-    @apply h-2.5 overflow-hidden rounded-full bg-[#edf1f3];
-  }
-
-  .bar-track i,
-  .cost-meter i {
-    @apply block h-full rounded-[inherit] bg-green [animation:grow_560ms_ease_both];
-  }
-
-  .cost-row {
-    @apply grid gap-[9px] border-b border-line pb-[15px];
-  }
-
   .settings-page {
     @apply grid grid-cols-2 gap-5 pt-3 [animation:enter_380ms_ease_both];
   }
@@ -2493,42 +2485,6 @@
 
   .settings-row span {
     @apply mt-[5px] block text-sm font-bold text-[#a0abb8];
-  }
-
-  .department-row {
-    @apply justify-between;
-  }
-
-  .department-row-main {
-    @apply grid min-w-0 flex-1 grid-cols-[220px_minmax(0,1fr)] items-center gap-7;
-  }
-
-  .department-row-main strong {
-    @apply flex min-h-8 min-w-0 items-center truncate leading-none;
-  }
-
-  .department-pills {
-    @apply mt-0 flex min-h-8 min-w-0 flex-nowrap items-center gap-5;
-  }
-
-  .settings-row .department-pills {
-    @apply mt-0 text-sm;
-  }
-
-  .department-pills small {
-    @apply inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-sm font-extrabold leading-none;
-  }
-
-  .department-pills .lead-pill {
-    @apply border-[#cfe9da] bg-[#f4fbf6] text-[#416b52];
-  }
-
-  .department-pills .people-pill {
-    @apply ml-4 border-[#dfe6ea] bg-[#f0f5f3] text-[#657384];
-  }
-
-  .department-pills small.empty {
-    @apply border-[#dfe6ea] bg-[#f7faf9] text-[#8a97a6];
   }
 
   .department-org-panel,
@@ -2808,6 +2764,14 @@
 
   .vacation-calendar-toolbar {
     @apply flex flex-wrap items-center justify-between gap-3 border-b border-[#edf1f4] p-4;
+  }
+
+  .vacation-calendar-actions {
+    @apply ml-auto flex shrink-0 items-center gap-2;
+  }
+
+  .vacation-today-btn {
+    @apply min-h-[38px] rounded-[9px] px-3 text-[13px];
   }
 
   .vacation-legend {
@@ -3410,7 +3374,7 @@
 
     .brand span:last-child,
     .nav-title,
-    .nav-item span:not(.dot) {
+    .nav-item span {
       @apply hidden;
     }
 
@@ -3443,21 +3407,9 @@
       @apply hidden;
     }
 
-    .dot {
-      @apply absolute ml-6 mt-[-22px];
-    }
-
-    .two-col,
-    .metric-grid,
     .time-metrics,
-    .analytics-kpis,
-    .derived-metric-grid {
+    .analytics-kpis {
       @apply grid-cols-2;
-    }
-
-    .side-panel,
-    .span-two {
-      @apply col-span-full;
     }
 
     .tag-department-grid {
@@ -3509,12 +3461,14 @@
     }
 
     .vacation-tabs,
-    .segmented-control {
+    .segmented-control,
+    .vacation-calendar-actions {
       @apply w-full;
     }
 
     .vacation-tabs button,
-    .segmented-control button {
+    .segmented-control button,
+    .vacation-today-btn {
       @apply flex-1;
     }
 
@@ -3555,11 +3509,8 @@
     }
 
     .role-switcher,
-    .two-col,
-    .metric-grid,
     .time-metrics,
     .analytics-kpis,
-    .derived-metric-grid,
     .dashboard-current,
     .settings-page,
     .documentation-layout {
@@ -3796,10 +3747,6 @@
 
     .compensation-editor-row .icon-btn {
       @apply col-start-1 row-auto justify-self-start;
-    }
-
-    .bar-row {
-      @apply grid-cols-1 gap-2;
     }
 
     .stacked-workload-row {

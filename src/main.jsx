@@ -1145,7 +1145,7 @@ const documentationSections = [
         howItWorks: 'The Vacation subtab under Employees manages local absence requests, working-day vacation balances, sick leave counts, approvals, holidays, and risk periods. Requests are stored as absence request records in browser localStorage. Calendar rules are global and are stored as absence rule records. The employee annual allowance is stored on the employee card as Annual vacation allowance and falls back to 20 days when missing or invalid.',
         userSteps: [
           'Open Employees, then open the Vacation subtab.',
-          'Use Overview to review the current user balance, team absences this week, the yearly timeline, and request status lists.',
+          'Use Overview to review the current user balance, team absences this week, the yearly timeline, and request status lists. Click Today next to the year selector to return the timeline to the current date.',
           'In New absence request, select the user in scope, choose Vacation or Sick leave, enter From and Until dates, add optional notes, and click Submit request.',
           'Open Approvals & analytics to review the employee balance table for the selected approval scope, manage Pending, Approved, and Rejected request blocks below the table, then review Calendar rules at the bottom.',
           'Management can add a calendar rule by choosing Holiday or Risk period, entering the rule name and date range, and clicking Add rule.',
@@ -1153,7 +1153,7 @@ const documentationSections = [
         ],
         specifics: [
           'The Overview timeline is visible for all active employees to every role, so everyone can see who is away and when.',
-          'The Vacation year selector filters the visible timeline, balance table, and year-based absence calculations.',
+          'The Vacation year selector filters the visible timeline, balance table, and year-based absence calculations. The Today button switches the timeline to the current year when needed and scrolls the calendar to the current date marker.',
           'Timeline rows are grouped by employee department.',
           'The Approved, Pending, and Rejected request panels in Overview show only the active user\'s own requests.',
           'Team or company approval queues are shown only in Approvals & analytics, where Pending, Approved, and Rejected blocks allow authorized users to correct request status when needed.',
@@ -1340,6 +1340,151 @@ const documentationSections = [
         ],
         metrics: [
           'Visible correction records = count(corrections visible to the active role)',
+        ],
+      },
+    ],
+  },
+  {
+    title: 'Data schema and sources',
+    intro: 'This area documents the local data model, where each dataset comes from, which fields are needed, and how records connect to each other.',
+    features: [
+      {
+        name: 'Local state data map',
+        howItWorks: 'The prototype uses one browser localStorage record as the local data store. The stored object contains separate arrays and settings values for employees, time entries, documents, absences, departments, rules, tags, work types, filters, active timer state, role preview state, and correction windows.',
+        userSteps: [
+          'Open Documentation.',
+          'Review this data map before configuring or importing data.',
+          'Use the Source and Required data columns to see where each dataset comes from and what must exist before related workflows work correctly.',
+          'Use the Links column to understand which records must be kept synchronized when names, departments, work types, or tags change.',
+        ],
+        specifics: [
+          'All persisted data is stored under localStorage key esm-time-management-local-v2.',
+          'The prototype ships with sample constants in src/main.jsx and then overwrites them with saved browser state after the user changes data.',
+          'Most relationships use stable user-facing names instead of database foreign keys: employee name, department name, work type name, tag name, employment type name, and document type name.',
+          'Because links use names, renaming employees, departments, work types, tags, employment rules, or document type rules must update dependent local records in the same save flow.',
+          'A production Laravel version should replace these name-based links with database IDs while keeping names as display fields.',
+        ],
+        dataFields: [
+          {
+            entity: 'employees',
+            source: 'Employee database; initial sample data from people',
+            required: 'id, name, level, department, employment, contract dates, contact fields, tags, compensationRows, vacationDaysAvailable, archived status',
+            links: 'Referenced by entries.employee, documents.employee, absenceRequests.employee, corrections.employee, correctionWindows.employee, rolePeople, department leads, activeSession.employee',
+          },
+          {
+            entity: 'entries',
+            source: 'Live timer, manual entry modal, correction edits; initial sample data from baseEntries',
+            required: 'id, employee, department, date, type, start, end, hours, status, source, break or workFromHome flags when relevant',
+            links: 'Uses employees.name, employees.department, managementTypes or leadTypes work type names, correction windows for edit permission, compensationRows for cost allocation',
+          },
+          {
+            entity: 'departmentItems',
+            source: 'Employees > Departments; initial sample data from departments',
+            required: 'name, lead or leads list',
+            links: 'Controls employees.department, employees.leadDepartments, work type department scope, tag department scope, table filters, analytics grouping, active timer scope',
+          },
+          {
+            entity: 'managementTypes and leadTypes',
+            source: 'Time Management > Settings; initial sample data from managementSettingsWorkTypes and leadSettingsWorkTypes',
+            required: 'name, department, paid, color, optional tags',
+            links: 'Referenced by entries.type, compensationRows.workTypes, tagItems.workType, timer selector, manual entry selector, analytics colors and paid-hour calculations',
+          },
+          {
+            entity: 'tagItems',
+            source: 'Employees > Tags; initial sample data from settingsTags',
+            required: 'name, department, workType',
+            links: 'Controls employees.tags and work type visibility; deleting or renaming a tag updates employees and work type tag restrictions',
+          },
+          {
+            entity: 'employmentRuleItems',
+            source: 'Employees > Rules > Employment type rules; initial sample data from employmentRules',
+            required: 'id, name, payType, requiresContract, requiresMedical, requiresSafety, cardFields',
+            links: 'Matched to employees.employment and compensationRows.employmentType; drives employee to-dos and compensation method context',
+          },
+          {
+            entity: 'documentTypeItems',
+            source: 'Employees > Rules > Document type tags; initial sample data from documentTypeRules',
+            required: 'id, name, requiresDocumentDate, requiresStartDate, requiresEndDate',
+            links: 'Matched to documents.type; controls required date fields in employee document upload forms',
+          },
+          {
+            entity: 'documents',
+            source: 'Employee record > Documents; initial sample data from baseDocuments',
+            required: 'id, employee, title, type, status, required dates based on document type, optional uploaded file metadata and data URL',
+            links: 'Uses employees.name and documentTypeItems.name; included in employee document counts and rule to-do checks',
+          },
+          {
+            entity: 'absenceRequests',
+            source: 'Employees > Vacation > New absence request; initial sample data from baseAbsenceRequests',
+            required: 'id, employee, type, startDate, endDate, returnDate, status, submittedAt, optional notes and approval fields',
+            links: 'Uses employees.name, active role scope, absenceRules for warnings and blocked periods, employee vacation allowance for balances',
+          },
+          {
+            entity: 'absenceRules',
+            source: 'Employees > Vacation > Calendar rules; initial sample data from baseAbsenceRules',
+            required: 'id, type, startDate, endDate, name',
+            links: 'Used by absenceRequests validation, working-day calculations, yearly timeline markers, holiday exclusions, and risk period warnings',
+          },
+          {
+            entity: 'corrections and correctionWindows',
+            source: 'Correction requests, manual unlocks, entry edits, entry deletes; initial correction records from correctionLog',
+            required: 'employee, date or from/to range, change, by, state; windows also need request status, expiry, requestKey when linked',
+            links: 'Uses employees.name and entries date ranges; controls past-entry edit permission and audit visibility by role scope',
+          },
+          {
+            entity: 'role, rolePeople, tableFilters, activeSession, selectedWorkType, wfh, lunch',
+            source: 'Top bar role switcher, table filters, live timer controls',
+            required: 'Current role id, preview user names, filter dates, selected employee/work type, timer start metadata, toggle states',
+            links: 'Uses employees.name, entries.date, departments, work type names, and active role permissions to restore the user workflow after reload',
+          },
+        ],
+        metrics: [
+          'Storage payload = JSON.stringify({ role, rolePeople, tab, employees, entries, documents, absenceRequests, absenceRules, corrections, selectedWorkType, tableFilters, activeSession, wfh, lunch, correctionWindows, departmentItems, managementTypes, leadTypes, tagItems, employmentRuleItems, documentTypeItems })',
+        ],
+      },
+      {
+        name: 'Core relationship tree',
+        howItWorks: 'The main operational record is a time entry. A time entry connects an employee, department, work type, correction permission, and compensation rule so the app can show scope, validate edits, and calculate paid hours and cost.',
+        userSteps: [
+          'Start with Departments and Tags when defining organizational scope.',
+          'Create or maintain Employees with department, role, tags, vacation allowance, and compensation rows.',
+          'Create Work types that match the intended departments and tags.',
+          'Record time entries using only work types available to the selected employee.',
+          'Use Documents, Rules, Vacation, and Corrections as supporting datasets around the employee and time entry records.',
+        ],
+        specifics: [
+          'Department -> Employee: employees.department must match an existing department name, or the app can create or use Undefined department when a department is deleted.',
+          'Department -> Work type: work types can be scoped to one department or All departments.',
+          'Tag -> Employee and Work type: work type tags restrict who can select that work type.',
+          'Employee -> Compensation rows: compensationRows define monthly, hourly, or project cost rules and optional work type mappings.',
+          'Employee + Work type -> Time entry: the manual entry form and timer save entries only when the work type is valid for the selected employee scope.',
+          'Time entry -> Analytics: analytics groups entries by employee, department, work type, date range, paid status, and allocated cost.',
+          'Employee -> Documents and Rules: document type rules define required document dates; employment rules define to-dos and pay type context.',
+          'Employee -> Absence requests: vacation balances include only visible employee requests for the selected year and exclude weekends and holiday rules from working-day counts.',
+          'Employee + Date range -> Corrections: correction requests and active unlock windows decide whether past entries can be edited by operations users.',
+        ],
+        metrics: [
+          'Time entry eligibility = employee in role scope + work type department match + matching tag requirement + date/edit permission',
+          'Cost relationship = entries.employee -> employee.compensationRows -> matching workTypes and payType -> allocated cost',
+        ],
+      },
+      {
+        name: 'Production data requirements',
+        howItWorks: 'For a production implementation, the prototype data map translates into server-side tables or API resources. The minimum required data should be available before enabling time tracking, analytics, vacation approvals, and employee document workflows.',
+        userSteps: [
+          'Create departments and role scopes first.',
+          'Import or create employees with unique IDs, names, departments, roles, and employment details.',
+          'Configure employment rules, document type rules, work types, and tags.',
+          'Add compensation rows for employees whose paid time should produce cost analytics.',
+          'Connect time entries, absence requests, documents, and corrections to employee IDs in the backend.',
+        ],
+        specifics: [
+          'Required before tracking time: active employee, department, role level, at least one visible paid or unpaid work type, and current role permission.',
+          'Required before cost analytics: paid work type, employee compensation row, pay type, gross gross cost or hourly rate or project value, and valid project dates when project work is used.',
+          'Required before vacation balances: employee annual vacation allowance or default allowance, absence requests, absence type, date range, status, and holiday rules.',
+          'Required before document compliance: employment rule requirements, document type date requirements, document employee link, document type, document status, and required dates.',
+          'Required before correction workflow: employee link, requested date range, reason, reviewer scope, approval status, expiry rule, and audit record.',
+          'Recommended production IDs: employeeId, departmentId, workTypeId, tagId, employmentRuleId, documentTypeId, timeEntryId, documentId, absenceRequestId, correctionRequestId, correctionWindowId.',
         ],
       },
     ],
@@ -4538,6 +4683,32 @@ function DocumentationView({ sections }) {
                         </ul>
                       </div>
                     )}
+                    {feature.dataFields?.length > 0 && (
+                      <div className="documentation-block">
+                        <strong>Data fields</strong>
+                        <div className="data-schema-list">
+                          {feature.dataFields.map((item) => (
+                            <div className="data-schema-row" key={item.entity}>
+                              <h4>{item.entity}</h4>
+                              <dl>
+                                <div>
+                                  <dt>Source</dt>
+                                  <dd>{item.source}</dd>
+                                </div>
+                                <div>
+                                  <dt>Required data</dt>
+                                  <dd>{item.required}</dd>
+                                </div>
+                                <div>
+                                  <dt>Links</dt>
+                                  <dd>{item.links}</dd>
+                                </div>
+                              </dl>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     {feature.metrics?.length > 0 && (
                       <div className="documentation-block metric-doc-block">
                         <strong>Metrics and formulas</strong>
@@ -4858,6 +5029,7 @@ function VacationView({
     startDate: TODAY,
     endDate: TODAY,
   });
+  const [todayScrollRequest, setTodayScrollRequest] = useState(0);
   const holidayDates = useMemo(() => holidayDateSet(rules), [rules]);
   const calendarPeople = useMemo(() => people.filter((person) => !isArchivedEmployee(person)), [people]);
   const canUseApprovals = role !== 'operations';
@@ -4951,6 +5123,11 @@ function VacationView({
     setRuleForm((current) => ({ ...current, name: '' }));
   }
 
+  function focusTodayOnCalendar() {
+    setYear(Number(TODAY.slice(0, 4)));
+    setTodayScrollRequest((current) => current + 1);
+  }
+
   return (
     <div className="vacation-workspace">
       <section className="vacation-head">
@@ -4994,9 +5171,14 @@ function VacationView({
                   <span><i className="warning" />Risk period</span>
                   <span><i className="today" />Today</span>
                 </div>
-                <SimpleDropdown className="vacation-year-select" value={String(year)} options={yearOptions} onChange={(value) => setYear(Number(value))} />
+                <div className="vacation-calendar-actions">
+                  <button className="soft-btn vacation-today-btn" type="button" onClick={focusTodayOnCalendar}>
+                    <CalendarDays size={16} /> Today
+                  </button>
+                  <SimpleDropdown className="vacation-year-select" value={String(year)} options={yearOptions} onChange={(value) => setYear(Number(value))} />
+                </div>
               </div>
-              <VacationTimeline people={calendarPeople} requests={visibleRequests} rules={yearRules} year={year} holidayDates={holidayDates} />
+              <VacationTimeline people={calendarPeople} requests={visibleRequests} rules={yearRules} year={year} holidayDates={holidayDates} todayScrollRequest={todayScrollRequest} />
             </section>
 
             <div className="vacation-request-columns">
@@ -5224,7 +5406,7 @@ function VacationRequestItem({ request, holidayDates, canApprove, canDelete, onA
   );
 }
 
-function VacationTimeline({ people, requests, rules, year, holidayDates }) {
+function VacationTimeline({ people, requests, rules, year, holidayDates, todayScrollRequest }) {
   const months = useMemo(() => Array.from({ length: 12 }, (_, index) => index), []);
   const todayYear = TODAY.slice(0, 4) === String(year);
   const scrollRef = useRef(null);
@@ -5243,14 +5425,24 @@ function VacationTimeline({ people, requests, rules, year, holidayDates }) {
       }));
   }, [people]);
 
-  useEffect(() => {
+  function scrollToToday() {
     if (!scrollRef.current || !todayYear) return;
     const currentMonth = Number(TODAY.slice(5, 7)) - 1;
     const monthOffset = months.slice(0, currentMonth).reduce((sum, month) => (
       sum + datesBetween(localDate(new Date(year, month, 1)), localDate(new Date(year, month + 1, 0))).length * 28
     ), 0);
-    scrollRef.current.scrollLeft = Math.max(0, monthOffset - 84);
+    const dayOffset = (Number(TODAY.slice(8, 10)) - 1) * 28 + 14;
+    const centeredOffset = monthOffset + dayOffset - (scrollRef.current.clientWidth / 2);
+    scrollRef.current.scrollTo({ left: Math.max(0, centeredOffset), behavior: todayScrollRequest ? 'smooth' : 'auto' });
+  }
+
+  useEffect(() => {
+    scrollToToday();
   }, [todayYear, year, months]);
+
+  useEffect(() => {
+    scrollToToday();
+  }, [todayScrollRequest]);
 
   function timelineDateClass(date) {
     const day = parseIsoDate(date)?.getDay();
