@@ -1203,7 +1203,8 @@ const documentationSections = [
           'Save the tag.',
         ],
         specifics: [
-          'The Tags subtab groups tags by department and shows the number of visible employees in each department.',
+          'The Tags subtab shows a summary strip for active tags, tagged groups, and work type rules, then groups tag cards by department.',
+          'Each department card shows whether the group is shared across departments or department-scoped, plus tag and people counts.',
           'Tags assigned to All departments are grouped separately from concrete department tags.',
           'Tags whose stored department is outside the visible department list are grouped under Other tags.',
           'Tag department choices come from the same Departments records used by Employees. All departments is the only special shared-scope option.',
@@ -1222,6 +1223,9 @@ const documentationSections = [
           'Operations users cannot open the Settings subtab, so they cannot view or manage the tag library.',
         ],
         metrics: [
+          'Active tags = count(tags in the active role scope)',
+          'Tagged groups = count(visible department groups, including All departments and Other tags when present, where group.tags.length > 0)',
+          'Work type rules = count(tags in the active role scope where tag.workType !== All work types)',
           'Department tag count = count(tags grouped under the visible department or All departments group)',
           'People in scope on a tag card = count(visible people in the department), or count(all visible people) for All departments',
         ],
@@ -4521,17 +4525,37 @@ function DepartmentTagsView({ canManageTags, departments, tags, people, onAddTag
     })),
     ...(unassignedTags.length > 0 ? [{ name: 'Other tags', tags: unassignedTags }] : []),
   ];
+  const departmentsWithTags = groupedDepartments.filter((department) => department.tags.length > 0).length;
+  const restrictedWorkTypeTags = tags.filter((tag) => tag.workType !== 'All work types').length;
+  const tagOverview = [
+    { label: 'Active tags', value: tags.length, icon: Tag },
+    { label: 'Tagged groups', value: departmentsWithTags, icon: UsersRound },
+    { label: 'Work type rules', value: restrictedWorkTypeTags, icon: BriefcaseBusiness },
+  ];
 
   return (
     <section className="primary-panel department-tags-panel">
-      <div className="panel-heading">
+      <div className="panel-heading tag-library-heading">
         <div>
           <span className="eyebrow">Tags</span>
           <h2>Department tag library</h2>
+          <p>Manage employee tags and the work type access they unlock.</p>
         </div>
         <button className="soft-btn" disabled={!canManageTags} onClick={onAddTag}><Plus size={17} /> Add tag</button>
       </div>
-      <div className="settings-tag-note employee-admin-note">
+      <div className="tag-library-overview" aria-label="Tag library summary">
+        {tagOverview.map((item) => {
+          const Icon = item.icon;
+          return (
+            <span key={item.label}>
+              <Icon size={16} />
+              <b>{item.value}</b>
+              <small>{item.label}</small>
+            </span>
+          );
+        })}
+      </div>
+      <div className="settings-tag-note employee-admin-note tag-library-note">
         <Tag size={16} />
         <span>Tags are matched against employees. Tagged work types are visible only to employees with the same tag.</span>
       </div>
@@ -4539,19 +4563,30 @@ function DepartmentTagsView({ canManageTags, departments, tags, people, onAddTag
         {groupedDepartments.map((department) => (
           <article className="tag-department-card" key={department.name}>
             <div className="tag-department-head">
-              <strong>{department.name}</strong>
-              <span>{department.tags.length} tags · {department.shared ? people.length : people.filter((person) => canonicalDepartmentName(person.department) === canonicalDepartmentName(department.name)).length} people in scope</span>
+              <div className="tag-department-title">
+                <span className="tag-department-icon"><Tag size={17} /></span>
+                <div>
+                  <strong>{department.name}</strong>
+                  <span>{department.shared ? 'Shared across departments' : 'Department scope'}</span>
+                </div>
+              </div>
+              <div className="tag-department-stats">
+                <small>{department.tags.length} tags</small>
+                <small>{department.shared ? people.length : people.filter((person) => canonicalDepartmentName(person.department) === canonicalDepartmentName(department.name)).length} people</small>
+              </div>
             </div>
             <div className="settings-tags department-tag-list">
               {department.tags.map((tag) => (
                 <span className="settings-tag-chip" key={`${tag.department}-${tag.workType}-${tag.name}`}>
-                  <b>{tag.name}</b>
-                  <small>{tag.workType}</small>
+                  <span className="tag-chip-main">
+                    <b>{tag.name}</b>
+                    <small>{tag.workType}</small>
+                  </span>
                   {canManageTags && (
-                    <>
+                    <span className="tag-chip-actions">
                       <button onClick={() => onEditTag(tag)} aria-label={`Edit ${tag.name}`}><Pencil size={13} /></button>
                       <button onClick={() => onDeleteTag(tag)} aria-label={`Delete ${tag.name}`}><Trash2 size={13} /></button>
-                    </>
+                    </span>
                   )}
                 </span>
               ))}

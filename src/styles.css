@@ -2433,6 +2433,10 @@
     @apply grid gap-4;
   }
 
+  .tag-department-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+  }
+
   .department-org-grid {
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
   }
@@ -2444,6 +2448,38 @@
 
   .department-card {
     @apply p-4;
+  }
+
+  .tag-library-heading {
+    @apply items-end;
+  }
+
+  .tag-library-heading p {
+    @apply mt-2 max-w-[560px] text-sm font-semibold leading-6 text-[#7d8998];
+  }
+
+  .tag-library-overview {
+    @apply grid grid-cols-3 gap-px border-b border-[#edf1f4] bg-[#edf1f4];
+  }
+
+  .tag-library-overview span {
+    @apply flex min-h-[82px] items-center gap-3 bg-white px-[26px] py-4;
+  }
+
+  .tag-library-overview svg {
+    @apply h-8 w-8 rounded-[10px] bg-[#ecf9f2] p-2 text-[#31a85d];
+  }
+
+  .tag-library-overview b {
+    @apply text-[22px] font-black leading-none text-[#263241];
+  }
+
+  .tag-library-overview small {
+    @apply text-xs font-black uppercase tracking-[0.08em] text-[#8a96a7];
+  }
+
+  .tag-library-note {
+    @apply bg-[#fbfcfd];
   }
 
   .department-card-head,
@@ -2459,6 +2495,38 @@
   .department-card-head span,
   .tag-department-head span {
     @apply mt-1 block text-sm font-bold text-[#8793a1];
+  }
+
+  .tag-department-card {
+    @apply bg-white transition-[border-color,box-shadow,transform] duration-200;
+  }
+
+  .tag-department-card:hover {
+    @apply border-[#d5e5dc] shadow-[0_18px_36px_rgba(38,50,65,0.07)] -translate-y-0.5;
+  }
+
+  .tag-department-title {
+    @apply flex min-w-0 items-start gap-3;
+  }
+
+  .tag-department-title > div {
+    @apply min-w-0;
+  }
+
+  .tag-department-title strong {
+    @apply truncate;
+  }
+
+  .tag-department-icon {
+    @apply grid h-10 w-10 shrink-0 place-items-center rounded-[10px] bg-[#edf9f3] text-[#2ea85b];
+  }
+
+  .tag-department-stats {
+    @apply flex shrink-0 flex-wrap justify-end gap-2;
+  }
+
+  .tag-department-stats small {
+    @apply inline-flex min-h-7 items-center rounded-full border border-[#dfe8e2] bg-[#f8fbf9] px-2.5 text-xs font-black text-[#607284];
   }
 
   .org-lane {
@@ -2553,7 +2621,7 @@
     @apply flex flex-wrap gap-2.5 p-[26px] pt-5;
   }
 
-  .settings-tags span {
+  .settings-tags > span {
     @apply inline-flex min-h-[34px] items-center rounded-full border border-[#dfe6ea] bg-[#f7faf9] px-[17px] font-extrabold text-[#5f6d7d] shadow-[inset_0_-1px_0_rgba(38,50,65,0.04)];
   }
 
@@ -2574,19 +2642,31 @@
   }
 
   .department-tag-list .settings-tag-chip {
-    @apply min-h-[42px] gap-2 rounded-[10px] pr-2;
+    @apply min-h-[52px] w-full justify-between gap-3 rounded-[10px] border-[#dde8e2] bg-[#fbfdfc] px-3.5 py-2 text-left shadow-none;
+  }
+
+  .department-tag-list .settings-tag-chip:hover {
+    @apply border-[#c6dfd2] bg-white shadow-[inset_3px_0_0_#35bfae];
+  }
+
+  .tag-chip-main {
+    @apply flex min-w-0 flex-1 items-center gap-2;
   }
 
   .department-tag-list .settings-tag-chip b {
-    @apply font-black;
+    @apply min-w-0 truncate font-black text-[#263241];
   }
 
   .department-tag-list .settings-tag-chip small {
-    @apply rounded-full bg-[#eef2f5] px-2 py-1 text-xs font-black text-[#7a8796];
+    @apply shrink-0 rounded-full bg-[#eef5f1] px-2 py-1 text-xs font-black text-[#617481];
+  }
+
+  .tag-chip-actions {
+    @apply ml-auto flex shrink-0 items-center gap-1;
   }
 
   .empty-tag-chip {
-    @apply inline-flex min-h-[34px] items-center rounded-full border border-[#e3e8ed] bg-white px-4 text-sm font-extrabold text-[#9aa5b4];
+    @apply inline-flex min-h-[52px] w-full items-center justify-center rounded-[10px] border border-dashed border-[#dce4eb] bg-[#fbfcfd] px-4 text-sm font-extrabold text-[#9aa5b4];
   }
 
   .settings-create-modal {
@@ -2790,6 +2870,30 @@
 
     .documentation-index {
       @apply static max-h-none;
+    }
+
+    .tag-library-heading {
+      @apply items-start;
+    }
+
+    .tag-library-overview {
+      @apply grid-cols-1;
+    }
+
+    .tag-library-overview span {
+      @apply min-h-[64px] px-4;
+    }
+
+    .tag-department-head {
+      @apply flex-col;
+    }
+
+    .tag-department-stats {
+      @apply justify-start;
+    }
+
+    .tag-chip-main {
+      @apply flex-col items-start gap-1;
     }
 
     .metric-equation {
