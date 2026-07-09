@@ -2940,7 +2940,7 @@
   .vacation-month-row i.weekend,
   .vacation-month-row i.holiday,
   .vacation-month-row i.warning {
-    @apply my-0 border-l border-[#dce7f2];
+    @apply my-0 border-l-0;
   }
 
   .vacation-month-row i.warning {
