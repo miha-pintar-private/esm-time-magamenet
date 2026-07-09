@@ -1147,12 +1147,13 @@ const documentationSections = [
           'Open Employees, then open the Vacation subtab.',
           'Use Overview to review the current user balance, team absences this week, the yearly timeline, and request status lists.',
           'In New absence request, select the user in scope, choose Vacation or Sick leave, enter From and Until dates, add optional notes, and click Submit request.',
-          'Open Approvals & analytics to review pending approvals and employee balances for the selected approval scope.',
+          'Open Approvals & analytics to review the employee balance table for the selected approval scope, then review Pending approvals and Calendar rules below the table.',
           'Management can add a calendar rule by choosing Holiday or Risk period, entering the rule name and date range, and clicking Add rule.',
           'Management and authorized team leads can approve or reject pending requests from the pending approvals list or from pending request cards.',
         ],
         specifics: [
           'The Overview timeline is visible for all active employees to every role, so everyone can see who is away and when.',
+          'The Vacation year selector filters the visible timeline, balance table, and year-based absence calculations.',
           'Timeline rows are grouped by employee department.',
           'The Approved, Pending, and Rejected request panels in Overview show only the active user\'s own requests.',
           'Team or company approval queues are shown only in Approvals & analytics.',
@@ -2534,10 +2535,9 @@ function App() {
     const entryCost = activeVisiblePeople.reduce((sum, person) => (
       sum + employeeRuleCost(person, employmentRuleItems, visibleEntries, configuredWorkTypes)
     ), 0);
-    const peopleCost = entryCost;
     const locked = visibleEntries.filter((entry) => !canEditEntryDate(role, currentCorrectionWindows, entry.employee, entry.date)).length;
     const correctionsCount = corrections.filter((item) => role === 'management' || item.employee === activeRole.person || activeVisiblePeople.some((person) => person.name === item.employee)).length;
-    return { hours, paidHours, entryCost, peopleCost, locked, corrections: correctionsCount };
+    return { hours, paidHours, entryCost, locked, corrections: correctionsCount };
   }, [visibleEntries, activeVisiblePeople, corrections, currentCorrectionWindows, role, activeRole.person, configuredWorkTypes, employmentRuleItems]);
 
   const filteredTotals = useMemo(() => {
@@ -3883,7 +3883,6 @@ function App() {
         {tab === 'time' && (
           <TimeView
             role={role}
-            platform={platform}
             activeRole={activeRole}
             visibleEntries={filteredEntries}
             visiblePeople={activeVisiblePeople}
@@ -3912,7 +3911,7 @@ function App() {
             onDeleteEntry={deleteEntry}
           />
         )}
-        {tab === 'analytics' && <AnalyticsView role={role} platform={platform} activePlatform={activePlatform} people={activeVisiblePeople} entries={visibleEntries} workTypes={visibleWorkTypes} configuredWorkTypes={configuredWorkTypes} employmentRules={employmentRuleItems} totals={totals} activeRole={activeRole} onFilters={() => showToast('Analytics filters applied')} />}
+        {tab === 'analytics' && <AnalyticsView role={role} activePlatform={activePlatform} people={activeVisiblePeople} entries={visibleEntries} configuredWorkTypes={configuredWorkTypes} employmentRules={employmentRuleItems} activeRole={activeRole} />}
         {tab === 'settings' && role !== 'operations' && (
           <SettingsView
             role={role}
@@ -3930,17 +3929,13 @@ function App() {
           <HrView
             section={tab === 'hr-vacation' ? 'vacation' : tab === 'hr-departments' ? 'departments' : tab === 'hr-rules' ? 'rules' : tab === 'hr-tags' ? 'tags' : 'employees'}
             role={role}
-            platform={platform}
-            activePlatform={activePlatform}
             activeRole={activeRole}
             activePerson={activePerson}
             people={visiblePeople}
             allPeople={employees}
             activePeople={activeVisiblePeople}
-            entries={entries}
             absenceRequests={absenceRequests}
             absenceRules={absenceRules}
-            configuredWorkTypes={configuredWorkTypes}
             documents={documents}
             activeLeadDepartments={activeLeadDepartments}
             canEditPeople={canEditPeople}
@@ -3949,7 +3944,6 @@ function App() {
             tagItems={tagItems}
             employmentRules={employmentRuleItems}
             documentTypes={documentTypeItems}
-            totals={totals}
             selectedEmployeeId={selectedEmployeeId}
             onAddEmployee={addEmployee}
             onSelectEmployee={(person) => setSelectedEmployeeId(person.id)}
@@ -3979,8 +3973,6 @@ function App() {
         <EmployeeRecordSidebar
           employee={selectedEmployee}
           documents={documents}
-          entries={entries}
-          corrections={corrections}
           employmentRules={employmentRuleItems}
           documentTypes={documentTypeItems}
           canEditPeople={canEditPeople}
@@ -4044,8 +4036,6 @@ function App() {
           mode={settingsModal.type}
           item={settingsModal.item}
           role={role}
-          activeRole={activeRole}
-          activeLeadDepartments={activeLeadDepartments}
           primaryLeadDepartment={primaryLeadDepartment}
           employees={employees}
           departments={departmentItems}
@@ -4090,7 +4080,6 @@ function calculateHours(start, end) {
 function TimeView(props) {
   const {
     role,
-    platform,
     visiblePeople,
     visibleEntries,
     workTypes,
@@ -4575,17 +4564,13 @@ function DocumentationView({ sections }) {
 function HrView({
   section,
   role,
-  platform,
-  activePlatform,
   activeRole,
   activePerson,
   people,
   allPeople,
   activePeople,
-  entries,
   absenceRequests,
   absenceRules,
-  configuredWorkTypes,
   documents,
   activeLeadDepartments,
   canEditPeople,
@@ -4594,7 +4579,6 @@ function HrView({
   tagItems,
   employmentRules,
   documentTypes,
-  totals,
   selectedEmployeeId,
   onAddEmployee,
   onSelectEmployee,
@@ -4802,7 +4786,6 @@ function HrView({
           activeRole={activeRole}
           activePerson={activePerson}
           people={(allPeople || people).filter((person) => !isArchivedEmployee(person))}
-          activePeople={activePeople}
           activeLeadDepartments={activeLeadDepartments}
           requests={absenceRequests}
           rules={absenceRules}
@@ -4851,7 +4834,6 @@ function VacationView({
   activeRole,
   activePerson,
   people,
-  activePeople,
   activeLeadDepartments,
   requests,
   rules,
@@ -5006,7 +4988,7 @@ function VacationView({
                   <span><i className="warning" />Risk period</span>
                   <span><i className="today" />Today</span>
                 </div>
-                <SimpleDropdown value={String(year)} options={yearOptions} onChange={(value) => setYear(Number(value))} />
+                <SimpleDropdown className="vacation-year-select" value={String(year)} options={yearOptions} onChange={(value) => setYear(Number(value))} />
               </div>
               <VacationTimeline people={calendarPeople} requests={visibleRequests} rules={yearRules} year={year} holidayDates={holidayDates} />
             </section>
@@ -5095,7 +5077,7 @@ function VacationView({
                 <span className="eyebrow">Balances</span>
                 <h2>Team breakdown</h2>
               </div>
-              <SimpleDropdown value={String(year)} options={yearOptions} onChange={(value) => setYear(Number(value))} />
+              <SimpleDropdown className="vacation-year-select" value={String(year)} options={yearOptions} onChange={(value) => setYear(Number(value))} />
             </div>
             <div className="vacation-analytics-table">
               <div className="vacation-analytics-head">
@@ -5609,8 +5591,6 @@ function DepartmentTagsView({ canManageTags, departments, tags, people, onAddTag
 function EmployeeRecordSidebar({
   employee,
   documents,
-  entries,
-  corrections,
   employmentRules,
   documentTypes,
   canEditPeople,
@@ -7246,7 +7226,7 @@ function CorrectionRequestModal({ activeRole, onClose, onSave }) {
   );
 }
 
-function SettingsCreateModal({ mode, item, role, activeRole, primaryLeadDepartment, employees, departments, workTypes, tags, onClose, onSaveDepartment, onSaveWorkType, onSaveTag }) {
+function SettingsCreateModal({ mode, item, role, primaryLeadDepartment, employees, departments, workTypes, tags, onClose, onSaveDepartment, onSaveWorkType, onSaveTag }) {
   const isLead = role === 'lead';
   const concreteDepartmentOptions = departments.map((department) => ({ name: department.name }));
   const departmentOptions = mode === 'department' || isLead
@@ -7405,7 +7385,7 @@ function SettingsCreateModal({ mode, item, role, activeRole, primaryLeadDepartme
   );
 }
 
-function SimpleDropdown({ value, options, onChange, disabled }) {
+function SimpleDropdown({ value, options, onChange, disabled, className }) {
   const [open, setOpen] = useState(false);
   const selectRef = useRef(null);
   const selected = options.find((option) => option.name === value) || (!value ? options[0] : undefined);
@@ -7424,7 +7404,7 @@ function SimpleDropdown({ value, options, onChange, disabled }) {
   }, [open]);
 
   return (
-    <div ref={selectRef} className={cx('custom-select form-select', disabled && 'disabled')}>
+    <div ref={selectRef} className={cx('custom-select form-select', className, disabled && 'disabled')}>
       <button
         className={cx('custom-select-trigger', open && 'open', selected && 'has-value')}
         onClick={() => !disabled && setOpen((current) => !current)}
