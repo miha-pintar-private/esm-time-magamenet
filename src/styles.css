@@ -2459,30 +2459,6 @@
     @apply mt-2 max-w-[560px] text-sm font-semibold leading-6 text-[#7d8998];
   }
 
-  .tag-library-overview {
-    @apply grid grid-cols-3 gap-px border-b border-[#edf1f4] bg-[#edf1f4];
-  }
-
-  .tag-library-overview span {
-    @apply flex min-h-[82px] items-center gap-3 bg-white px-[26px] py-4;
-  }
-
-  .tag-library-overview svg {
-    @apply h-8 w-8 rounded-[10px] bg-[#ecf9f2] p-2 text-[#31a85d];
-  }
-
-  .tag-library-overview b {
-    @apply text-[22px] font-black leading-none text-[#263241];
-  }
-
-  .tag-library-overview small {
-    @apply text-xs font-black uppercase tracking-[0.08em] text-[#8a96a7];
-  }
-
-  .tag-library-note {
-    @apply bg-[#fbfcfd];
-  }
-
   .department-card-head,
   .tag-department-head {
     @apply mb-4 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 border-b border-[#e7edf2] pb-4;
@@ -2522,8 +2498,12 @@
     @apply truncate;
   }
 
-  .tag-department-icon {
-    @apply grid h-10 w-10 shrink-0 place-items-center rounded-[10px] bg-[#edf9f3] text-[#2ea85b];
+  .tag-department-head .tag-department-icon {
+    @apply mt-0 flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-[#edf9f3] leading-none text-[#2ea85b];
+  }
+
+  .tag-department-head .tag-department-icon svg {
+    @apply block h-[18px] w-[18px];
   }
 
   .tag-department-stats {
@@ -2895,14 +2875,6 @@
 
     .tag-library-heading .soft-btn {
       @apply w-full;
-    }
-
-    .tag-library-overview {
-      @apply grid-cols-1;
-    }
-
-    .tag-library-overview span {
-      @apply min-h-[64px] px-4;
     }
 
     .tag-department-head {

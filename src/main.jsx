@@ -1203,8 +1203,8 @@ const documentationSections = [
           'Save the tag.',
         ],
         specifics: [
-          'The Tags subtab shows a summary strip for active tags, tagged groups, and work type rules, then groups tag cards by department.',
-          'Each department card shows whether the group is shared across departments or department-scoped, plus tag and people counts.',
+          'The Tags subtab groups tag cards by department.',
+          'Each department card shows a centered tag icon, whether the group is shared across departments or department-scoped, plus tag and people counts.',
           'Shared All departments tags appear in a full-width group, while department cards use a responsive grid: three columns on wide screens, two columns on medium screens, and one column on mobile screens.',
           'Tags assigned to All departments are grouped separately from concrete department tags.',
           'Tags whose stored department is outside the visible department list are grouped under Other tags.',
@@ -1224,9 +1224,6 @@ const documentationSections = [
           'Operations users cannot open the Settings subtab, so they cannot view or manage the tag library.',
         ],
         metrics: [
-          'Active tags = count(tags in the active role scope)',
-          'Tagged groups = count(visible department groups, including All departments and Other tags when present, where group.tags.length > 0)',
-          'Work type rules = count(tags in the active role scope where tag.workType !== All work types)',
           'Department tag count = count(tags grouped under the visible department or All departments group)',
           'People in scope on a tag card = count(visible people in the department), or count(all visible people) for All departments',
         ],
@@ -4526,14 +4523,6 @@ function DepartmentTagsView({ canManageTags, departments, tags, people, onAddTag
     })),
     ...(unassignedTags.length > 0 ? [{ name: 'Other tags', tags: unassignedTags }] : []),
   ];
-  const departmentsWithTags = groupedDepartments.filter((department) => department.tags.length > 0).length;
-  const restrictedWorkTypeTags = tags.filter((tag) => tag.workType !== 'All work types').length;
-  const tagOverview = [
-    { label: 'Active tags', value: tags.length, icon: Tag },
-    { label: 'Tagged groups', value: departmentsWithTags, icon: UsersRound },
-    { label: 'Work type rules', value: restrictedWorkTypeTags, icon: BriefcaseBusiness },
-  ];
-
   return (
     <section className="primary-panel department-tags-panel">
       <div className="panel-heading tag-library-heading">
@@ -4543,22 +4532,6 @@ function DepartmentTagsView({ canManageTags, departments, tags, people, onAddTag
           <p>Manage employee tags and the work type access they unlock.</p>
         </div>
         <button className="soft-btn" disabled={!canManageTags} onClick={onAddTag}><Plus size={17} /> Add tag</button>
-      </div>
-      <div className="tag-library-overview" aria-label="Tag library summary">
-        {tagOverview.map((item) => {
-          const Icon = item.icon;
-          return (
-            <span key={item.label}>
-              <Icon size={16} />
-              <b>{item.value}</b>
-              <small>{item.label}</small>
-            </span>
-          );
-        })}
-      </div>
-      <div className="settings-tag-note employee-admin-note tag-library-note">
-        <Tag size={16} />
-        <span>Tags are matched against employees. Tagged work types are visible only to employees with the same tag.</span>
       </div>
       <div className="tag-department-grid">
         {groupedDepartments.map((department) => (
