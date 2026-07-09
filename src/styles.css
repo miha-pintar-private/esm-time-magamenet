@@ -2670,31 +2670,82 @@
   }
 
   .vacation-week-card {
-    @apply flex min-h-[118px] items-start justify-between gap-4 rounded-[12px] border border-[#dfe7ef] bg-white p-5 shadow-[0_6px_20px_rgba(37,49,65,0.04)];
+    @apply grid min-h-[118px] gap-4 rounded-[12px] border border-[#dfe7ef] bg-white p-0 shadow-[0_6px_20px_rgba(37,49,65,0.04)];
+    grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 
-  .vacation-week-card div {
+  .vacation-week-summary {
+    @apply flex items-start gap-4 p-5 pb-0;
+  }
+
+  .vacation-week-summary > div {
     @apply grid gap-1;
   }
 
-  .vacation-week-card svg {
-    @apply text-[#7c5cf5];
+  .vacation-week-icon {
+    @apply grid h-10 w-10 place-items-center rounded-[18px] bg-[#f0e9ff] text-[#7c5cf5];
   }
 
-  .vacation-week-card span {
+  .vacation-week-card svg {
+    @apply text-current;
+  }
+
+  .vacation-week-summary span:not(.vacation-week-icon) {
     @apply text-[12px] font-black uppercase tracking-[0.08em] text-[#758398];
   }
 
-  .vacation-week-card strong {
+  .vacation-week-summary strong {
     @apply text-[16px] font-black text-[#263140];
   }
 
-  .vacation-week-card small {
+  .vacation-week-summary small {
     @apply text-[13px] font-bold text-[#7d8897];
   }
 
   .vacation-week-card b {
-    @apply grid h-9 min-w-9 place-items-center rounded-full border border-[#d8e4ef] text-[16px] font-black text-[#657286];
+    @apply mr-5 mt-5 grid h-9 min-w-9 place-items-center rounded-[14px] border border-[#d8e4ef] text-[16px] font-black text-[#657286];
+  }
+
+  .vacation-week-away-list {
+    @apply col-span-2 grid border-t border-[#dfe7ef];
+  }
+
+  .vacation-week-away-list p {
+    @apply px-5 py-4 text-[13px] font-bold text-[#7d8897];
+  }
+
+  .vacation-week-away-item {
+    @apply grid gap-3 px-5 py-3;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .vacation-week-away-item + .vacation-week-away-item {
+    @apply border-t border-[#eef3f8];
+  }
+
+  .vacation-week-away-item strong {
+    @apply block truncate text-[16px] font-black text-[#182236];
+  }
+
+  .vacation-week-away-item > div > span {
+    @apply block truncate text-[12px] font-black uppercase tracking-[0.08em] text-[#758398];
+  }
+
+  .vacation-week-away-item small {
+    @apply block text-[13px] font-bold text-[#637391];
+  }
+
+  .vacation-week-away-tags {
+    @apply flex flex-wrap items-center justify-end gap-2;
+  }
+
+  .vacation-week-away-tags span {
+    @apply rounded-[12px] bg-[#e8f0ff] px-3 py-1 text-[13px] font-black text-[#155dfc];
+  }
+
+  .vacation-week-away-tags span.today {
+    @apply bg-[#ffe8e8] text-[#d60000];
   }
 
   .vacation-calendar-panel,
@@ -2958,7 +3009,7 @@
   }
 
   .vacation-timeline-block.sick {
-    @apply border-[#ff9bac] bg-[#ffe8ed] text-[#b42335];
+    @apply border-[#7addad] bg-[#e5f9ef] text-[#087443];
   }
 
   .vacation-timeline-block:hover,
@@ -3110,7 +3161,7 @@
   }
 
   .absence-chip.sick {
-    @apply bg-[#ffe5e9] text-[#b42335];
+    @apply bg-[#dcfce7] text-[#087443];
   }
 
   .absence-days-chip {
@@ -3443,6 +3494,14 @@
     .vacation-date-grid,
     .vacation-duration-box {
       @apply grid-cols-1;
+    }
+
+    .vacation-week-away-item {
+      @apply grid-cols-1;
+    }
+
+    .vacation-week-away-tags {
+      @apply justify-start;
     }
 
     .vacation-timeline {

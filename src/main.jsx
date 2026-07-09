@@ -1167,7 +1167,7 @@ const documentationSections = [
         howItWorks: 'The Vacation subtab under Employees manages local absence requests, working-day vacation balances, sick leave counts, approvals, holidays, and risk periods. Requests are stored as absence request records in browser localStorage. Calendar rules are global and are stored as absence rule records. The employee annual allowance is stored on the employee card as Annual vacation allowance and falls back to 20 days when missing or invalid.',
         userSteps: [
           'Open Employees, then open the Vacation subtab.',
-          'Use Overview to review the current user balance, team absences this week, the yearly timeline, and request status lists. Click Today next to the year selector to return the timeline to the current date.',
+          'Use Overview to review the current user balance, team absences this week with who is away and until when, the yearly timeline, and request status lists. Click Today next to the year selector to return the timeline to the current date.',
           'In New absence request, select the user in scope, choose Vacation or Sick leave, enter From and Until dates, add optional notes, and click Submit request.',
           'Open Approvals & analytics to review the employee balance table for the selected approval scope, manage Pending, Approved, and Rejected request blocks below the table, then review Calendar rules at the bottom.',
           'Management can add a calendar rule by choosing Holiday or Risk period, entering the rule name and date range, and clicking Add rule.',
@@ -1175,6 +1175,8 @@ const documentationSections = [
         ],
         specifics: [
           'The Overview timeline is visible for all active employees to every role, so everyone can see who is away and when.',
+          'The Absent this week card lists approved absences that overlap the current Monday-through-Sunday week. Each listed absence shows the employee name, department, From-to-Until date range, the absence type, and a separate Today badge when today falls inside that approved absence range.',
+          'Vacation and Sick leave requests are submitted as Pending and must be approved or rejected by an authorized approver before they count as approved absence.',
           'The Vacation year selector filters the visible timeline, balance table, and year-based absence calculations. The Today button switches the timeline to the current year when needed and scrolls the calendar to the current date marker.',
           'Timeline rows are grouped by employee department.',
           'The Approved, Pending, and Rejected request panels in Overview show only the active user\'s own requests.',
@@ -2070,7 +2072,7 @@ function compactHours(value) {
 
 function workTypeColor(typeName, configuredTypes = []) {
   if (typeName === 'Vacation') return '#1d8f63';
-  if (typeName === 'Sick leave') return '#df2424';
+  if (typeName === 'Sick leave') return '#12b76a';
   const configured = configuredTypes.find((type) => type.name === typeName);
   return configured?.color || '#8b96a4';
 }
@@ -5176,7 +5178,17 @@ function VacationView({
   const weekEnd = addIsoDays(weekStart, 6);
   const awayThisWeek = visibleRequests.filter((request) => (
     request.status === 'approved' && rangesOverlap(request.startDate, request.endDate, weekStart, weekEnd)
-  ));
+  )).map((request) => ({
+    ...request,
+    employeeDepartment: calendarPeople.find((person) => person.name === request.employee)?.department || 'No department',
+  })).sort((first, second) => {
+    const firstIsToday = rangesOverlap(first.startDate, first.endDate, TODAY, TODAY);
+    const secondIsToday = rangesOverlap(second.startDate, second.endDate, TODAY, TODAY);
+    if (firstIsToday !== secondIsToday) return firstIsToday ? -1 : 1;
+    if (first.startDate !== second.startDate) return first.startDate.localeCompare(second.startDate);
+    if (first.endDate !== second.endDate) return first.endDate.localeCompare(second.endDate);
+    return first.employee.localeCompare(second.employee);
+  });
   const requestWarnings = rules.filter((rule) => (
     ['holiday', 'warning'].includes(rule.type)
     && rangesOverlap(requestForm.startDate, requestForm.endDate, rule.startDate, rule.endDate)
@@ -5253,13 +5265,35 @@ function VacationView({
               <Metric icon={CalendarDays} label="Planned" value={`${activeBalance?.plannedVacationDaysThisYear || 0} days`} delta="Approved future vacation" />
               <Metric icon={Clock3} label="Remaining this year" value={`${activeBalance?.remainingVacationDaysThisYear || 0} days`} delta={`${activeBalance?.remainingCarryoverDays || 0} carryover days left`} />
               <div className="vacation-week-card">
-                <div>
-                  <CalendarClock size={18} />
-                  <span>Absent this week</span>
-                  <strong>{awayThisWeek.length} teammate{awayThisWeek.length === 1 ? '' : 's'} away</strong>
-                  <small>{displayDate(weekStart)} - {displayDate(weekEnd)}</small>
+                <div className="vacation-week-summary">
+                  <span className="vacation-week-icon"><CalendarClock size={18} /></span>
+                  <div>
+                    <span>Absent this week</span>
+                    <small>{displayDate(weekStart)} - {displayDate(weekEnd)}</small>
+                    <strong>{awayThisWeek.length} teammate{awayThisWeek.length === 1 ? '' : 's'} away this week</strong>
+                  </div>
                 </div>
                 <b>{awayThisWeek.length}</b>
+                <div className="vacation-week-away-list">
+                  {awayThisWeek.length > 0 ? awayThisWeek.map((request) => {
+                    const isToday = rangesOverlap(request.startDate, request.endDate, TODAY, TODAY);
+                    return (
+                      <article className="vacation-week-away-item" key={request.id}>
+                        <div>
+                          <strong>{request.employee}</strong>
+                          <span>{request.employeeDepartment}</span>
+                          <small>{displayDate(request.startDate)} - {displayDate(request.endDate)}</small>
+                        </div>
+                        <div className="vacation-week-away-tags">
+                          {isToday && <span className="today">Today</span>}
+                          <span>{absenceTypeLabel(request.type)}</span>
+                        </div>
+                      </article>
+                    );
+                  }) : (
+                    <p>No approved absences this week.</p>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -5610,7 +5644,7 @@ function VacationTimeline({ people, requests, rules, year, holidayDates, todaySc
                               key={request.id}
                               aria-label={`${person.name}: ${absenceTypeLabel(request.type)} ${displayDate(request.startDate)} - ${displayDate(request.endDate)}`}
                             >
-                              <span aria-hidden="true">{request.type === 'sick' ? '+' : '🏝️'}</span>
+                              <span aria-hidden="true">{request.type === 'sick' ? '🤒' : '🏝️'}</span>
                               <div className="vacation-timeline-popover">
                                 <strong>{person.name}</strong>
                                 <b>{absenceTypeLabel(request.type)}</b>
