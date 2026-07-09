@@ -2751,6 +2751,7 @@
   .vacation-calendar-panel,
   .vacation-form-panel,
   .vacation-status-panel,
+  .vacation-past-panel,
   .vacation-analytics-table-panel,
   .vacation-approvals-panel,
   .vacation-rules-panel {
@@ -3101,7 +3102,8 @@
     @apply grid grid-cols-3 gap-4;
   }
 
-  .vacation-status-panel {
+  .vacation-status-panel,
+  .vacation-past-panel {
     @apply p-4;
   }
 

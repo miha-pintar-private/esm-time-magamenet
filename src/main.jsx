@@ -1169,7 +1169,7 @@ const documentationSections = [
           'Open Employees, then open the Vacation subtab.',
           'Use Overview to review the current user balance, team absences this week with who is away and until when, the yearly timeline, and request status lists. Click Today next to the year selector to return the timeline to the current date.',
           'In New absence request, select the user in scope, choose Vacation or Sick leave, enter From and Until dates, add optional notes, and click Submit request.',
-          'To change an existing request, click the pencil icon on the request card, update the same request form, and click Save changes.',
+          'To change an existing request, click the pencil icon on the request card, then update the highlighted Editing request form and click Save changes.',
           'To delete an existing request, click the trash icon on the request card and confirm the deletion dialog.',
           'Open Approvals & analytics to review the employee balance table for the selected approval scope, manage Pending, Approved, and Rejected request blocks below the table, then review Calendar rules at the bottom.',
           'Management can add a calendar rule by choosing Holiday or Risk period, entering the rule name and date range, and clicking Add rule.',
@@ -5344,6 +5344,8 @@ function VacationView({
     pendingCount: total.pendingCount + row.balance.pendingCount,
     rejectedCount: total.rejectedCount + row.balance.rejectedCount,
   }), { remainingVacationDaysThisYear: 0, plannedVacationDaysThisYear: 0, takenVacationDaysThisYear: 0, sickDays: 0, pendingCount: 0, rejectedCount: 0 });
+  const isEditingRequest = Boolean(requestForm.id);
+  const editNeedsApproval = isEditingRequest && isCurrentOrPastAbsenceRequest(requestForm) && requestForm.employee === activeRole.person;
 
   useEffect(() => {
     if (employeeOptions.length === 0) return;
@@ -5526,7 +5528,16 @@ function VacationView({
           </div>
 
           <aside className="vacation-side">
-            <section className="primary-panel vacation-form-panel">
+            <section className={`primary-panel vacation-form-panel ${isEditingRequest ? 'editing' : ''}`}>
+              {isEditingRequest && (
+                <div className="vacation-edit-banner" role="status">
+                  <span><Pencil size={16} /></span>
+                  <div>
+                    <strong>Editing request</strong>
+                    <small>{requestForm.employee} · {displayDate(requestForm.startDate)} - {displayDate(requestForm.endDate)}</small>
+                  </div>
+                </div>
+              )}
               <div className="panel-heading compact">
                 <div>
                   <span className="eyebrow">Request</span>
@@ -5569,7 +5580,7 @@ function VacationView({
                 <span>Notes</span>
                 <textarea value={requestForm.notes} onChange={(event) => updateRequest('notes', event.target.value)} placeholder="Optional context for the approver." />
               </label>
-              {requestForm.id && isCurrentOrPastAbsenceRequest(requestForm) && requestForm.employee === activeRole.person && (
+              {editNeedsApproval && (
                 <div className="modal-warning vacation-request-warning">
                   <AlertCircle size={16} />
                   <span>Changes to today or past absence requests are sent to the approval queue before they are applied.</span>
@@ -5634,8 +5645,8 @@ function VacationView({
             countLabel={`${scopedPastAbsences.length} total`}
             emptyText="No approved past absences match this scope."
             canApproveForRequest={(request) => canApproveAbsenceRequest(request, role, activePerson, people, activeLeadDepartments)}
-            canEditRequest={(request) => !request.meta?.changeAction}
-            canDeleteRequest={() => true}
+            canEditRequest={(request) => !request.meta?.changeAction && (request.employee === activeRole.person || canApproveAbsenceRequest(request, role, activePerson, people, activeLeadDepartments))}
+            canDeleteRequest={(request) => role === 'management' || request.employee === activeRole.person || canApproveAbsenceRequest(request, role, activePerson, people, activeLeadDepartments)}
             onEdit={editRequest}
             onApprove={onApproveRequest}
             onReject={onRejectRequest}
