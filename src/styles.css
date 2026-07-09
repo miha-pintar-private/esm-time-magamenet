@@ -3123,24 +3123,24 @@
   }
 
   .vacation-request-columns {
-    @apply grid grid-cols-3 gap-4;
+    @apply grid grid-cols-3 items-start gap-3;
   }
 
   .vacation-status-panel,
   .vacation-past-panel {
-    @apply p-4;
+    @apply p-3.5;
   }
 
   .vacation-status-head {
-    @apply mb-3 flex items-center justify-between gap-3;
+    @apply mb-2.5 flex items-start justify-between gap-2.5;
   }
 
   .vacation-status-head h3 {
-    @apply m-0 flex items-center gap-2 text-[18px] font-black text-[#202937];
+    @apply m-0 flex min-w-0 items-center gap-1.5 whitespace-nowrap text-[15px] font-black leading-tight text-[#202937];
   }
 
   .vacation-status-head h3 i {
-    @apply h-2.5 w-2.5 rounded-full bg-[#94a3b8];
+    @apply h-2 w-2 shrink-0 rounded-full bg-[#94a3b8];
   }
 
   .vacation-status-panel.approved .vacation-status-head h3 i { @apply bg-[#12b76a]; }
@@ -3148,15 +3148,15 @@
   .vacation-status-panel.rejected .vacation-status-head h3 i { @apply bg-[#ff3347]; }
 
   .vacation-status-head span {
-    @apply rounded-full border border-[#d8e4ef] px-3 py-1 text-[13px] font-black text-[#657286];
+    @apply shrink-0 rounded-full border border-[#d8e4ef] px-2.5 py-1 text-[11px] font-black leading-none text-[#657286];
   }
 
   .vacation-request-list {
-    @apply grid gap-3;
+    @apply grid gap-2;
   }
 
   .vacation-request-item {
-    @apply grid gap-3 rounded-[10px] border border-[#dfe7ef] bg-white p-3.5;
+    @apply grid gap-2 rounded-[9px] border border-[#dfe7ef] bg-white p-2.5;
   }
 
   .vacation-request-item.approved {
@@ -3172,23 +3172,23 @@
   }
 
   .vacation-request-summary {
-    @apply flex flex-wrap items-center gap-2;
+    @apply flex flex-wrap items-center gap-1.5;
   }
 
   .vacation-request-item strong {
-    @apply w-full text-[15px] font-black text-[#202937];
+    @apply w-full text-[13px] font-black leading-tight text-[#202937];
   }
 
   .vacation-request-item small,
   .vacation-request-item em {
-    @apply w-full text-[13px] font-bold not-italic text-[#657286];
+    @apply w-full text-[12px] font-bold leading-tight not-italic text-[#657286];
   }
 
   .absence-chip,
   .absence-days-chip,
   .absence-change-chip,
   .status-pill {
-    @apply inline-flex min-h-7 items-center rounded-full px-3 text-[12px] font-black;
+    @apply inline-flex min-h-6 items-center rounded-full px-2.5 text-[11px] font-black leading-none;
   }
 
   .absence-chip.vacation {
@@ -3208,7 +3208,17 @@
   }
 
   .vacation-request-actions {
-    @apply flex flex-wrap items-center gap-2;
+    @apply flex flex-wrap items-center gap-1.5;
+  }
+
+  .vacation-request-actions .icon-btn,
+  .vacation-request-actions .table-action {
+    @apply h-7 w-7;
+  }
+
+  .vacation-status-panel .empty-state,
+  .vacation-past-panel .empty-state {
+    @apply rounded-[8px] p-3 text-[12px] leading-tight;
   }
 
   .vacation-past-panel .vacation-request-item {
@@ -3747,17 +3757,34 @@
     }
 
     .vacation-timeline {
-      grid-template-columns: 190px minmax(0, 1fr);
+      grid-template-columns: 190px max-content;
     }
 
     .vacation-month-days,
     .vacation-month-row {
-      grid-template-columns: repeat(var(--days, 31), 24px);
+      grid-template-columns: repeat(var(--days, 31), 28px);
     }
 
     .vacation-request-columns,
     .vacation-analytics-requests {
-      @apply gap-3;
+      @apply gap-2.5;
+    }
+
+    .vacation-status-panel,
+    .vacation-past-panel {
+      @apply p-3;
+    }
+
+    .vacation-status-head h3 {
+      @apply text-[14px];
+    }
+
+    .vacation-status-head span {
+      @apply px-2 text-[10px];
+    }
+
+    .vacation-request-item {
+      @apply p-2;
     }
   }
 }
@@ -3797,9 +3824,12 @@
       @apply static max-h-none overflow-visible pr-0;
     }
 
-    .vacation-metrics,
-    .vacation-request-columns {
+    .vacation-metrics {
       @apply grid-cols-2;
+    }
+
+    .vacation-request-columns {
+      @apply grid-cols-3;
     }
 
     .nav-expand-icon,
