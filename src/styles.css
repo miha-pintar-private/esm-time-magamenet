@@ -3133,6 +3133,10 @@
     @apply grid gap-3 rounded-[10px] border border-[#dfe7ef] bg-white p-3.5;
   }
 
+  .vacation-request-item.approved {
+    @apply border-[#9ee6c4] bg-[#edfff5];
+  }
+
   .vacation-request-item.pending {
     @apply border-[#ffdc69] bg-[#fffbea];
   }

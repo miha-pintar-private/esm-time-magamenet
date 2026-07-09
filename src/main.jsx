@@ -1186,6 +1186,7 @@ const documentationSections = [
           'The Vacation year selector filters the visible timeline, balance table, and year-based absence calculations. The Today button switches the timeline to the current year when needed and scrolls the calendar to the current date marker.',
           'Timeline rows are grouped by employee department.',
           'The Approved, Pending, and Rejected request panels in Overview show only the active user\'s own requests.',
+          'Request cards are color-coded by status in the Overview panels and approval queues: Approved requests are green, Pending requests are yellow, and Rejected requests are red.',
           'Team or company approval queues are shown only in Approvals & analytics, where Pending, Approved, and Rejected blocks allow authorized users to correct request status when needed.',
           'Operations users can submit absence requests only for themselves and do not see the Approvals & analytics tab.',
           'Team leads can submit requests for themselves and for employees in their lead department scope, but not for other team leads or management users.',
@@ -1773,6 +1774,21 @@ function absenceRequestsForYear(requests, year) {
   const from = `${year}-01-01`;
   const to = `${year}-12-31`;
   return requests.filter((request) => rangesOverlap(request.startDate, request.endDate, from, to));
+}
+
+function pastApprovedAbsenceRequests(requests, people, year, today = TODAY) {
+  const visibleNames = new Set(people.map((person) => person.name));
+  return absenceRequestsForYear(requests, year)
+    .filter((request) => (
+      request.status === 'approved'
+      && visibleNames.has(request.employee)
+      && request.endDate < today
+    ))
+    .sort((first, second) => {
+      if (first.startDate !== second.startDate) return second.startDate.localeCompare(first.startDate);
+      if (first.endDate !== second.endDate) return second.endDate.localeCompare(first.endDate);
+      return first.employee.localeCompare(second.employee);
+    });
 }
 
 function approvedWorkingDaysInRange(requests, employeeName, type, from, to, holidayDates) {
@@ -3420,27 +3436,27 @@ function App() {
     const employee = employees.find((person) => person.name === form.employee);
     if (!employee) {
       showToast('Employee is required');
-      return;
+      return false;
     }
     const canSubmitForEmployee = role === 'management'
       || form.employee === activeRole.person
       || (role === 'lead' && employee.level !== 'Team Lead' && employee.level !== 'Management' && departmentInScope(employee.department, activeLeadDepartments));
     if (!canSubmitForEmployee) {
       showToast('You cannot submit absences for this employee');
-      return;
+      return false;
     }
     if (!form.startDate || !form.endDate) {
       showToast('Start and end dates are required');
-      return;
+      return false;
     }
     if (form.endDate < form.startDate) {
       showToast('End date cannot be before start date');
-      return;
+      return false;
     }
     const blockedRule = absenceRules.find((rule) => rule.type === 'blocked' && rangesOverlap(form.startDate, form.endDate, rule.startDate, rule.endDate));
     if (blockedRule) {
       showToast(`This period is blocked by ${blockedRule.name || 'a calendar rule'}`);
-      return;
+      return false;
     }
     const warningRules = absenceRules.filter((rule) => ['holiday', 'warning'].includes(rule.type) && rangesOverlap(form.startDate, form.endDate, rule.startDate, rule.endDate));
     const originalRequest = form.id ? absenceRequests.find((request) => request.id === form.id) : null;
@@ -3448,7 +3464,7 @@ function App() {
       originalRequest
       && originalRequest.employee === activeRole.person
       && !canApproveAbsenceRequest(originalRequest, role, activePerson, employees, activeLeadDepartments)
-      && isCurrentOrPastAbsenceRequest(originalRequest)
+      && (isCurrentOrPastAbsenceRequest(originalRequest) || isCurrentOrPastAbsenceRequest(form))
     );
     if (requiresChangeApproval) {
       const changeRequest = {
@@ -3473,7 +3489,7 @@ function App() {
       };
       setAbsenceRequests((items) => [changeRequest, ...items]);
       showToast(warningRules.length > 0 ? 'Edit request sent with calendar warnings' : 'Edit request sent for approval');
-      return;
+      return true;
     }
     const next = {
       id: form.id || Date.now(),
@@ -3495,6 +3511,7 @@ function App() {
       form.id ? items.map((item) => (item.id === form.id ? { ...item, ...next } : item)) : [next, ...items]
     ));
     showToast(warningRules.length > 0 ? 'Absence request saved with calendar warnings' : (form.id ? 'Absence request updated' : 'Absence request submitted'));
+    return true;
   }
 
   function approveAbsenceRequest(request) {
@@ -5274,9 +5291,15 @@ function VacationView({
     calendarPeople.some((person) => person.name === request.employee)
   )), [requests, year, calendarPeople]);
   const myRequests = visibleRequests.filter((request) => request.employee === activeRole.person);
+  const myPastAbsences = useMemo(() => (
+    pastApprovedAbsenceRequests(requests, calendarPeople.filter((person) => person.name === activeRole.person), year)
+  ), [requests, calendarPeople, activeRole.person, year]);
   const managedApprovalRequests = visibleRequests.filter((request) => (
     canApproveAbsenceRequest(request, role, activePerson, people, activeLeadDepartments)
   ));
+  const scopedPastAbsences = useMemo(() => (
+    pastApprovedAbsenceRequests(requests, approvalPeople, year)
+  ), [requests, approvalPeople, year]);
   const analyticsRequestGroups = [
     { status: 'pending', title: 'Pending approvals', countLabel: 'waiting', empty: 'No requests are waiting for approval.' },
     { status: 'approved', title: 'Approved requests', countLabel: 'approved', empty: 'No approved requests.' },
@@ -5361,11 +5384,13 @@ function VacationView({
       submittedAt: request.submittedAt,
       approver: request.approver,
     });
+    setView('overview');
   }
 
   function submitRequest() {
-    onSaveRequest(requestForm);
-    resetRequestForm();
+    if (onSaveRequest(requestForm)) {
+      resetRequestForm();
+    }
   }
 
   function submitRule() {
@@ -5483,6 +5508,21 @@ function VacationView({
                 );
               })}
             </div>
+
+            <PastAbsencesPanel
+              requests={myPastAbsences}
+              holidayDates={holidayDates}
+              year={year}
+              countLabel={`${myPastAbsences.length} total`}
+              emptyText="No approved past absences."
+              canApproveForRequest={(request) => view === 'analytics' && canApproveAbsenceRequest(request, role, activePerson, people, activeLeadDepartments)}
+              canEditRequest={(request) => !request.meta?.changeAction && (request.employee === activeRole.person || canApproveAbsenceRequest(request, role, activePerson, people, activeLeadDepartments))}
+              canDeleteRequest={(request) => role === 'management' || request.employee === activeRole.person || canApproveAbsenceRequest(request, role, activePerson, people, activeLeadDepartments)}
+              onEdit={editRequest}
+              onApprove={onApproveRequest}
+              onReject={onRejectRequest}
+              onDelete={onDeleteRequest}
+            />
           </div>
 
           <aside className="vacation-side">
@@ -5495,7 +5535,7 @@ function VacationView({
               </div>
               <label className="field">
                 <span>User</span>
-                <SimpleDropdown value={requestForm.employee} options={employeeOptions} onChange={(value) => updateRequest('employee', value)} disabled={role === 'operations'} />
+                <SimpleDropdown value={requestForm.employee} options={employeeOptions} onChange={(value) => updateRequest('employee', value)} disabled={role === 'operations' || Boolean(requestForm.id)} />
               </label>
               <div className="segmented-control">
                 <button className={requestForm.type === 'vacation' ? 'active' : ''} onClick={() => updateRequest('type', 'vacation')}>Vacation</button>
@@ -5587,6 +5627,21 @@ function VacationView({
             </div>
           </section>
 
+          <PastAbsencesPanel
+            requests={scopedPastAbsences}
+            holidayDates={holidayDates}
+            year={year}
+            countLabel={`${scopedPastAbsences.length} total`}
+            emptyText="No approved past absences match this scope."
+            canApproveForRequest={(request) => canApproveAbsenceRequest(request, role, activePerson, people, activeLeadDepartments)}
+            canEditRequest={(request) => !request.meta?.changeAction}
+            canDeleteRequest={() => true}
+            onEdit={editRequest}
+            onApprove={onApproveRequest}
+            onReject={onRejectRequest}
+            onDelete={onDeleteRequest}
+          />
+
           <aside className="vacation-analytics-side">
             <div className="vacation-analytics-requests">
               {analyticsRequestGroups.map((group) => (
@@ -5664,6 +5719,47 @@ function VacationView({
         </div>
       )}
     </div>
+  );
+}
+
+function PastAbsencesPanel({
+  requests,
+  holidayDates,
+  year,
+  countLabel,
+  emptyText,
+  canApproveForRequest,
+  canEditRequest,
+  canDeleteRequest,
+  onEdit,
+  onApprove,
+  onReject,
+  onDelete,
+}) {
+  return (
+    <section className="primary-panel vacation-past-panel">
+      <div className="vacation-status-head">
+        <h3>Past absences</h3>
+        <span>{year} · {countLabel}</span>
+      </div>
+      <div className="vacation-request-list">
+        {requests.map((request) => (
+          <VacationRequestItem
+            key={request.id}
+            request={request}
+            holidayDates={holidayDates}
+            canApprove={canApproveForRequest(request)}
+            canEdit={canEditRequest(request)}
+            canDelete={canDeleteRequest(request)}
+            onEdit={onEdit}
+            onApprove={onApprove}
+            onReject={onReject}
+            onDelete={onDelete}
+          />
+        ))}
+        {requests.length === 0 && <span className="empty-state">{emptyText}</span>}
+      </div>
+    </section>
   );
 }
 
