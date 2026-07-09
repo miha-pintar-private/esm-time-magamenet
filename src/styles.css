@@ -822,81 +822,21 @@
     @apply overflow-hidden;
   }
 
+  .chartjs-shell {
+    height: var(--chart-height, 320px);
+    @apply w-full overflow-x-auto rounded-[12px] border border-line bg-white px-3 py-4;
+  }
+
+  .chartjs-shell canvas {
+    @apply min-w-[720px];
+  }
+
   .stacked-workload-chart {
-    @apply grid gap-4;
-  }
-
-  .stacked-workload-row {
-    @apply grid grid-cols-[220px_minmax(0,1fr)] items-center gap-4;
-  }
-
-  .stacked-workload-label {
-    @apply grid min-w-0 gap-1;
-  }
-
-  .stacked-workload-label strong {
-    @apply truncate text-sm font-extrabold text-[#334052];
-  }
-
-  .stacked-workload-label span {
-    @apply truncate text-xs font-bold text-[#8b96a4];
-  }
-
-  .stacked-workload-track {
-    @apply h-[28px] rounded-[8px] bg-[#f0f3f6];
-  }
-
-  .stacked-workload-segments {
-    width: var(--row-width);
-    @apply flex h-full min-w-[18px] overflow-hidden rounded-[8px] [animation:grow_560ms_ease_both];
-  }
-
-  .stacked-workload-segments i {
-    @apply block h-full;
-  }
-
-  .analytics-legend {
-    @apply flex flex-wrap justify-center gap-x-4 gap-y-2 pt-3;
-  }
-
-  .analytics-legend span {
-    @apply inline-flex items-center gap-2 text-xs font-extrabold text-[#526070];
-  }
-
-  .analytics-legend i {
-    @apply h-3 w-3 rounded-[3px];
+    @apply min-h-[260px];
   }
 
   .workload-flow-chart {
-    @apply min-h-[260px] overflow-x-auto px-2 pb-2 pt-6;
-  }
-
-  .flow-grid {
-    @apply grid min-w-[860px] grid-flow-col auto-cols-fr items-end gap-7 border-b border-dashed border-[#d9e1e9] pb-8;
-  }
-
-  .flow-step {
-    @apply grid min-h-[210px] grid-rows-[1fr_auto_auto_auto] justify-items-center gap-1.5 text-center;
-  }
-
-  .flow-step span {
-    @apply mt-auto block w-[58px] rounded-t-[4px] bg-[#2f65dc] shadow-[0_10px_20px_rgba(39,75,129,0.08)];
-  }
-
-  .flow-step.capacity span {
-    @apply bg-[#718096];
-  }
-
-  .flow-step strong {
-    @apply text-sm font-black text-[#637083];
-  }
-
-  .flow-step em {
-    @apply text-sm font-extrabold not-italic text-[#6f7b8b];
-  }
-
-  .flow-step small {
-    @apply text-xs font-bold text-[#9aa5b4];
+    @apply min-h-[300px];
   }
 
   .analytics-data-table {
@@ -942,11 +882,7 @@
   }
 
   .mini-trend {
-    @apply flex h-7 items-end gap-1;
-  }
-
-  .mini-trend i {
-    @apply block w-2 rounded-t-sm bg-[#90a4bd];
+    @apply block h-8 w-[92px];
   }
 
   .time-metrics {
@@ -1942,6 +1878,14 @@
     @apply border-b-0;
   }
 
+  .overview-grid > div:nth-last-child(2):nth-child(even) {
+    @apply border-b border-line;
+  }
+
+  .overview-grid > div:last-child:nth-child(odd) {
+    @apply col-span-2 border-r-0;
+  }
+
   .overview-grid > div:nth-child(even) {
     @apply pl-6;
   }
@@ -2847,6 +2791,10 @@
     content: none;
   }
 
+  .vacation-month-row.vacation-department-row i::before {
+    content: none;
+  }
+
   .person-avatar.small {
     @apply grid h-6 w-6 shrink-0 place-items-center rounded-full text-[10px] font-black text-white;
   }
@@ -2934,13 +2882,23 @@
   }
 
   .vacation-month-row i {
-    @apply my-2 border-l border-[#e7edf3] bg-transparent;
+    @apply relative my-2 border-l border-[#e7edf3] bg-transparent;
   }
 
   .vacation-month-row i.weekend,
   .vacation-month-row i.holiday,
   .vacation-month-row i.warning {
     @apply my-0 border-l-0;
+  }
+
+  .vacation-month-row i.weekend::before,
+  .vacation-month-row i.holiday::before,
+  .vacation-month-row i.warning::before {
+    @apply absolute bottom-2 left-0 top-2 w-px bg-[#e7edf3] content-[''];
+  }
+
+  .vacation-month-row.vacation-department-row i::before {
+    content: none;
   }
 
   .vacation-month-row i.warning {
@@ -3759,10 +3717,6 @@
 
     .compensation-editor-row .icon-btn {
       @apply col-start-1 row-auto justify-self-start;
-    }
-
-    .stacked-workload-row {
-      @apply grid-cols-1 gap-2;
     }
 
     .analytics-date-filters {

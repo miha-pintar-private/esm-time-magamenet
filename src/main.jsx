@@ -1,6 +1,15 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
+  BarElement,
+  CategoryScale,
+  Chart as ChartJS,
+  Legend,
+  LinearScale,
+  Tooltip,
+} from 'chart.js';
+import { Bar } from 'react-chartjs-2';
+import {
   Activity,
   AlertCircle,
   BarChart3,
@@ -40,6 +49,8 @@ import {
   X,
 } from 'lucide-react';
 import './styles.css';
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
 const roles = {
   management: {
@@ -968,7 +979,7 @@ const documentationSections = [
       },
       {
         name: 'Department and user work-type analytics',
-        howItWorks: 'Analytics filters the active role scope by an independent date range, then shows how much time each department and user spent on every recorded work type. The page includes stacked workload-hour charts, a scope-level workload flow chart, and detail tables for departments and users.',
+        howItWorks: 'Analytics filters the active role scope by an independent date range, then shows how much time each department and user spent on every recorded work type plus approved vacation and sick leave working days. The page includes stacked workload-hour charts, a scope-level workload flow chart, and detail tables for departments and users.',
         userSteps: [
           'Open Time Management, then open the Analytics subtab.',
           'Set From and To dates in the Analytics header, or click Last 30 days.',
@@ -979,27 +990,32 @@ const documentationSections = [
         specifics: [
           'Analytics date filters do not change the Time Management entry table filters.',
           'Role scope controls which users, departments, entries, and work types can appear.',
-          'Only work types with recorded hours in the selected date range are shown in the workload charts and tables.',
-          'The stacked workload bars use configured work type colors from Settings.',
-          'The detail table Change column groups the selected entries by calendar month and renders a compact trend bar for the row.',
+          'Only work types, vacation days, or sick leave days with hours in the selected date range are shown in the workload charts and tables.',
+          'Approved vacation and sick leave are included as derived 8-hour analytics entries for each working day in the selected range.',
+          'Vacation and sick leave working days exclude Saturdays, Sundays, and configured holiday rules from the Vacation module.',
+          'All analytics charts are rendered with Chart.js for consistent axes, legends, tooltips, and responsive sizing.',
+          'The workload charts use configured work type colors from Settings.',
+          'The detail table Change column groups the selected entries by calendar month and renders a compact Chart.js trend bar for the row.',
           'The variance column compares the row share with the average share for the same work type across all visible departments or all visible users.',
           'When no entries match the selected period, charts and tables show an empty state instead of zero-filled rows.',
         ],
         metrics: [
-          'Filtered analytics entries = entries in active role scope where From <= entry.date <= To',
+          'Filtered analytics entries = visible time entries where From <= entry.date <= To + approved vacation/sick working days from the Vacation module in the same date range',
+          'Vacation or sick leave hours = count(approved working days, excluding weekends and holidays) × 8',
           'Department work-type hours = Σ entry.hours for entries whose employee belongs to the department and entry.type matches the work type',
           'User work-type hours = Σ entry.hours where entry.employee matches the user and entry.type matches the work type',
           'Work-type share = work-type hours / total hours for the same department or user × 100',
           'Average share for variance = average(work-type share for the same work type across visible departments or users)',
           'Variance vs average = row work-type share - average share for that work type',
-          'Workload bar segment width = work-type hours / total row hours × 100%',
-          'Workload row width = total row hours / max visible row hours × 100%',
+          'Stacked workload chart value = work-type hours for each visible department or user',
+          'Stacked workload axis maximum = the highest visible department or user total hours',
           'Workload flow percent = work-type hours / total selected analytics hours × 100%',
+          'Trend bar value = row hours grouped by calendar month in the selected analytics period',
         ],
       },
       {
         name: 'Analytics cost allocation',
-        howItWorks: 'Analytics allocates employee cost to the selected time entries before summarizing cost by user, department, and work type. Monthly salary cost is spread across recorded paid hours using monthly working hours, while hourly and project rows follow their configured cost rules.',
+        howItWorks: 'Analytics allocates employee cost to the selected time entries and approved vacation or sick leave before summarizing cost by user, department, and work type. Monthly salary cost is spread across recorded paid hours using monthly working hours, while hourly and project rows follow their configured cost rules.',
         userSteps: [
           'Open Time Management, then open the Analytics subtab.',
           'Set the analytics date range.',
@@ -1007,18 +1023,24 @@ const documentationSections = [
           'Review Cost and Cost / h in the department and user detail tables.',
         ],
         specifics: [
-          'Only paid, non-break entries are included in employee cost calculations.',
+          'Only paid, non-break time entries and approved vacation or sick leave working days are included in employee cost calculations.',
           'Monthly salary rows distribute gross gross cost plus meal and transport allowances over monthly working days × 8 hours.',
+          'Vacation and sick leave use 8 hours per approved working day and use monthly gross gross cost only, without meal or transport allowances. The monthly divisor is the absence month working-day count after weekends and Vacation-module holidays are excluded.',
+          'If salary rows are mapped to specific work types, vacation and sick leave use the first unmapped non-project row, or the first non-project row when no unmapped row exists.',
           'Hourly rows multiply matched entry hours by hourly rate and add configured meal and transport allowances once for each matched hourly row.',
+          'Vacation and sick leave on hourly rows multiply 8 hours per working day by the hourly rate and do not add meal or transport allowances.',
           'Project rows distribute project value evenly across calendar days between Project from and Project to, then include only unique visible paid-entry dates inside that project range.',
+          'Vacation and sick leave do not create project-cost days.',
           'If an employee has mapped compensation rows for specific work types, matching entries use those rows first; unmapped time rows are used as fallback rows.',
         ],
         metrics: [
-          'Allocated analytics cost = Σ employeeRuleCost(user, selected analytics entries, configured work types)',
+          'Allocated analytics cost = Σ employeeRuleCost(user, selected time entries + approved vacation/sick working-day entries, configured work types)',
           'Row cost = Σ employeeRuleCost(user, row work-type entries, configured work types) for entries included in that department or user row',
           'Cost per hour = row cost / max(row hours, 1)',
           'Monthly entry cost = entry.hours × ((grossGrossCost + mealAllowance + transportAllowance) / max(monthlyWorkingDays × 8, 1))',
+          'Monthly vacation/sick cost = absenceWorkingDays × 8 × (grossGrossCost / max(monthWorkingDaysExcludingWeekendsAndHolidays × 8, 1))',
           'Hourly entry cost = entry.hours × hourlyRate',
+          'Hourly vacation/sick cost = absenceWorkingDays × 8 × hourlyRate',
           'Project visible cost = project daily cost × count(unique selected paid-entry dates inside the project period)',
         ],
       },
@@ -1044,7 +1066,7 @@ const documentationSections = [
       },
       {
         name: 'Employee database',
-        howItWorks: 'The Employees tab shows a compact employee table in the active role scope. The table displays the employee initials, name, department, role level, and employment type. Open setup items and contract end-date alerts are shown as an alert icon next to the employee name instead of as full-width messages. Hover or click the alert icon to review the notices in a small popover. Clicking a table row opens a tabbed employee record. Management and team leads see Overview, Vacation, Documents, Comments, and Archive / delete user sections; Operations users see Overview, Vacation, and Documents. The employee edit form is organized into User info, Department and employment, Contract and compliance, and Compensation rows. The employee profile stores personal identity details, street address, post number, city, work email, phone number, private email, annual vacation allowance, department and role level, segmentation tags, contract from/to dates, compliance dates, internal comments, compensation rows for each work arrangement, and active or archived status. The employee employment type is derived from the first compensation row. Documents are separate local document records linked to the employee by name.',
+        howItWorks: 'The Employees tab shows a compact employee table in the active role scope. The table displays the employee initials, name, department, role level, and employment type. Open setup items and contract end-date alerts are shown as an alert icon next to the employee name instead of as full-width messages. Hover or click the alert icon to review the notices in a small popover. Clicking a table row opens a tabbed employee record. Management and team leads see Overview, Documents, Comments, and Archive / delete user sections; Operations users see Overview and Documents. The employee edit form is organized into User info, Department and employment, Contract and compliance, and Compensation rows. The employee profile stores personal identity details, street address, post number, city, work email, phone number, private email, annual vacation allowance, department and role level, segmentation tags, contract from/to dates, compliance dates, internal comments, compensation rows for each work arrangement, and active or archived status. The employee employment type is derived from the first compensation row. Documents are separate local document records linked to the employee by name.',
         userSteps: [
           'Open Employees, then open the Employees subtab.',
           'Use Status, Department, Level, or Tags in the inline employee filters row to narrow the employee table.',
@@ -1053,7 +1075,7 @@ const documentationSections = [
           'Hover the alert icon beside an employee name to see missing setup items and contract end-date notices. The popover stays visible while the pointer is on the icon or popover, then closes automatically.',
           'Management and team leads can click Add employee, complete the employee form, and save a local profile.',
           'Click an employee row to open the employee record sidebar.',
-          'Use the tabs at the top of the sidebar to switch between employee record sections. Management and team leads can open Overview, Vacation, Documents, Comments, and Archive / delete user; Operations users can open Overview, Vacation, and Documents.',
+          'Use the tabs at the top of the sidebar to switch between employee record sections. Management and team leads can open Overview, Documents, Comments, and Archive / delete user; Operations users can open Overview and Documents.',
           'Management and team leads can edit the profile from the sidebar and save the employee.',
           'In the employee form User info section, enter the full name, then Address, Post number, and City on one row, Personal ID / EMŠO and Tax number on one row, and Work email, Phone number, Private email, and Annual vacation allowance.',
           'Then enter department, role level, tags, contract from and contract to dates, medical exam completion date, safety training completion and expiry dates, and compensation rows.',
@@ -1082,9 +1104,9 @@ const documentationSections = [
           'Open rule to-dos and contract end-date notices in the employee table appear only as an alert icon next to the employee name. The popover lists the exact missing setup items or contract date notice and stays visible only while the pointer is on the icon or popover.',
           'Contract end-date notices appear 14 days before the Contract to date in both the employee table alert popover and the employee record Work setup list. On the Contract to date and after it, the notice becomes a critical red notice stating that the contract ended.',
           'The role level is shown as a compact pill in the employee table. The employee record sidebar uses a separate Active or Inactive status pill.',
-          'The employee record sidebar uses a compact detail layout with smaller text, icons, avatar, rows, tabs, and spacing. It shows the employee summary, active or inactive status, role, department, employment type, Contract from date, annual vacation allowance, rule pay type, and segmentation tags.',
-          'The Vacation tab on an employee record shows the annual vacation allowance, whether the value is stored or using the 20-day fallback, the approval scope, and the 30 June carryover cut-off.',
-          'The Overview tab identity table shows Address, Post number, City, EMŠO / Personal ID, Tax number, and Private email. Name, role, department, employment type, work email, phone number, Contract from date, pay type, and segmentation tags stay in the employee record sidebar so the Overview tab does not duplicate sidebar data.',
+          'The employee record sidebar uses a compact detail layout with smaller text, icons, avatar, rows, tabs, and spacing. It shows the employee summary, active or inactive status, role, department, employment type, Contract from date, rule pay type, and segmentation tags.',
+          'The employee record does not have a separate Vacation tab. The Overview tab identity table shows the employee annual vacation allowance in days.',
+          'The Overview tab identity table shows Address, Post number, City, EMŠO / Personal ID, Tax number, Private email, and Annual vacation allowance. Name, role, department, employment type, work email, phone number, Contract from date, pay type, and segmentation tags stay in the employee record sidebar so the Overview tab does not duplicate sidebar data.',
           'Address, Post number, City, Work email, Phone number, and Private email are optional fields stored directly on the employee record. Existing local employee records can remain blank until edited.',
           'For compatibility with older local records, the app still keeps a combined address value generated from Address, Post number, and City.',
           'The Overview tab Work setup list is a flat divided status list driven by the employee employment rule pay type. Monthly salary employees show the contract period and, when the rule requires them, Medical exam and Safety training details. Hourly rate and Project work employees show the contract period. Displayed employee record dates use day-month-year format.',
@@ -1169,17 +1191,19 @@ const documentationSections = [
           'Rejecting a request requires an English rejection reason through the browser prompt.',
           'Only approved Vacation requests reduce vacation balance. Pending, rejected, and Sick leave requests do not reduce vacation balance.',
           'Approved Sick leave requests are counted separately as Sick days in analytics.',
+          'Previous-year carryover is consumed before the current annual allowance, but only approved Vacation working days between 1 January and 30 June of the selected year can consume it.',
+          'Unused previous-year carryover remains visible through 30 June of the selected year. After 30 June, any unused carryover expires and is no longer included in Total remaining.',
           'Holiday rules are excluded from working-day calculations globally. Risk periods do not change working-day counts.',
           'The annual timeline shows active visible employees, pending and approved absences, weekends, holidays, risk periods, and today.',
-          'Weekend, Holiday, Risk period, and Today markers are drawn through the full timeline height, not only in the date header. Weekend, Holiday, and Risk period shading is continuous and does not show per-day vertical tick lines inside shaded cells.',
+          'Weekend, Holiday, Risk period, and Today markers are drawn through the full timeline height, not only in the date header. Weekend, Holiday, and Risk period shading is continuous and keeps short day dividers without drawing full-height vertical lines inside shaded cells.',
           'When date markers overlap, Holiday has top visual priority, Weekend is second, and Risk period is the lowest layer; combined cells use split coloring so the overlap remains visible.',
-          'The Vacation tab on the employee record shows the allowance source and the approval scope for that employee.',
+          'Employee records do not have a separate Vacation tab; the employee Overview tab shows the annual vacation allowance in days.',
         ],
         metrics: [
           'Working days = count of inclusive dates between From and Until, excluding Saturdays, Sundays, and Holiday rule dates',
           'Vacation allowance = employee.vacationDaysAvailable when it is a valid non-negative number, otherwise 20 days',
           'Planned and used vacation days = approved Vacation working days in the selected year',
-          'Vacation taken = approved Vacation working days from 1 January through today in the selected year',
+          'Vacation taken = approved Vacation working days from 1 January of the selected year through today, capped to 31 December of the selected year; future selected years show 0 taken days',
           'Vacation planned = max(planned and used vacation days - vacation taken, 0)',
           'Previous-year carryover available = max(current employee allowance - approved Vacation working days in the previous year, 0)',
           'Carryover consumed = min(carryover available, approved Vacation working days between 1 January and 30 June of the selected year)',
@@ -1744,16 +1768,19 @@ function vacationBalance(employee, requests, rules, year = new Date().getFullYea
   const yearEnd = `${year}-12-31`;
   const previousYearStart = `${year - 1}-01-01`;
   const previousYearEnd = `${year - 1}-12-31`;
-  const firstHalfEnd = `${year}-06-30`;
+  const carryoverDeadline = `${year}-06-30`;
   const allowance = vacationAllowance(employee);
   const plannedAndUsedVacationDays = approvedWorkingDaysInRange(requests, employee.name, 'vacation', yearStart, yearEnd, holidayDates);
-  const takenVacationDaysThisYear = approvedWorkingDaysInRange(requests, employee.name, 'vacation', yearStart, today < yearStart ? yearStart : today, holidayDates);
+  const takenRangeEnd = today < yearStart ? null : today > yearEnd ? yearEnd : today;
+  const takenVacationDaysThisYear = takenRangeEnd
+    ? approvedWorkingDaysInRange(requests, employee.name, 'vacation', yearStart, takenRangeEnd, holidayDates)
+    : 0;
   const plannedVacationDaysThisYear = Math.max(plannedAndUsedVacationDays - takenVacationDaysThisYear, 0);
   const previousYearUsedVacationDays = approvedWorkingDaysInRange(requests, employee.name, 'vacation', previousYearStart, previousYearEnd, holidayDates);
   const carryoverAvailable = Math.max(allowance - previousYearUsedVacationDays, 0);
-  const firstHalfPlannedVacationDays = approvedWorkingDaysInRange(requests, employee.name, 'vacation', yearStart, firstHalfEnd, holidayDates);
+  const firstHalfPlannedVacationDays = approvedWorkingDaysInRange(requests, employee.name, 'vacation', yearStart, carryoverDeadline, holidayDates);
   const carryoverConsumed = Math.min(carryoverAvailable, firstHalfPlannedVacationDays);
-  const remainingCarryoverDays = today > firstHalfEnd ? 0 : Math.max(carryoverAvailable - firstHalfPlannedVacationDays, 0);
+  const remainingCarryoverDays = today > carryoverDeadline ? 0 : Math.max(carryoverAvailable - firstHalfPlannedVacationDays, 0);
   const currentYearAllowanceRemaining = Math.max(allowance - (plannedAndUsedVacationDays - carryoverConsumed), 0);
   return {
     allowance,
@@ -1849,13 +1876,34 @@ function workingDaysInMonth(dateValue = TODAY) {
   return workingDays;
 }
 
+function isoMonthBounds(dateValue = TODAY) {
+  const [year, month] = String(dateValue || TODAY).split('-').map(Number);
+  if (!year || !month) return { start: TODAY.slice(0, 7) + '-01', end: TODAY };
+  const lastDay = new Date(year, month, 0).getDate();
+  return {
+    start: `${year}-${String(month).padStart(2, '0')}-01`,
+    end: `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`,
+  };
+}
+
 function monthlyWorkingHours(row) {
   const workingDays = Number(row.monthlyWorkingDays) || workingDaysInMonth(TODAY);
   return workingDays * 8;
 }
 
+function entryMonthlyWorkingHours(row, entry) {
+  if (entry?.absenceType && Number(entry.monthlyWorkingDays) > 0) {
+    return Number(entry.monthlyWorkingDays) * 8;
+  }
+  return monthlyWorkingHours(row);
+}
+
 function monthlyCompensationTotal(row) {
   return (Number(row.grossGrossCost) || 0) + (Number(row.mealAllowance) || 0) + (Number(row.transportAllowance) || 0);
+}
+
+function monthlyCompensationBaseCost(row) {
+  return Number(row.grossGrossCost) || 0;
 }
 
 function employeeCompensationRows(employee) {
@@ -1946,30 +1994,70 @@ function scopedEmployeeEntries(employee, entries = [], configuredTypes = []) {
 function employeeRuleCost(employee, ruleItems, entries = [], configuredTypes = []) {
   const rows = employeeCompensationRows(employee);
   const employeeEntries = scopedEmployeeEntries(employee, entries, configuredTypes);
+  const workEntries = employeeEntries.filter((entry) => !entry.absenceType);
   const projectRows = rows.filter((row) => row.payType === PAY_TYPE_PROJECT);
   const timeRows = rows.filter((row) => row.payType !== PAY_TYPE_PROJECT);
   const scopedRows = timeRows.filter((row) => row.workTypes.length > 0);
   const fallbackRows = timeRows.filter((row) => row.workTypes.length === 0);
   const timeCost = employeeEntries.reduce((sum, entry) => {
-    const row = scopedRows.find((item) => rowMatchesEntry(item, entry, false))
-      || fallbackRows.find((item) => rowMatchesEntry(item, entry, true));
+    const row = entry.absenceType
+      ? (fallbackRows[0] || timeRows[0])
+      : scopedRows.find((item) => rowMatchesEntry(item, entry, false))
+        || fallbackRows.find((item) => rowMatchesEntry(item, entry, true));
     if (!row) return sum;
     if (row.payType === PAY_TYPE_HOURLY) {
       return sum + ((Number(row.hourlyRate) || 0) * (Number(entry.hours) || 0));
     }
-    const monthlyTotal = monthlyCompensationTotal(row);
+    const monthlyTotal = entry.absenceType ? monthlyCompensationBaseCost(row) : monthlyCompensationTotal(row);
     if (!monthlyTotal) return sum;
-    return sum + ((monthlyTotal / Math.max(monthlyWorkingHours(row), 1)) * (Number(entry.hours) || 0));
+    return sum + ((monthlyTotal / Math.max(entryMonthlyWorkingHours(row, entry), 1)) * (Number(entry.hours) || 0));
   }, 0);
   const matchedHourlyRows = timeRows.filter((row) => (
     row.payType === PAY_TYPE_HOURLY
-    && employeeEntries.some((entry) => rowMatchesEntry(row, entry, row.workTypes.length === 0))
+    && workEntries.some((entry) => rowMatchesEntry(row, entry, row.workTypes.length === 0))
   ));
   const allowances = matchedHourlyRows.reduce((sum, row) => (
     sum + (Number(row.mealAllowance) || 0) + (Number(row.transportAllowance) || 0)
   ), 0);
-  const projectCost = projectRows.reduce((sum, row) => sum + projectRowCost(row, employeeEntries), 0);
+  const projectCost = projectRows.reduce((sum, row) => sum + projectRowCost(row, workEntries), 0);
   return timeCost + allowances + projectCost;
+}
+
+function absenceAnalyticsEntries(requests = [], rules = [], people = [], from, to) {
+  const holidayDates = holidayDateSet(rules);
+  const peopleByName = new Map(people.map((person) => [person.name, person]));
+  return requests
+    .filter((request) => (
+      request.status === 'approved'
+      && ['vacation', 'sick'].includes(request.type)
+      && peopleByName.has(request.employee)
+      && rangesOverlap(request.startDate, request.endDate, from || request.startDate, to || request.endDate)
+    ))
+    .flatMap((request) => {
+      const start = from && request.startDate < from ? from : request.startDate;
+      const end = to && request.endDate > to ? to : request.endDate;
+      const person = peopleByName.get(request.employee);
+      return datesBetween(start, end)
+        .filter((date) => {
+          const parsed = parseIsoDate(date);
+          const day = parsed?.getDay();
+          return day !== 0 && day !== 6 && !holidayDates.has(date);
+        })
+        .map((date) => {
+          const monthBounds = isoMonthBounds(date);
+          return {
+            id: `absence-${request.id}-${date}`,
+            employee: request.employee,
+            department: person?.department || '',
+            type: absenceTypeLabel(request.type),
+            date,
+            hours: 8,
+            break: false,
+            absenceType: request.type,
+            monthlyWorkingDays: countWorkingDays(monthBounds.start, monthBounds.end, holidayDates),
+          };
+        });
+    });
 }
 
 function percent(value, digits = 1) {
@@ -1981,6 +2069,8 @@ function compactHours(value) {
 }
 
 function workTypeColor(typeName, configuredTypes = []) {
+  if (typeName === 'Vacation') return '#1d8f63';
+  if (typeName === 'Sick leave') return '#df2424';
   const configured = configuredTypes.find((type) => type.name === typeName);
   return configured?.color || '#8b96a4';
 }
@@ -4055,7 +4145,19 @@ function App() {
             onDeleteEntry={deleteEntry}
           />
         )}
-        {tab === 'analytics' && <AnalyticsView role={role} activePlatform={activePlatform} people={activeVisiblePeople} entries={visibleEntries} configuredWorkTypes={configuredWorkTypes} employmentRules={employmentRuleItems} activeRole={activeRole} />}
+        {tab === 'analytics' && (
+          <AnalyticsView
+            role={role}
+            activePlatform={activePlatform}
+            people={activeVisiblePeople}
+            entries={visibleEntries}
+            absenceRequests={absenceRequests}
+            absenceRules={absenceRules}
+            configuredWorkTypes={configuredWorkTypes}
+            employmentRules={employmentRuleItems}
+            activeRole={activeRole}
+          />
+        )}
         {tab === 'settings' && role !== 'operations' && (
           <SettingsView
             role={role}
@@ -5857,7 +5959,6 @@ function EmployeeRecordSidebar({
   ];
   const recordTabs = [
     { id: 'overview', label: 'Overview', icon: BriefcaseBusiness },
-    { id: 'vacation', label: 'Vacation', icon: CalendarDays },
     { id: 'documents', label: 'Documents', icon: FileText },
     { id: 'comments', label: 'Comments', icon: ReceiptText },
     { id: 'admin', label: 'Archive / delete user', icon: FolderLock },
@@ -5865,7 +5966,7 @@ function EmployeeRecordSidebar({
   const visibleRecordTabs = useMemo(() => (
     canEditPeople
       ? recordTabs
-      : recordTabs.filter((tab) => ['overview', 'vacation', 'documents'].includes(tab.id))
+      : recordTabs.filter((tab) => ['overview', 'documents'].includes(tab.id))
   ), [canEditPeople]);
 
   useEffect(() => {
@@ -5970,7 +6071,6 @@ function EmployeeRecordSidebar({
               <EmployeeFact icon={Mail} label="Work email" value={compactValue(employee.email)} />
               <EmployeeFact icon={Phone} label="Phone" value={compactValue(employee.phone)} />
               <EmployeeFact icon={CalendarClock} label="Contract from" value={displayDate(employee.contractStartDate || employee.start)} />
-              <EmployeeFact icon={CalendarDays} label="Vacation allowance" value={`${vacationAllowance(employee)} days`} />
               <EmployeeFact icon={CircleDollarSign} label="Pay type" value={employmentRule?.payType || 'No rule'} />
             </div>
             <div className="employee-record-divider" />
@@ -6012,6 +6112,7 @@ function EmployeeRecordSidebar({
                   <EmployeeOverviewItem label="EMŠO / Personal ID" value={compactValue(employee.personalId)} />
                   <EmployeeOverviewItem label="Tax number" value={compactValue(employee.taxNumber)} />
                   <EmployeeOverviewItem label="Private email" value={compactValue(employee.privateEmail)} />
+                  <EmployeeOverviewItem label="Annual vacation allowance" value={`${vacationAllowance(employee)} days`} />
                 </div>
                 <div className="employee-record-section">
                   <div className="overview-title">
@@ -6210,24 +6311,6 @@ function EmployeeRecordSidebar({
                       <span>Contracts, annexes, certificates, and other important employee files will appear here once they are added to the local document records.</span>
                     </div>
                   )}
-                </div>
-              </div>
-            )}
-            {activeRecordTab === 'vacation' && (
-              <div className="employee-overview-card">
-                <div className="overview-title">
-                  <span><CalendarDays size={19} /></span>
-                  <h3>Vacation setup</h3>
-                </div>
-                <div className="overview-grid employee-identity-grid">
-                  <EmployeeOverviewItem label="Annual vacation allowance" value={`${vacationAllowance(employee)} days`} />
-                  <EmployeeOverviewItem label="Fallback rule" value={employee.vacationDaysAvailable === undefined || employee.vacationDaysAvailable === '' ? 'Uses 20 days' : 'Stored on employee card'} />
-                  <EmployeeOverviewItem label="Approval scope" value={employee.level === 'Team Lead' ? 'Management approval only' : 'Team lead or management approval'} />
-                  <EmployeeOverviewItem label="Carryover cut-off" value="Valid until 30-06 each year" />
-                </div>
-                <div className="settings-tag-note employee-admin-note">
-                  <CalendarClock size={16} />
-                  <span>Vacation balances use approved vacation requests, working days, global holidays, and the annual allowance stored on this employee card.</span>
                 </div>
               </div>
             )}
@@ -6925,21 +7008,28 @@ function DocumentTypeRuleModal({ mode, rule, existingRules, onClose, onSave }) {
   );
 }
 
-function AnalyticsView({ role, activePlatform, people, entries, configuredWorkTypes, employmentRules, activeRole }) {
+function AnalyticsView({ role, activePlatform, people, entries, absenceRequests, absenceRules, configuredWorkTypes, employmentRules, activeRole }) {
   const [filters, setFilters] = useState({ from: relativeLocalDate(-30), to: TODAY });
   const periodEntries = useMemo(() => entries.filter((entry) => {
     const afterFrom = !filters.from || entry.date >= filters.from;
     const beforeTo = !filters.to || entry.date <= filters.to;
     return afterFrom && beforeTo;
   }), [entries, filters]);
+  const periodAbsenceEntries = useMemo(() => (
+    absenceAnalyticsEntries(absenceRequests, absenceRules, people, filters.from, filters.to)
+  ), [absenceRequests, absenceRules, people, filters.from, filters.to]);
+  const analyticsEntries = useMemo(() => (
+    [...periodEntries, ...periodAbsenceEntries]
+  ), [periodEntries, periodAbsenceEntries]);
   const peopleByName = useMemo(() => new Map(people.map((person) => [person.name, person])), [people]);
-  const visibleTypeNames = useMemo(() => sortedWorkTypeNames(periodEntries), [periodEntries]);
-  const totalHours = periodEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
-  const totalCost = people.reduce((sum, person) => sum + employeeRuleCost(person, employmentRules, periodEntries, configuredWorkTypes), 0);
+  const visibleTypeNames = useMemo(() => sortedWorkTypeNames(analyticsEntries), [analyticsEntries]);
+  const totalHours = analyticsEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
+  const absenceHours = periodAbsenceEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
+  const totalCost = people.reduce((sum, person) => sum + employeeRuleCost(person, employmentRules, analyticsEntries, configuredWorkTypes), 0);
   const departmentNames = Array.from(new Set(people.map((person) => person.department))).sort();
   const departmentRows = buildAnalyticsGroupRows({
     groups: departmentNames,
-    entries: periodEntries,
+    entries: analyticsEntries,
     people,
     configuredTypes: configuredWorkTypes,
     employmentRules,
@@ -6948,7 +7038,7 @@ function AnalyticsView({ role, activePlatform, people, entries, configuredWorkTy
   });
   const userRows = buildAnalyticsGroupRows({
     groups: people.map((person) => person.name),
-    entries: periodEntries,
+    entries: analyticsEntries,
     people,
     configuredTypes: configuredWorkTypes,
     employmentRules,
@@ -6956,7 +7046,7 @@ function AnalyticsView({ role, activePlatform, people, entries, configuredWorkTy
     groupForEntry: (entry) => entry.employee,
   });
   const userWorkload = people.map((person) => {
-    const personEntries = periodEntries.filter((entry) => entry.employee === person.name);
+    const personEntries = analyticsEntries.filter((entry) => entry.employee === person.name);
     const hours = personEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
     const cost = employeeRuleCost(person, employmentRules, personEntries, configuredWorkTypes);
     const segments = visibleTypeNames.map((typeName) => ({
@@ -6968,7 +7058,7 @@ function AnalyticsView({ role, activePlatform, people, entries, configuredWorkTy
   }).filter((row) => row.hours > 0).sort((first, second) => second.hours - first.hours);
   const departmentWorkload = departmentNames.map((department) => {
     const departmentPeople = new Set(people.filter((person) => person.department === department).map((person) => person.name));
-    const departmentEntries = periodEntries.filter((entry) => departmentPeople.has(entry.employee));
+    const departmentEntries = analyticsEntries.filter((entry) => departmentPeople.has(entry.employee));
     const hours = departmentEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
     const cost = people
       .filter((person) => person.department === department)
@@ -6981,7 +7071,7 @@ function AnalyticsView({ role, activePlatform, people, entries, configuredWorkTy
     return { label: department, meta: `${departmentPeople.size} user${departmentPeople.size === 1 ? '' : 's'}`, hours, cost, segments };
   }).filter((row) => row.hours > 0).sort((first, second) => second.hours - first.hours);
   const flowRows = visibleTypeNames.map((typeName) => {
-    const typeEntries = periodEntries.filter((entry) => entry.type === typeName);
+    const typeEntries = analyticsEntries.filter((entry) => entry.type === typeName);
     const hours = typeEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
     return {
       typeName,
@@ -7013,18 +7103,18 @@ function AnalyticsView({ role, activePlatform, people, entries, configuredWorkTy
         <div className="analytics-kpis">
           <Metric icon={Clock3} label="Total working hours" value={compactHours(totalHours)} delta="Selected date range" />
           <Metric icon={Activity} label="Average hours / user" value={compactHours(totalHours / Math.max(people.length, 1))} delta={`${people.length} users in scope`} />
-          <Metric icon={CircleDollarSign} label="Allocated cost" value={money(totalCost)} delta="Monthly, hourly, and project rows" />
+          <Metric icon={CircleDollarSign} label="Allocated cost" value={money(totalCost)} delta={`${compactHours(absenceHours)} from vacation and sick leave`} />
         </div>
       </section>
 
       <section className="primary-panel analytics-chart-panel">
         <ChartHeading kicker={visibleTypeNames.join(' / ') || 'No work types'} title="Workload hours by user" />
-        <StackedWorkloadChart rows={userWorkload} totalMax={Math.max(...userWorkload.map((row) => row.hours), 1)} />
+        <StackedWorkloadChart rows={userWorkload} />
       </section>
 
       <section className="primary-panel analytics-chart-panel">
         <ChartHeading kicker={activePlatform.stack} title="Workload hours by department" />
-        <StackedWorkloadChart rows={departmentWorkload} totalMax={Math.max(...departmentWorkload.map((row) => row.hours), 1)} />
+        <StackedWorkloadChart rows={departmentWorkload} />
       </section>
 
       <section className="primary-panel analytics-chart-panel">
@@ -7056,69 +7146,172 @@ function ChartHeading({ kicker, title }) {
   );
 }
 
-function StackedWorkloadChart({ rows, totalMax }) {
+const chartFont = {
+  family: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  weight: 750,
+};
+
+const sharedChartPlugins = {
+  legend: {
+    position: 'bottom',
+    labels: {
+      boxWidth: 10,
+      boxHeight: 10,
+      color: '#526070',
+      font: { ...chartFont, size: 12 },
+      padding: 18,
+      usePointStyle: true,
+      pointStyle: 'rectRounded',
+    },
+  },
+  tooltip: {
+    backgroundColor: '#1f2937',
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    titleColor: '#ffffff',
+    bodyColor: '#e5edf6',
+    padding: 12,
+    displayColors: true,
+    boxPadding: 5,
+    callbacks: {
+      label: (context) => `${context.dataset.label}: ${compactHours(context.parsed.x ?? context.parsed.y ?? 0)}`,
+    },
+  },
+};
+
+function StackedWorkloadChart({ rows }) {
   if (rows.length === 0) return <span className="empty-state">No time entries match the selected analytics period.</span>;
+  const typeNames = Array.from(new Set(rows.flatMap((row) => row.segments.map((segment) => segment.typeName))));
+  const colorByType = new Map(rows.flatMap((row) => row.segments.map((segment) => [segment.typeName, segment.color])));
+  const data = {
+    labels: rows.map((row) => row.label),
+    datasets: typeNames.map((typeName) => ({
+      label: typeName,
+      data: rows.map((row) => row.segments.find((segment) => segment.typeName === typeName)?.hours || 0),
+      backgroundColor: colorByType.get(typeName) || '#2f65dc',
+      borderColor: '#ffffff',
+      borderWidth: 1,
+      borderRadius: 7,
+      borderSkipped: false,
+      barPercentage: 0.72,
+      categoryPercentage: 0.74,
+    })),
+  };
+  const rowDetails = new Map(rows.map((row) => [row.label, row]));
+  const options = {
+    indexAxis: 'y',
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: { duration: 560, easing: 'easeOutQuart' },
+    scales: {
+      x: {
+        stacked: true,
+        beginAtZero: true,
+        grid: { color: '#eef2f6', drawBorder: false },
+        border: { display: false },
+        ticks: {
+          color: '#8b96a4',
+          font: { ...chartFont, size: 11 },
+          callback: (value) => compactHours(value),
+        },
+      },
+      y: {
+        stacked: true,
+        grid: { display: false },
+        border: { display: false },
+        ticks: {
+          color: '#334052',
+          font: { ...chartFont, size: 12, weight: 850 },
+        },
+      },
+    },
+    plugins: {
+      ...sharedChartPlugins,
+      tooltip: {
+        ...sharedChartPlugins.tooltip,
+        callbacks: {
+          title: (items) => {
+            const row = rowDetails.get(items[0]?.label);
+            return row ? `${row.label} · ${row.meta}` : items[0]?.label || '';
+          },
+          label: (context) => `${context.dataset.label}: ${compactHours(context.parsed.x)}`,
+          afterBody: (items) => {
+            const row = rowDetails.get(items[0]?.label);
+            return row ? [`Total: ${compactHours(row.hours)}`, `Cost: ${money(row.cost)}`] : [];
+          },
+        },
+      },
+    },
+  };
   return (
-    <div className="stacked-workload-chart">
-      {rows.map((row) => (
-        <div className="stacked-workload-row" key={row.label}>
-          <div className="stacked-workload-label">
-            <strong>{row.label}</strong>
-            <span>{row.meta} · {compactHours(row.hours)} · {money(row.cost)}</span>
-          </div>
-          <div className="stacked-workload-track" style={{ '--row-width': `${Math.max((row.hours / totalMax) * 100, 2)}%` }}>
-            <div className="stacked-workload-segments">
-              {row.segments.map((segment) => (
-                <i
-                  key={segment.typeName}
-                  title={`${segment.typeName}: ${compactHours(segment.hours)}`}
-                  style={{
-                    width: `${Math.max((segment.hours / row.hours) * 100, 2)}%`,
-                    background: segment.color,
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-      ))}
-      <AnalyticsLegend rows={rows.flatMap((row) => row.segments)} />
+    <div className="chartjs-shell stacked-workload-chart" style={{ '--chart-height': `${Math.max(rows.length * 54 + 88, 260)}px` }}>
+      <Bar data={data} options={options} />
     </div>
   );
 }
 
 function WorkloadFlowChart({ rows, totalHours }) {
   if (rows.length === 0) return <span className="empty-state">No workload flow is available for this period.</span>;
+  const data = {
+    labels: ['Capacity', ...rows.map((row) => row.typeName)],
+    datasets: [
+      {
+        label: 'Hours',
+        data: [totalHours, ...rows.map((row) => row.hours)],
+        backgroundColor: ['#718096', ...rows.map((row) => row.color)],
+        borderColor: '#ffffff',
+        borderWidth: 1,
+        borderRadius: 8,
+        borderSkipped: false,
+        barPercentage: 0.62,
+        categoryPercentage: 0.68,
+      },
+    ],
+  };
+  const shareByLabel = new Map(rows.map((row) => [row.typeName, row.share]));
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: { duration: 560, easing: 'easeOutQuart' },
+    scales: {
+      x: {
+        grid: { display: false },
+        border: { display: false },
+        ticks: {
+          color: '#526070',
+          font: { ...chartFont, size: 12, weight: 850 },
+          maxRotation: 0,
+          autoSkip: false,
+        },
+      },
+      y: {
+        beginAtZero: true,
+        grid: { color: '#eef2f6', drawBorder: false },
+        border: { display: false },
+        ticks: {
+          color: '#8b96a4',
+          font: { ...chartFont, size: 11 },
+          callback: (value) => compactHours(value),
+        },
+      },
+    },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        ...sharedChartPlugins.tooltip,
+        callbacks: {
+          label: (context) => {
+            const label = context.label;
+            const share = label === 'Capacity' ? 100 : shareByLabel.get(label) || 0;
+            return `${compactHours(context.parsed.y)} · ${percent(share)}`;
+          },
+        },
+      },
+    },
+  };
   return (
-    <div className="workload-flow-chart">
-      <div className="flow-grid">
-        <div className="flow-step capacity">
-          <span style={{ height: '100%' }} />
-          <strong>{compactHours(totalHours)}</strong>
-          <em>Capacity</em>
-        </div>
-        {rows.map((row) => {
-          return (
-            <div className="flow-step" key={row.typeName}>
-              <span style={{ height: `${Math.max(row.share, 4)}%`, background: row.color }} />
-              <strong>{percent(row.share)}</strong>
-              <em>{row.typeName}</em>
-              <small>{compactHours(row.hours)}</small>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function AnalyticsLegend({ rows }) {
-  const items = Array.from(new Map(rows.map((row) => [row.typeName, row])).values());
-  return (
-    <div className="analytics-legend">
-      {items.map((item) => (
-        <span key={item.typeName}><i style={{ background: item.color }} />{item.typeName}</span>
-      ))}
+    <div className="chartjs-shell workload-flow-chart">
+      <Bar data={data} options={options} />
     </div>
   );
 }
@@ -7155,11 +7348,42 @@ function AnalyticsDetailTable({ rows, firstColumn }) {
 
 function MiniTrend({ values }) {
   const max = Math.max(...values, 1);
+  const data = {
+    labels: values.map((_, index) => `M${index + 1}`),
+    datasets: [
+      {
+        label: 'Hours',
+        data: values,
+        backgroundColor: '#2f65dc',
+        borderRadius: 3,
+        borderSkipped: false,
+        barPercentage: 0.72,
+        categoryPercentage: 0.82,
+      },
+    ],
+  };
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: { duration: 420, easing: 'easeOutQuart' },
+    scales: {
+      x: { display: false },
+      y: { display: false, min: 0, max },
+    },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        ...sharedChartPlugins.tooltip,
+        callbacks: {
+          title: (items) => items[0]?.label || '',
+          label: (context) => compactHours(context.parsed.y),
+        },
+      },
+    },
+  };
   return (
     <span className="mini-trend">
-      {values.map((value, index) => (
-        <i key={`${value}-${index}`} style={{ height: `${Math.max((value / max) * 100, 12)}%` }} />
-      ))}
+      <Bar data={data} options={options} />
     </span>
   );
 }
