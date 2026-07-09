@@ -991,7 +991,7 @@ const documentationSections = [
           'Switch role to compare Management, Team Lead, and Operations scope.',
         ],
         specifics: [
-          'People visible is based on the active role scope and the active Employees filters.',
+          'People visible is based on the active role scope and the active Employees filters, including the Status filter that defaults to Active users.',
           'The Departments card is a scope indicator based on departments visible in the active Employees area scope.',
           'The Documents card sums each visible employee document count, refreshed from local document records linked by employee name when the employee is saved.',
           'System owner is currently Laravel because the platform profile is fixed in code.',
@@ -1008,7 +1008,7 @@ const documentationSections = [
         howItWorks: 'The Employees tab shows a compact employee table in the active role scope. The table displays the employee initials, name, department, role level, and employment type. Open setup items and contract end-date alerts are shown as an alert icon next to the employee name instead of as full-width messages. Hover or click the alert icon to review the notices in a small popover. Clicking a table row opens a tabbed employee record with Overview, Documents, Comments, and Archive / delete user sections. The employee edit form is organized into User info, Department and employment, Contract and compliance, and Compensation rows. The employee profile stores personal identity details, street address, post number, city, work email, phone number, private email, department and role level, segmentation tags, contract from/to dates, compliance dates, internal comments, compensation rows for each work arrangement, and active or archived status. The employee employment type is derived from the first compensation row. Documents are separate local document records linked to the employee by name.',
         userSteps: [
           'Open Employees, then open the Employees subtab.',
-          'Use Department, Level, or Tags in the inline employee filters row to narrow the employee table.',
+          'Use Status, Department, Level, or Tags in the inline employee filters row to narrow the employee table.',
           'Use Clear filters to return to every employee in the active role scope.',
           'Review the visible employee rows.',
           'Hover the alert icon beside an employee name to see missing setup items and contract end-date notices. The popover stays visible while the pointer is on the icon or popover, then closes automatically.',
@@ -1024,13 +1024,14 @@ const documentationSections = [
           'Open Archive / delete user to archive an employee as inactive, restore an archived employee, or delete the employee and linked local records.',
         ],
         specifics: [
+          'The Status filter defaults to Active users. Choose Archived users to review inactive employee records and historical data, or All users to see both active and archived records.',
           'Department and level filters match exactly one selected value each.',
           'Department choices in employee filters and employee forms come from the same Departments records shown in the Departments subtab.',
           'Legacy department aliases are normalized on load: Support is shown as Customer Support and Warehouse is shown as Operations.',
           'The Tags filter is multi-select and shows only employees that have every selected tag.',
           'If no employees match the active role scope, the empty state says: No employees match the current scope.',
           'If employees exist in scope but filters exclude all of them, the empty state says: No employees match the current filters.',
-          'Filter options are generated from employees already visible in the active role scope, so they do not expose people outside the active permission scope.',
+          'Filter options are generated from employees already visible in the active role scope and selected status scope, so they do not expose people outside the active permission scope.',
           'The People visible and Documents metric cards update when Employees filters are active.',
           'Employee names are required and must be unique ignoring case.',
           'Saving an edited employee updates the selected employee record immediately, keeps the sidebar on that employee even when filters or role scope change, and persists the employee list in browser localStorage.',
@@ -1054,8 +1055,9 @@ const documentationSections = [
           'Safety training stores the completion date and the valid-until date in the Safety training row. If the completed date is empty, the form shows a red inline warning with an alert icon under the completed date input.',
           'The Comments tab stores internal employee comments with comment text, author, and local date. Operations users can view comments but the comment input and Add comment button are disabled for them.',
           'The Archive / delete user tab lets permitted users archive an employee without deleting data, restore an archived employee, or delete the employee record and linked local entries, documents, correction records, and unlock windows.',
-          'Archived employees remain visible in the employee list and sidebar with an Inactive status.',
-          'Archiving an employee stops that employee\'s active timer if one is running.',
+          'Archived employees are excluded from operational views, time-entry employee selectors, manual unlock selectors, tracker user scope, analytics people metrics, correction reviewer scopes, department people counts, and tag people counts.',
+          'Archived employees remain available in the Employees list only when the Status filter is set to Archived users or All users, and they open in the sidebar with an Inactive status.',
+          'Archiving an employee stops that employee\'s active timer if one is running and clears matching active table person filters.',
           'The Documents tab lists local document records linked by employee name. It is intended for contracts, annexes, medical certificates, safety certificates, and other important employee files.',
           'Management and team leads can add document records from the Documents tab. Operations users can view documents but cannot add or delete them.',
           'Each document record stores title, employee name, document type, document date, start date, valid-until date, status, uploaded file name, file type, file size, local file data, and upload date. The visible date fields depend on the selected document type rule.',
@@ -1089,7 +1091,7 @@ const documentationSections = [
           'Contract end-date notices use Contract to from the employee record, with older local records also checked through contract validity or contract text when an ISO date is available. The Work setup Contract period row shows the contract period as the main value and the contract end-date notice as supporting detail.',
         ],
         metrics: [
-          'People visible = count(people in active role scope where department filter matches and level filter matches and every selected tag is present)',
+          'People visible = count(people in active role scope where status filter matches, department filter matches, level filter matches, and every selected tag is present)',
           'Documents metric = Σ person.docs for filtered visible people, where person.docs is refreshed from local document records linked by employee name when the employee is saved or when an employee document is added or deleted',
           'Employee record Documents count = count(local document records linked to the employee name)',
           'The employee table does not display employee cost. Employee cost is still calculated in the employee record and analytics views from visible paid time entries and employee compensation rows.',
@@ -1100,7 +1102,7 @@ const documentationSections = [
       },
       {
         name: 'Employee rules',
-        howItWorks: 'The Rules subtab under Employees stores employment type rules and document type tags. Employment rules define employee cost method, required employee to-dos, and employee card fields. Document type tags define which date fields are required when users add employee documents.',
+        howItWorks: 'The Rules subtab under Employees stores employment type rules and document type tags in compact divided tables. Employment rules define employee cost method, required employee to-dos, and employee card fields. Document type tags define which date fields are required when users add employee documents.',
         userSteps: [
           'Open Employees, then open the Rules subtab.',
           'Click Add employment type.',
@@ -1119,9 +1121,11 @@ const documentationSections = [
           'Monthly salary defaults to requiring employment contract, medical exam, and safety training.',
           'Project work and Hourly rate default to requiring an employment contract only, but medical exam and safety training can be enabled manually.',
           'Rules assigned to employees cannot be deleted.',
+          'The Employment type rules table shows the rule name, pay type, cost logic, required employee to-dos, assigned employee count, and edit or delete actions when the user can manage rules.',
           'Deleting an unassigned rule asks for confirmation: Are you sure you want to delete this employment rule?',
           'Renaming a rule updates employees that used the old employment type name.',
           'Document types already used by documents cannot be deleted.',
+          'The Document type tags table shows the document type name, required dates, linked document count, and edit or delete actions when the user can manage rules.',
           'Deleting an unused document type asks for confirmation: Are you sure you want to delete this document type?',
           'Renaming a document type updates existing document records that used the old type name.',
           'Document type date requirements control the date fields and validation in the employee record Documents tab.',
@@ -1130,8 +1134,8 @@ const documentationSections = [
           'If no document types exist, the empty state says: No document types have been configured.',
         ],
         metrics: [
-          'Employees on a rule card = count(visible people where person.employment matches the rule name)',
-          'Documents on a document type card = count(local document records where document.type matches the document type name)',
+          'Employees on a rule row = count(visible people where person.employment matches the rule name)',
+          'Documents on a document type row = count(local document records where document.type matches the document type name)',
           'Monthly salary cost = Σ entry.hours × ((grossGrossCost + mealAllowance + transportAllowance) / max(monthlyWorkingDays × 8, 1)) for entries mapped to a monthly compensation row',
           'Hourly rate cost = Σ entry.hours × hourlyRate for entries mapped to an hourly compensation row + mealAllowance + transportAllowance once for each matched hourly row',
           'Project work cost = Σ ((projectValue / project calendar days) × unique visible paid-entry dates inside the project active date range)',
@@ -1975,7 +1979,11 @@ function App() {
   const activePlatform = platformProfiles[platform];
   const isTracking = Boolean(activeSession);
   const currentCorrectionWindows = useMemo(() => activeCorrectionWindows(correctionWindows), [correctionWindows, tick]);
-  const activePerson = useMemo(() => employees.find((person) => person.name === activeRole.person) || employees[0], [employees, activeRole.person]);
+  const activePerson = useMemo(() => {
+    const rolePerson = employees.find((person) => person.name === activeRole.person);
+    if (rolePerson) return isArchivedEmployee(rolePerson) ? null : rolePerson;
+    return employees.find((person) => !isArchivedEmployee(person));
+  }, [employees, activeRole.person]);
   const activeLeadDepartments = useMemo(() => {
     if (role !== 'lead' || !activePerson) return [];
     const leadDepartments = employeeLeadDepartmentScope(activePerson, departmentItems);
@@ -2082,6 +2090,9 @@ function App() {
     const query = searchQuery.toLowerCase();
     return scoped.filter((person) => [person.name, person.department, person.level, person.employment, ...person.tags].join(' ').toLowerCase().includes(query));
   }, [employees, role, activeLeadDepartments, activeRole.person, searchQuery]);
+  const activeVisiblePeople = useMemo(() => (
+    visiblePeople.filter((person) => !isArchivedEmployee(person))
+  ), [visiblePeople]);
   const selectedEmployee = useMemo(() => (
     employees.find((person) => person.id === selectedEmployeeId) || null
   ), [employees, selectedEmployeeId]);
@@ -2093,26 +2104,27 @@ function App() {
   }, [selectedEmployeeId, selectedEmployee]);
 
   const visibleEntries = useMemo(() => {
+    const activeNames = new Set(activeVisiblePeople.map((person) => person.name));
     const scoped = role === 'management'
-      ? entries
+      ? entries.filter((entry) => activeNames.has(entry.employee))
       : role === 'lead'
-        ? entries.filter((entry) => departmentInScope(entry.department, activeLeadDepartments))
-        : entries.filter((entry) => entry.employee === activeRole.person);
+        ? entries.filter((entry) => activeNames.has(entry.employee) && departmentInScope(entry.department, activeLeadDepartments))
+        : entries.filter((entry) => activeNames.has(entry.employee) && entry.employee === activeRole.person);
     if (!searchQuery.trim()) return scoped;
     const query = searchQuery.toLowerCase();
     return scoped.filter((entry) => [entry.employee, entry.department, entry.date, entry.type, entry.status, entry.source].join(' ').toLowerCase().includes(query));
-  }, [entries, role, activeLeadDepartments, activeRole.person, searchQuery]);
+  }, [entries, role, activeLeadDepartments, activeRole.person, searchQuery, activeVisiblePeople]);
 
   const tableFilterOptions = useMemo(() => {
     const departments = Array.from(new Set(visibleEntries.map((entry) => entry.department))).sort();
     const departmentScopedPeople = tableFilters.department
-      ? visiblePeople.filter((person) => person.department === tableFilters.department)
-      : visiblePeople;
+      ? activeVisiblePeople.filter((person) => person.department === tableFilters.department)
+      : activeVisiblePeople;
     const people = Array.from(new Map(
       departmentScopedPeople.map((person) => [person.name, { name: person.name, meta: person.department }]),
     ).values());
     return { departments, people };
-  }, [visibleEntries, visiblePeople, tableFilters.department]);
+  }, [visibleEntries, activeVisiblePeople, tableFilters.department]);
 
   const filteredEntries = useMemo(() => {
     return visibleEntries.filter((entry) => {
@@ -2175,14 +2187,14 @@ function App() {
       const workType = workTypeByName.get(entry.type);
       return workType?.paid ? sum + entry.hours : sum;
     }, 0);
-    const entryCost = visiblePeople.reduce((sum, person) => (
+    const entryCost = activeVisiblePeople.reduce((sum, person) => (
       sum + employeeRuleCost(person, employmentRuleItems, visibleEntries, configuredWorkTypes)
     ), 0);
     const peopleCost = entryCost;
     const locked = visibleEntries.filter((entry) => !canEditEntryDate(role, currentCorrectionWindows, entry.employee, entry.date)).length;
-    const correctionsCount = corrections.filter((item) => role === 'management' || item.employee === activeRole.person || visiblePeople.some((person) => person.name === item.employee)).length;
+    const correctionsCount = corrections.filter((item) => role === 'management' || item.employee === activeRole.person || activeVisiblePeople.some((person) => person.name === item.employee)).length;
     return { hours, paidHours, entryCost, peopleCost, locked, corrections: correctionsCount };
-  }, [visibleEntries, visiblePeople, corrections, currentCorrectionWindows, role, activeRole.person, configuredWorkTypes, employmentRuleItems]);
+  }, [visibleEntries, activeVisiblePeople, corrections, currentCorrectionWindows, role, activeRole.person, configuredWorkTypes, employmentRuleItems]);
 
   const filteredTotals = useMemo(() => {
     const workTypeByName = new Map(configuredWorkTypes.map((type) => [type.name, type]));
@@ -2191,21 +2203,21 @@ function App() {
       const workType = workTypeByName.get(entry.type);
       return workType?.paid ? sum + entry.hours : sum;
     }, 0);
-    const entryCost = visiblePeople.reduce((sum, person) => (
+    const entryCost = activeVisiblePeople.reduce((sum, person) => (
       sum + employeeRuleCost(person, employmentRuleItems, filteredEntries, configuredWorkTypes)
     ), 0);
     const locked = filteredEntries.filter((entry) => !canEditEntryDate(role, currentCorrectionWindows, entry.employee, entry.date)).length;
     return { ...totals, hours, paidHours, entryCost, locked };
-  }, [filteredEntries, currentCorrectionWindows, configuredWorkTypes, totals]);
+  }, [filteredEntries, activeVisiblePeople, currentCorrectionWindows, configuredWorkTypes, totals]);
 
   const visibleCorrectionRequests = useMemo(() => {
     if (role === 'operations') return [];
     return corrections.filter((item) => (
       ['Pending review', 'Unlocked'].includes(item.state)
       && item.change.startsWith('Requested edit access')
-      && (role === 'management' || visiblePeople.some((person) => person.name === item.employee))
+      && (role === 'management' || activeVisiblePeople.some((person) => person.name === item.employee))
     ));
-  }, [corrections, role, visiblePeople]);
+  }, [corrections, role, activeVisiblePeople]);
 
   const myCorrectionRequests = useMemo(() => {
     if (role !== 'operations') return [];
@@ -2219,9 +2231,9 @@ function App() {
     if (role === 'operations') {
       return currentCorrectionWindows.filter((window) => window.employee === activeRole.person);
     }
-    const visibleNames = new Set(visiblePeople.map((person) => person.name));
+    const visibleNames = new Set(activeVisiblePeople.map((person) => person.name));
     return currentCorrectionWindows.filter((window) => role === 'management' || visibleNames.has(window.employee));
-  }, [currentCorrectionWindows, role, activeRole.person, visiblePeople]);
+  }, [currentCorrectionWindows, role, activeRole.person, activeVisiblePeople]);
 
   const trackerAvailableWorkTypes = useMemo(() => {
     if (role === 'management') return visibleWorkTypes;
@@ -2289,7 +2301,11 @@ function App() {
     }
 
     if (trackerWorkType) {
-      const person = visiblePeople.find((employee) => employee.name === activeRole.person) || visiblePeople[0];
+      const person = activeVisiblePeople.find((employee) => employee.name === activeRole.person) || activeVisiblePeople[0];
+      if (!person) {
+        setToast('No active employee is available for the timer');
+        return;
+      }
       const startedAt = Date.now();
       setActiveSession({
         startedAt,
@@ -2366,7 +2382,11 @@ function App() {
     const start = form.start || '09:00';
     const end = form.end || '17:00';
     const hours = calculateHours(start, end);
-    const employee = employees.find((person) => person.name === form.employee) || visiblePeople[0];
+    const employee = activeVisiblePeople.find((person) => person.name === form.employee) || activeVisiblePeople[0];
+    if (!employee) {
+      setToast('No active employee is available for this entry');
+      return;
+    }
     const selectedType = configuredWorkTypes.find((type) => type.name === form.type);
     const payload = {
       employee: employee.name,
@@ -2797,6 +2817,9 @@ function App() {
     )));
     setActiveSession((current) => (
       current?.employee === employee.name ? null : current
+    ));
+    setTableFilters((current) => (
+      current.person === employee.name ? { ...current, person: '' } : current
     ));
     showToast(`${employee.name} archived`);
   }
@@ -3373,7 +3396,7 @@ function App() {
             platform={platform}
             activeRole={activeRole}
             visibleEntries={filteredEntries}
-            visiblePeople={visiblePeople}
+            visiblePeople={activeVisiblePeople}
             workTypes={visibleWorkTypes}
             filters={tableFilters}
             filterOptions={tableFilterOptions}
@@ -3399,7 +3422,7 @@ function App() {
             onDeleteEntry={deleteEntry}
           />
         )}
-        {tab === 'analytics' && <AnalyticsView role={role} platform={platform} activePlatform={activePlatform} people={visiblePeople} entries={visibleEntries} workTypes={visibleWorkTypes} configuredWorkTypes={configuredWorkTypes} employmentRules={employmentRuleItems} totals={totals} activeRole={activeRole} onFilters={() => showToast('Analytics filters applied')} />}
+        {tab === 'analytics' && <AnalyticsView role={role} platform={platform} activePlatform={activePlatform} people={activeVisiblePeople} entries={visibleEntries} workTypes={visibleWorkTypes} configuredWorkTypes={configuredWorkTypes} employmentRules={employmentRuleItems} totals={totals} activeRole={activeRole} onFilters={() => showToast('Analytics filters applied')} />}
         {tab === 'settings' && role !== 'operations' && (
           <SettingsView
             role={role}
@@ -3412,7 +3435,7 @@ function App() {
             onDeleteWorkType={deleteWorkType}
           />
         )}
-        {tab === 'corrections' && <CorrectionLogView corrections={corrections} role={role} activeRole={activeRole} people={visiblePeople} />}
+        {tab === 'corrections' && <CorrectionLogView corrections={corrections} role={role} activeRole={activeRole} people={activeVisiblePeople} />}
         {['hr', 'hr-departments', 'hr-rules', 'hr-tags'].includes(tab) && (
           <HrView
             section={tab === 'hr-departments' ? 'departments' : tab === 'hr-rules' ? 'rules' : tab === 'hr-tags' ? 'tags' : 'employees'}
@@ -3420,6 +3443,7 @@ function App() {
             platform={platform}
             activePlatform={activePlatform}
             people={visiblePeople}
+            activePeople={activeVisiblePeople}
             entries={entries}
             configuredWorkTypes={configuredWorkTypes}
             documents={documents}
@@ -3474,7 +3498,7 @@ function App() {
           mode={entryModal.mode}
           entry={entryModal.entry}
           role={role}
-          people={visiblePeople}
+          people={activeVisiblePeople}
           workTypes={entryAssignableWorkTypes}
           activeRole={activeRole}
           correctionWindows={currentCorrectionWindows}
@@ -3499,7 +3523,7 @@ function App() {
       )}
       {manualUnlockModal && (
         <ManualUnlockModal
-          people={visiblePeople}
+          people={activeVisiblePeople}
           onClose={() => setManualUnlockModal(false)}
           onSave={(form) => {
             unlockCorrectionWindow(form);
@@ -4053,6 +4077,7 @@ function HrView({
   platform,
   activePlatform,
   people,
+  activePeople,
   entries,
   configuredWorkTypes,
   documents,
@@ -4080,7 +4105,18 @@ function HrView({
   onEditDocumentTypeRule,
   onDeleteDocumentTypeRule,
 }) {
-  const [employeeFilters, setEmployeeFilters] = useState({ department: 'All departments', level: 'All levels', tags: [] });
+  const [employeeFilters, setEmployeeFilters] = useState({ status: 'Active users', department: 'All departments', level: 'All levels', tags: [] });
+  const operationalPeople = activePeople || people.filter((person) => !isArchivedEmployee(person));
+  const employeeStatusOptions = [
+    { name: 'Active users' },
+    { name: 'Archived users' },
+    { name: 'All users' },
+  ];
+  const statusScopedPeople = useMemo(() => people.filter((person) => {
+    if (employeeFilters.status === 'Archived users') return isArchivedEmployee(person);
+    if (employeeFilters.status === 'All users') return true;
+    return !isArchivedEmployee(person);
+  }), [people, employeeFilters.status]);
   const scopedTags = useMemo(() => (
     role === 'management'
       ? tagItems
@@ -4093,11 +4129,11 @@ function HrView({
     if (role === 'lead') {
       return departmentItems.filter((department) => departmentInScope(department.name, activeLeadDepartments));
     }
-    const ownDepartments = Array.from(new Set(people.map((person) => person.department).filter(Boolean)));
+    const ownDepartments = Array.from(new Set(operationalPeople.map((person) => person.department).filter(Boolean)));
     return ownDepartments.map((name) => departmentItems.find((department) => (
       canonicalDepartmentName(department.name) === canonicalDepartmentName(name)
     )) || { name, lead: 'No team lead assigned', leads: [] });
-  }, [role, departmentItems, activeLeadDepartments, people]);
+  }, [role, departmentItems, activeLeadDepartments, operationalPeople]);
   const departmentCount = scopedDepartments.length || (role === 'operations' ? 1 : 0);
   const departmentOptions = useMemo(() => [
     { name: 'All departments' },
@@ -4107,30 +4143,30 @@ function HrView({
   ], [scopedDepartments]);
   const levelOptions = useMemo(() => [
     { name: 'All levels' },
-    ...Array.from(new Set(people.map((person) => person.level).filter(Boolean)))
+    ...Array.from(new Set(statusScopedPeople.map((person) => person.level).filter(Boolean)))
       .sort((first, second) => first.localeCompare(second))
       .map((name) => ({ name })),
-  ], [people]);
+  ], [statusScopedPeople]);
   const tagOptions = useMemo(() => (
-    Array.from(new Set(people.flatMap((person) => Array.isArray(person.tags) ? person.tags : []).filter(Boolean)))
+    Array.from(new Set(statusScopedPeople.flatMap((person) => Array.isArray(person.tags) ? person.tags : []).filter(Boolean)))
       .sort((first, second) => first.localeCompare(second))
       .map((name) => ({ name }))
-  ), [people]);
-  const filteredPeople = useMemo(() => people.filter((person) => {
+  ), [statusScopedPeople]);
+  const filteredPeople = useMemo(() => statusScopedPeople.filter((person) => {
     const matchesDepartment = employeeFilters.department === 'All departments' || person.department === employeeFilters.department;
     const matchesLevel = employeeFilters.level === 'All levels' || person.level === employeeFilters.level;
     const personTags = Array.isArray(person.tags) ? person.tags : [];
     const matchesTags = employeeFilters.tags.length === 0 || employeeFilters.tags.every((tag) => personTags.includes(tag));
     return matchesDepartment && matchesLevel && matchesTags;
-  }), [people, employeeFilters]);
-  const hasActiveEmployeeFilters = employeeFilters.department !== 'All departments' || employeeFilters.level !== 'All levels' || employeeFilters.tags.length > 0;
+  }), [statusScopedPeople, employeeFilters]);
+  const hasActiveEmployeeFilters = employeeFilters.status !== 'Active users' || employeeFilters.department !== 'All departments' || employeeFilters.level !== 'All levels' || employeeFilters.tags.length > 0;
 
   function updateEmployeeFilter(field, value) {
     setEmployeeFilters((current) => ({ ...current, [field]: value }));
   }
 
   function clearEmployeeFilters() {
-    setEmployeeFilters({ department: 'All departments', level: 'All levels', tags: [] });
+    setEmployeeFilters({ status: 'Active users', department: 'All departments', level: 'All levels', tags: [] });
   }
 
   useEffect(() => {
@@ -4142,7 +4178,7 @@ function HrView({
   return (
     <div className="workspace">
       <div className="metric-grid">
-        <Metric icon={UsersRound} label="People visible" value={filteredPeople.length} delta={hasActiveEmployeeFilters ? `Filtered from ${people.length}` : (role === 'management' ? 'Company-wide HR database' : role === 'lead' ? 'Department scope' : 'Own profile')} />
+        <Metric icon={UsersRound} label="People visible" value={filteredPeople.length} delta={hasActiveEmployeeFilters ? `Filtered from ${people.length}` : (role === 'management' ? 'Active company users' : role === 'lead' ? 'Active department scope' : 'Own active profile')} />
         <Metric icon={BriefcaseBusiness} label="Departments" value={departmentCount} delta="Permission filtered" />
         <Metric icon={FileText} label="Documents" value={filteredPeople.reduce((sum, person) => sum + person.docs, 0)} delta="Stored through Laravel files" />
         <Metric icon={Server} label="System owner" value={activePlatform.label} delta={activePlatform.owner} />
@@ -4158,6 +4194,10 @@ function HrView({
             <button className="soft-btn" disabled={!canEditPeople} onClick={onAddEmployee}><Plus size={17} /> Add employee</button>
           </div>
           <div className="employee-filter-bar" aria-label="Employee filters">
+            <label className="filter-field employee-filter-field">
+              <span>Status</span>
+              <SimpleDropdown value={employeeFilters.status} options={employeeStatusOptions} onChange={(value) => updateEmployeeFilter('status', value)} />
+            </label>
             <label className="filter-field employee-filter-field">
               <span>Department</span>
               <SimpleDropdown value={employeeFilters.department} options={departmentOptions} onChange={(value) => updateEmployeeFilter('department', value)} />
@@ -4241,7 +4281,7 @@ function HrView({
       {section === 'departments' && (
         <DepartmentOrgView
           role={role}
-          people={people}
+          people={operationalPeople}
           departments={scopedDepartments}
           allDepartments={departmentItems}
           tags={scopedTags}
@@ -4256,7 +4296,7 @@ function HrView({
         <EmploymentRulesView
           rules={employmentRules}
           documentTypes={documentTypes}
-          people={people}
+          people={operationalPeople}
           documents={documents}
           canManageRules={canManageSettings}
           onAddRule={onAddEmploymentRule}
@@ -4273,7 +4313,7 @@ function HrView({
           canManageTags={canManageSettings}
           departments={scopedDepartments}
           tags={scopedTags}
-          people={people}
+          people={operationalPeople}
           onAddTag={onAddTag}
           onEditTag={onEditTag}
           onDeleteTag={onDeleteTag}
@@ -4315,7 +4355,14 @@ function EmploymentRulesView({
         </div>
         <button className="soft-btn" disabled={!canManageRules} onClick={onAddRule}><Plus size={17} /> Add employment type</button>
       </div>
-      <div className="employment-rule-list">
+      <div className={cx('employment-rule-table employment-type-rules-table', !canManageRules && 'read-only')}>
+        <div className="employment-rule-table-head" aria-hidden="true">
+          <span>Rule</span>
+          <span>Cost logic</span>
+          <span>Requirements</span>
+          <span>Employees</span>
+          {canManageRules && <span>Actions</span>}
+        </div>
         {rules.map((rule) => {
           const assignedPeople = people.filter((person) => person.employment === rule.name);
           const requirements = [
@@ -4324,21 +4371,20 @@ function EmploymentRulesView({
             rule.requiresSafety && 'Safety training',
           ].filter(Boolean);
           return (
-            <article className="employment-rule-card" key={rule.id}>
-              <div className="employment-rule-main">
-                <div>
-                  <strong>{rule.name}</strong>
-                  <span>{rule.payType} · {assignedPeople.length} employees</span>
-                </div>
-                <div className="rule-chip-row">
-                  <small>{rule.payType === PAY_TYPE_MONTHLY ? 'Cost = monthly total / monthly hours x time entries' : rule.payType === PAY_TYPE_HOURLY ? 'Cost = hourly rate x time entries' : 'Cost = project value / project days'}</small>
-                  {requirements.length > 0
-                    ? requirements.map((requirement) => <small key={requirement}>{requirement}</small>)
-                    : <small>No automatic to-dos</small>}
-                </div>
+            <article className="employment-rule-row" key={rule.id}>
+              <div className="employment-rule-name" data-label="Rule">
+                <strong>{rule.name}</strong>
+                <span>{rule.payType}</span>
               </div>
+              <span className="employment-rule-formula" data-label="Cost logic">
+                {rule.payType === PAY_TYPE_MONTHLY ? 'Monthly total / monthly hours x time entries' : rule.payType === PAY_TYPE_HOURLY ? 'Hourly rate x time entries' : 'Project value / project days'}
+              </span>
+              <span className="employment-rule-meta" data-label="Requirements">
+                {requirements.length > 0 ? requirements.join(', ') : 'No automatic to-dos'}
+              </span>
+              <span className="employment-rule-count" data-label="Employees">{assignedPeople.length}</span>
               {canManageRules && (
-                <span className="settings-row-actions">
+                <span className="settings-row-actions employment-rule-actions" data-label="Actions">
                   <button className="icon-btn table-action" onClick={() => onEditRule(rule)} aria-label={`Edit ${rule.name}`}><Pencil size={16} /></button>
                   <button className="icon-btn table-action danger" onClick={() => onDeleteRule(rule)} aria-label={`Delete ${rule.name}`}><Trash2 size={16} /></button>
                 </span>
@@ -4355,7 +4401,13 @@ function EmploymentRulesView({
         </div>
         <button className="soft-btn" disabled={!canManageRules} onClick={onAddDocumentType}><Plus size={17} /> Add document type</button>
       </div>
-      <div className="employment-rule-list">
+      <div className={cx('employment-rule-table document-type-rules-table', !canManageRules && 'read-only')}>
+        <div className="employment-rule-table-head" aria-hidden="true">
+          <span>Document type</span>
+          <span>Required dates</span>
+          <span>Documents</span>
+          {canManageRules && <span>Actions</span>}
+        </div>
         {documentTypes.map((rule) => {
           const linkedDocuments = documents.filter((document) => document.type === rule.name);
           const requirements = [
@@ -4364,20 +4416,16 @@ function EmploymentRulesView({
             rule.requiresEndDate && 'Valid until',
           ].filter(Boolean);
           return (
-            <article className="employment-rule-card" key={rule.id}>
-              <div className="employment-rule-main">
-                <div>
-                  <strong>{rule.name}</strong>
-                  <span>{linkedDocuments.length} documents</span>
-                </div>
-                <div className="rule-chip-row">
-                  {requirements.length > 0
-                    ? requirements.map((requirement) => <small key={requirement}>{requirement}</small>)
-                    : <small>No required dates</small>}
-                </div>
+            <article className="employment-rule-row" key={rule.id}>
+              <div className="employment-rule-name" data-label="Document type">
+                <strong>{rule.name}</strong>
               </div>
+              <span className="employment-rule-meta" data-label="Required dates">
+                {requirements.length > 0 ? requirements.join(', ') : 'No required dates'}
+              </span>
+              <span className="employment-rule-count" data-label="Documents">{linkedDocuments.length}</span>
               {canManageRules && (
-                <span className="settings-row-actions">
+                <span className="settings-row-actions employment-rule-actions" data-label="Actions">
                   <button className="icon-btn table-action" onClick={() => onEditDocumentType(rule)} aria-label={`Edit ${rule.name}`}><Pencil size={16} /></button>
                   <button className="icon-btn table-action danger" onClick={() => onDeleteDocumentType(rule)} aria-label={`Delete ${rule.name}`}><Trash2 size={16} /></button>
                 </span>
