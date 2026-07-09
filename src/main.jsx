@@ -333,6 +333,7 @@ const PAY_TYPE_MONTHLY = 'Monthly salary';
 const PAY_TYPE_PROJECT = 'Project work';
 const PAY_TYPE_HOURLY = 'Hourly rate';
 const payTypeOptions = [PAY_TYPE_MONTHLY, PAY_TYPE_PROJECT, PAY_TYPE_HOURLY].map((name) => ({ name }));
+const NEW_DOCUMENT_TYPE = 'Create new document type';
 
 const employmentRules = [
   {
@@ -400,6 +401,14 @@ const employmentRules = [
   },
 ];
 
+const documentTypeRules = [
+  { id: 1, name: 'Contract', requiresDocumentDate: true, requiresStartDate: true, requiresEndDate: true },
+  { id: 2, name: 'Annex', requiresDocumentDate: true, requiresStartDate: true, requiresEndDate: false },
+  { id: 3, name: 'Medical', requiresDocumentDate: true, requiresStartDate: false, requiresEndDate: true },
+  { id: 4, name: 'Safety', requiresDocumentDate: true, requiresStartDate: false, requiresEndDate: true },
+  { id: 5, name: 'Other', requiresDocumentDate: true, requiresStartDate: false, requiresEndDate: false },
+];
+
 function normalizeEmploymentRules(items) {
   return (Array.isArray(items) && items.length > 0 ? items : employmentRules).map((rule, index) => ({
     id: rule.id || index + 1,
@@ -411,6 +420,16 @@ function normalizeEmploymentRules(items) {
     cardFields: Array.isArray(rule.cardFields) && rule.cardFields.length > 0
       ? rule.cardFields
       : defaultRuleCardFields(rule.payType),
+  })).filter((rule) => rule.name);
+}
+
+function normalizeDocumentTypeRules(items) {
+  return (Array.isArray(items) && items.length > 0 ? items : documentTypeRules).map((rule, index) => ({
+    id: rule.id || index + 1,
+    name: rule.name || 'Document type',
+    requiresDocumentDate: rule.requiresDocumentDate !== false,
+    requiresStartDate: Boolean(rule.requiresStartDate),
+    requiresEndDate: Boolean(rule.requiresEndDate),
   })).filter((rule) => rule.name);
 }
 
@@ -974,7 +993,7 @@ const documentationSections = [
       },
       {
         name: 'Employee database',
-        howItWorks: 'The Employees tab shows a compact employee table in the active role scope. The table displays the employee initials, name, department, role level, and employment type. Open setup items and contract end-date alerts are shown as an alert icon next to the employee name instead of as full-width messages. Hover or click the alert icon to review the notices in a small popover. Clicking a table row opens a tabbed employee record with Overview, Documents, Comments, and Archive / delete user sections. The employee edit form is organized into User info, Department and employment, Contract and compliance, and Compensation rows. The employee profile stores personal identity details, street address, post number, city, work email, phone number, private email, department and role level, segmentation tags, employment type, contract from/to dates, compliance dates, internal comments, compensation rows for each work arrangement, and active or archived status. Documents are separate local document records linked to the employee by name.',
+        howItWorks: 'The Employees tab shows a compact employee table in the active role scope. The table displays the employee initials, name, department, role level, and employment type. Open setup items and contract end-date alerts are shown as an alert icon next to the employee name instead of as full-width messages. Hover or click the alert icon to review the notices in a small popover. Clicking a table row opens a tabbed employee record with Overview, Documents, Comments, and Archive / delete user sections. The employee edit form is organized into User info, Department and employment, Contract and compliance, and Compensation rows. The employee profile stores personal identity details, street address, post number, city, work email, phone number, private email, department and role level, segmentation tags, contract from/to dates, compliance dates, internal comments, compensation rows for each work arrangement, and active or archived status. The employee employment type is derived from the first compensation row. Documents are separate local document records linked to the employee by name.',
         userSteps: [
           'Open Employees, then open the Employees subtab.',
           'Use Department, Level, or Tags in the Filter employees bar to narrow the employee table.',
@@ -986,8 +1005,9 @@ const documentationSections = [
           'Use Overview, Documents, Comments, and Archive / delete user at the top of the sidebar to switch between employee details, stored documents, internal comments, and administrative status actions.',
           'Management and team leads can edit the profile from the sidebar and save the employee.',
           'In the employee form User info section, enter the full name, then Address, Post number, and City on one row, Personal ID / EMŠO and Tax number on one row, and Work email, Phone number, and Private email on one row.',
-          'Then enter department, role level, tags, employment type from Rules, start date, contract from and contract to dates, medical exam completion date, safety training completion and expiry dates, and compensation rows.',
+          'Then enter department, role level, tags, contract from and contract to dates, medical exam completion date, safety training completion and expiry dates, and compensation rows.',
           'Use Add row in Compensation rows to add another work arrangement. Select the employment type from the Rules list; the pay type and visible compensation fields follow that rule.',
+          'Open Documents, click Add document, enter the document title, choose or create a document type, complete the required document dates, and save the document record.',
           'Open Comments, enter an internal note, and click Add comment to store it on the employee record.',
           'Open Archive / delete user to archive an employee as inactive, restore an archived employee, or delete the employee and linked local records.',
         ],
@@ -1010,14 +1030,14 @@ const documentationSections = [
           'Open rule to-dos and contract end-date notices in the employee table appear only as an alert icon next to the employee name. The popover lists the exact missing setup items or contract date notice and stays visible only while the pointer is on the icon or popover.',
           'Contract end-date notices appear 14 days before the Contract to date in both the employee table alert popover and the employee record Work setup list. On the Contract to date and after it, the notice becomes a critical red notice stating that the contract ended.',
           'The role level is shown as a compact pill in the employee table. The employee record sidebar uses a separate Active or Inactive status pill.',
-          'The employee record sidebar uses a compact detail layout with smaller text, icons, avatar, rows, tabs, and spacing. It shows the employee summary, active or inactive status, role, department, employment type, start date, rule pay type, and segmentation tags.',
-          'The Overview tab identity table shows Address, Post number, City, EMŠO / Personal ID, Tax number, and Private email. Name, role, department, employment type, work email, phone number, start date, pay type, and segmentation tags stay in the employee record sidebar so the Overview tab does not duplicate sidebar data.',
+          'The employee record sidebar uses a compact detail layout with smaller text, icons, avatar, rows, tabs, and spacing. It shows the employee summary, active or inactive status, role, department, employment type, Contract from date, rule pay type, and segmentation tags.',
+          'The Overview tab identity table shows Address, Post number, City, EMŠO / Personal ID, Tax number, and Private email. Name, role, department, employment type, work email, phone number, Contract from date, pay type, and segmentation tags stay in the employee record sidebar so the Overview tab does not duplicate sidebar data.',
           'Address, Post number, City, Work email, Phone number, and Private email are optional fields stored directly on the employee record. Existing local employee records can remain blank until edited.',
           'For compatibility with older local records, the app still keeps a combined address value generated from Address, Post number, and City.',
           'The Overview tab Work setup list is a flat divided status list driven by the employee employment rule pay type. Monthly salary employees show the contract period and, when the rule requires them, Medical exam and Safety training details. Hourly rate and Project work employees show the contract period. Displayed employee record dates use day-month-year format.',
           'The Overview tab Compensation setup uses a flat divided table without an extra panel frame. It shows each compensation row by employment type, work types, cost details, and project period; on narrow screens the same fields stack with labels.',
           'The Contract and compliance form section is split into separate rows for Contract, Medical, and Safety training. Row controls align vertically so the Contract from field, Contract to field, and No end date button scan as one row.',
-          'The Contract row stores Contract from and Contract to dates. Turning on No end date clears Contract to, disables that date input, and saves the contract as indefinite. Turning the button off restores an editable Contract to date seeded from Contract from, the employee start date, or today.',
+          'The Contract row stores Contract from and Contract to dates. Contract from is also saved as the employee start date for employee table, sidebar, and older local records that still read the start field. Turning on No end date clears Contract to, disables that date input, and saves the contract as indefinite. Turning the button off restores an editable Contract to date seeded from Contract from, the employee start date, or today.',
           'Medical exam stores only the date the employee completed the exam in the Medical row. If the completed date is empty, the form shows a red inline warning with an alert icon under the date input.',
           'Safety training stores the completion date and the valid-until date in the Safety training row. If the completed date is empty, the form shows a red inline warning with an alert icon under the completed date input.',
           'The Comments tab stores internal employee comments with comment text, author, and local date. Operations users can view comments but the comment input and Add comment button are disabled for them.',
@@ -1025,7 +1045,13 @@ const documentationSections = [
           'Archived employees remain visible in the employee list and sidebar with an Inactive status.',
           'Archiving an employee stops that employee\'s active timer if one is running.',
           'The Documents tab lists local document records linked by employee name. It is intended for contracts, annexes, medical certificates, safety certificates, and other important employee files.',
-          'If the employee has no linked documents, the Documents tab shows No documents stored and explains that contracts, annexes, certificates, and other important files will appear after they are added to local document records.',
+          'Management and team leads can add document records from the Documents tab. Operations users can view documents but cannot add or delete them.',
+          'Each document record stores title, employee name, document type, document date, start date, valid-until date, and status. The visible date fields depend on the selected document type rule.',
+          'Document type can be selected from existing Rules records or created from the employee Documents form. A newly created type is added to the same Document type tags library in Rules.',
+          'If the selected document type requires Document date, Start date, or Valid until, that date must be completed before saving the document. Start date cannot be after Valid until.',
+          'Document status is Valid when Valid until is today or later, Expired when Valid until is before today, and Stored locally when no Valid until date is saved.',
+          'Deleting a document asks for confirmation: Are you sure you want to delete this document record?',
+          'If the employee has no linked documents, the Documents tab shows No documents stored and explains that contracts, annexes, certificates, and other important employee files will appear here once they are added to the local document records.',
           'Team lead assignments are stored on employee records as leadDepartments and are available in the employee record, but the compact Employees table does not show lead department details.',
           'Operations users cannot add employees. The Add employee button remains visible in the Employees tab but is disabled for Operations users.',
           'Employee tags can be selected only from the active Settings tag library.',
@@ -1035,10 +1061,10 @@ const documentationSections = [
           'Deleting an employee asks for confirmation: Are you sure you want to delete this employee and all linked local records?',
           'Deleting an employee removes linked local time entries, documents, correction records, active unlock windows, matching employee table filters, and any active timer for that employee.',
           'Compensation rows are stored on the employee profile. Each row selects an employment type from Rules. Monthly salary and Hourly rate rows can be mapped to one or more Time Management work types.',
-          'The first compensation row is treated as the primary employment type. Changing the profile Employment type updates that first row, and changing the first row Employment type updates the profile Employment type.',
-          'The employee table Employment type column shows the primary employee profile employment type selected from Rules.',
+          'The first compensation row is treated as the primary employment type.',
+          'The employee table Employment type column shows the employment type from the first compensation row.',
           'When an employee has more than one non-project compensation row, every non-project row must have at least one applicable work type selected so the app knows which cost applies to each entry.',
-          'Monthly salary compensation rows let users enter gross salary, gross gross cost, meal allowance, transport allowance, and an optional note. Monthly hours are calculated automatically from the current month working days.',
+          'Monthly salary compensation rows let users enter gross salary, meal allowance, transport allowance, gross gross cost, and an optional note. Monthly hours are calculated automatically from the current month working days for cost calculations but are not shown in the employee form.',
           'Hourly rate rows show hourly rate, meal allowance, transport allowance, and note fields. Meal and transport values can be 0.',
           'Project work rows show project name, Project from, Project to, project value, and note fields. Project work applies to all paid work types for time tracking and does not use a work type selector. Project name and a valid date range are required. At least one row remains in the form.',
           'The selected employment type is matched to the Rules subtab and controls which compensation fields are shown in the employee form.',
@@ -1048,7 +1074,7 @@ const documentationSections = [
         ],
         metrics: [
           'People visible = count(people in active role scope where department filter matches and level filter matches and every selected tag is present)',
-          'Documents metric = Σ person.docs for filtered visible people, where person.docs is refreshed from local document records linked by employee name when the employee is saved',
+          'Documents metric = Σ person.docs for filtered visible people, where person.docs is refreshed from local document records linked by employee name when the employee is saved or when an employee document is added or deleted',
           'Employee record Documents count = count(local document records linked to the employee name)',
           'The employee table does not display employee cost. Employee cost is still calculated in the employee record and analytics views from visible paid time entries and employee compensation rows.',
           'Monthly salary employee cost = Σ entry.hours × ((grossGrossCost + mealAllowance + transportAllowance) / max(monthlyWorkingDays × 8, 1)) for entries mapped to a monthly row',
@@ -1057,8 +1083,8 @@ const documentationSections = [
         ],
       },
       {
-        name: 'Employment rules',
-        howItWorks: 'The Rules subtab under Employees stores employment type rules. Each rule has a user-defined employment type name, a cost method, optional employee requirements, and an automatic employee card field set.',
+        name: 'Employee rules',
+        howItWorks: 'The Rules subtab under Employees stores employment type rules and document type tags. Employment rules define employee cost method, required employee to-dos, and employee card fields. Document type tags define which date fields are required when users add employee documents.',
         userSteps: [
           'Open Employees, then open the Rules subtab.',
           'Click Add employment type.',
@@ -1066,20 +1092,30 @@ const documentationSections = [
           'Choose Monthly salary, Project work, or Hourly rate as the cost method.',
           'Select whether the rule requires an employment contract, medical exam, and safety training.',
           'Save the rule, then assign that employment type on an employee profile.',
+          'To configure document types, click Add document type.',
+          'Enter the document type name and select whether that type requires Document date, Start date, or Valid until date.',
+          'Save the document type, then select it when adding documents in an employee record.',
         ],
         specifics: [
           'Rules are hidden for Operations users.',
           'Employment type names are required and must be unique.',
+          'Document type names are required and must be unique.',
           'Monthly salary defaults to requiring employment contract, medical exam, and safety training.',
           'Project work and Hourly rate default to requiring an employment contract only, but medical exam and safety training can be enabled manually.',
           'Rules assigned to employees cannot be deleted.',
           'Deleting an unassigned rule asks for confirmation: Are you sure you want to delete this employment rule?',
           'Renaming a rule updates employees that used the old employment type name.',
+          'Document types already used by documents cannot be deleted.',
+          'Deleting an unused document type asks for confirmation: Are you sure you want to delete this document type?',
+          'Renaming a document type updates existing document records that used the old type name.',
+          'Document type date requirements control the date fields and validation in the employee record Documents tab.',
           'Rule requirements create employee to-dos; this prototype does not block saving an employee when a to-do is open.',
           'If no rules exist, the empty state says: No employment rules have been configured.',
+          'If no document types exist, the empty state says: No document types have been configured.',
         ],
         metrics: [
           'Employees on a rule card = count(visible people where person.employment matches the rule name)',
+          'Documents on a document type card = count(local document records where document.type matches the document type name)',
           'Monthly salary cost = Σ entry.hours × ((grossGrossCost + mealAllowance + transportAllowance) / max(monthlyWorkingDays × 8, 1)) for entries mapped to a monthly compensation row',
           'Hourly rate cost = Σ entry.hours × hourlyRate for entries mapped to an hourly compensation row + mealAllowance + transportAllowance once for each matched hourly row',
           'Project work cost = Σ ((projectValue / project calendar days) × unique visible paid-entry dates inside the project active date range)',
@@ -1203,7 +1239,7 @@ const documentationSections = [
     features: [
       {
         name: 'Local browser storage',
-        howItWorks: 'The prototype stores app state in browser localStorage so the current role, role preview users, last tab fallback, employees, entries, corrections, settings, tags, documents, filters, and active timer can persist across reloads.',
+        howItWorks: 'The prototype stores app state in browser localStorage so the current role, role preview users, last tab fallback, employees, entries, corrections, settings, tags, employment rules, document type rules, documents, filters, and active timer can persist across reloads.',
         userSteps: [
           'Use the app normally.',
           'Reload the browser.',
@@ -1897,6 +1933,7 @@ function App() {
   const [leadTypes, setLeadTypes] = useState(() => normalizeWorkTypeDepartments(stored.leadTypes || leadSettingsWorkTypes, initialDepartmentItems));
   const [tagItems, setTagItems] = useState(initialTagItems);
   const [employmentRuleItems, setEmploymentRuleItems] = useState(() => normalizeEmploymentRules(stored.employmentRuleItems || employmentRules));
+  const [documentTypeItems, setDocumentTypeItems] = useState(() => normalizeDocumentTypeRules(stored.documentTypeItems || documentTypeRules));
   const [entryModal, setEntryModal] = useState(null);
   const [employeeModal, setEmployeeModal] = useState(null);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
@@ -1959,8 +1996,9 @@ function App() {
       leadTypes,
       tagItems,
       employmentRuleItems,
+      documentTypeItems,
     });
-  }, [role, rolePeople, tab, employees, entries, documents, corrections, selectedWorkType, tableFilters, activeSession, wfh, lunch, currentCorrectionWindows, departmentItems, managementTypes, leadTypes, tagItems, employmentRuleItems]);
+  }, [role, rolePeople, tab, employees, entries, documents, corrections, selectedWorkType, tableFilters, activeSession, wfh, lunch, currentCorrectionWindows, departmentItems, managementTypes, leadTypes, tagItems, employmentRuleItems, documentTypeItems]);
 
   useEffect(() => {
     const routeTab = tabFromLocation(stored.tab);
@@ -2498,6 +2536,7 @@ function App() {
       .reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
     const linkedDocs = documents.filter((document) => document.employee === linkedName).length;
     const contractStartDate = form.contractStartDate || form.start;
+    const startDate = contractStartDate || TODAY;
     const contractEndDate = form.contractEndDate || '';
     const compensationRows = employeeCompensationRows({ ...form, cost: Number(form.cost) || 0 });
     const primaryEmployment = compensationRows[0]?.employmentType || form.employment.trim() || 'Not specified';
@@ -2516,10 +2555,10 @@ function App() {
       phone: form.phone.trim(),
       privateEmail: form.privateEmail.trim(),
       employment: primaryEmployment,
-      start: form.start,
+      start: startDate,
       contractStartDate,
       contractEndDate,
-      contract: contractPeriodLabel({ contractStartDate, contractEndDate, start: form.start }),
+      contract: contractPeriodLabel({ contractStartDate, contractEndDate, start: startDate }),
       contractValidity: contractEndDate,
       medicalExamDate: form.medicalExamDate,
       medicalValidUntil: '',
@@ -2636,6 +2675,79 @@ function App() {
         : person
     )));
     showToast(`Comment added for ${employee.name}`);
+  }
+
+  function saveEmployeeDocument(employee, form) {
+    if (!canEditPeople) {
+      showToast('Operations cannot add employee documents');
+      return false;
+    }
+    const title = form.title.trim();
+    const typeName = form.typeName.trim();
+    if (!title) {
+      showToast('Document title is required');
+      return false;
+    }
+    if (!typeName) {
+      showToast('Document type is required');
+      return false;
+    }
+    const typeRule = documentTypeItems.find((item) => item.name.toLowerCase() === typeName.toLowerCase()) || {
+      id: Date.now(),
+      name: typeName,
+      requiresDocumentDate: Boolean(form.requiresDocumentDate),
+      requiresStartDate: Boolean(form.requiresStartDate),
+      requiresEndDate: Boolean(form.requiresEndDate),
+    };
+    if (typeRule.requiresDocumentDate && !form.documentDate) {
+      showToast('Document date is required');
+      return false;
+    }
+    if (typeRule.requiresStartDate && !form.startDate) {
+      showToast('Start date is required');
+      return false;
+    }
+    if (typeRule.requiresEndDate && !form.endDate) {
+      showToast('Valid until date is required');
+      return false;
+    }
+    if (form.startDate && form.endDate && form.startDate > form.endDate) {
+      showToast('Start date cannot be after valid until date');
+      return false;
+    }
+    if (!documentTypeItems.some((item) => item.name.toLowerCase() === typeRule.name.toLowerCase())) {
+      setDocumentTypeItems((items) => [typeRule, ...items]);
+    }
+    const nextDocument = {
+      id: Date.now(),
+      employee: employee.name,
+      title,
+      type: typeRule.name,
+      date: form.documentDate || form.startDate || form.endDate || localDate(),
+      documentDate: form.documentDate,
+      startDate: form.startDate,
+      endDate: form.endDate,
+      status: form.endDate ? (form.endDate < TODAY ? 'Expired' : 'Valid') : 'Stored locally',
+    };
+    setDocuments((items) => [nextDocument, ...items]);
+    setEmployees((items) => items.map((person) => (
+      person.id === employee.id ? { ...person, docs: documents.filter((document) => document.employee === employee.name).length + 1 } : person
+    )));
+    showToast(`${nextDocument.title} added for ${employee.name}`);
+    return true;
+  }
+
+  function deleteEmployeeDocument(document) {
+    if (!canEditPeople) {
+      showToast('Operations cannot delete employee documents');
+      return;
+    }
+    if (!window.confirm('Are you sure you want to delete this document record?')) return;
+    setDocuments((items) => items.filter((item) => item.id !== document.id));
+    setEmployees((items) => items.map((person) => (
+      person.name === document.employee ? { ...person, docs: Math.max(0, documents.filter((item) => item.employee === document.employee).length - 1) } : person
+    )));
+    showToast(`${document.title} deleted`);
   }
 
   function archiveEmployee(employee) {
@@ -2971,12 +3083,12 @@ function App() {
 
   function addEmploymentRule() {
     if (!canManageSettings) return;
-    setRuleModal({ mode: 'add' });
+    setRuleModal({ mode: 'add', type: 'employment' });
   }
 
   function editEmploymentRule(rule) {
     if (!canManageSettings) return;
-    setRuleModal({ mode: 'edit', rule });
+    setRuleModal({ mode: 'edit', type: 'employment', rule });
   }
 
   function saveEmploymentRule(form) {
@@ -3025,6 +3137,63 @@ function App() {
     const confirmed = window.confirm('Are you sure you want to delete this employment rule?');
     if (!confirmed) return;
     setEmploymentRuleItems((items) => items.filter((item) => item.id !== rule.id));
+    showToast(`${rule.name} deleted`);
+  }
+
+  function addDocumentTypeRule() {
+    if (!canManageSettings) return;
+    setRuleModal({ mode: 'add', type: 'document' });
+  }
+
+  function editDocumentTypeRule(rule) {
+    if (!canManageSettings) return;
+    setRuleModal({ mode: 'edit', type: 'document', rule });
+  }
+
+  function saveDocumentTypeRule(form) {
+    if (!canManageSettings) return;
+    const name = form.name.trim();
+    if (!name) {
+      showToast('Document type name is required');
+      return;
+    }
+    const duplicate = documentTypeItems.some((rule) => rule.id !== form.id && rule.name.toLowerCase() === name.toLowerCase());
+    if (duplicate) {
+      showToast('Document type name must be unique');
+      return;
+    }
+    const next = {
+      id: form.id || Date.now(),
+      name,
+      requiresDocumentDate: Boolean(form.requiresDocumentDate),
+      requiresStartDate: Boolean(form.requiresStartDate),
+      requiresEndDate: Boolean(form.requiresEndDate),
+    };
+    const previousName = form.originalName;
+    setDocumentTypeItems((items) => (
+      form.id
+        ? items.map((rule) => (rule.id === form.id ? next : rule))
+        : [next, ...items]
+    ));
+    if (previousName && previousName !== next.name) {
+      setDocuments((items) => items.map((document) => (
+        document.type === previousName ? { ...document, type: next.name } : document
+      )));
+    }
+    setRuleModal(null);
+    showToast(`${next.name} ${form.id ? 'updated' : 'added'}`);
+  }
+
+  function deleteDocumentTypeRule(rule) {
+    if (!canManageSettings) return;
+    const documentsUsingRule = documents.filter((document) => document.type === rule.name).length;
+    if (documentsUsingRule > 0) {
+      showToast('Document types used by documents cannot be deleted');
+      return;
+    }
+    const confirmed = window.confirm('Are you sure you want to delete this document type?');
+    if (!confirmed) return;
+    setDocumentTypeItems((items) => items.filter((item) => item.id !== rule.id));
     showToast(`${rule.name} deleted`);
   }
 
@@ -3223,6 +3392,7 @@ function App() {
             departmentItems={departmentItems}
             tagItems={tagItems}
             employmentRules={employmentRuleItems}
+            documentTypes={documentTypeItems}
             totals={totals}
             selectedEmployeeId={selectedEmployeeId}
             onAddEmployee={addEmployee}
@@ -3236,6 +3406,9 @@ function App() {
             onAddEmploymentRule={addEmploymentRule}
             onEditEmploymentRule={editEmploymentRule}
             onDeleteEmploymentRule={deleteEmploymentRule}
+            onAddDocumentTypeRule={addDocumentTypeRule}
+            onEditDocumentTypeRule={editDocumentTypeRule}
+            onDeleteDocumentTypeRule={deleteDocumentTypeRule}
           />
         )}
         {tab === 'documentation' && <DocumentationView sections={documentationSections} />}
@@ -3247,10 +3420,13 @@ function App() {
           entries={entries}
           corrections={corrections}
           employmentRules={employmentRuleItems}
+          documentTypes={documentTypeItems}
           canEditPeople={canEditPeople}
           onClose={() => setSelectedEmployeeId(null)}
           onEditEmployee={editEmployee}
           onAddComment={addEmployeeComment}
+          onAddDocument={saveEmployeeDocument}
+          onDeleteDocument={deleteEmployeeDocument}
           onArchiveEmployee={archiveEmployee}
           onRestoreEmployee={restoreEmployee}
           onDeleteEmployee={deleteEmployee}
@@ -3319,13 +3495,22 @@ function App() {
           onSaveTag={saveTag}
         />
       )}
-      {ruleModal && role !== 'operations' && (
+      {ruleModal?.type === 'employment' && role !== 'operations' && (
         <EmploymentRuleModal
           mode={ruleModal.mode}
           rule={ruleModal.rule}
           existingRules={employmentRuleItems}
           onClose={() => setRuleModal(null)}
           onSave={saveEmploymentRule}
+        />
+      )}
+      {ruleModal?.type === 'document' && role !== 'operations' && (
+        <DocumentTypeRuleModal
+          mode={ruleModal.mode}
+          rule={ruleModal.rule}
+          existingRules={documentTypeItems}
+          onClose={() => setRuleModal(null)}
+          onSave={saveDocumentTypeRule}
         />
       )}
       {toast && <button className="toast" onClick={() => setToast('')}>{toast}</button>}
@@ -3840,6 +4025,7 @@ function HrView({
   departmentItems,
   tagItems,
   employmentRules,
+  documentTypes,
   totals,
   selectedEmployeeId,
   onAddEmployee,
@@ -3853,6 +4039,9 @@ function HrView({
   onAddEmploymentRule,
   onEditEmploymentRule,
   onDeleteEmploymentRule,
+  onAddDocumentTypeRule,
+  onEditDocumentTypeRule,
+  onDeleteDocumentTypeRule,
 }) {
   const [employeeFilters, setEmployeeFilters] = useState({ department: 'All departments', level: 'All levels', tags: [] });
   const scopedTags = useMemo(() => (
@@ -4033,11 +4222,16 @@ function HrView({
       {section === 'rules' && role !== 'operations' && (
         <EmploymentRulesView
           rules={employmentRules}
+          documentTypes={documentTypes}
           people={people}
+          documents={documents}
           canManageRules={canManageSettings}
           onAddRule={onAddEmploymentRule}
           onEditRule={onEditEmploymentRule}
           onDeleteRule={onDeleteEmploymentRule}
+          onAddDocumentType={onAddDocumentTypeRule}
+          onEditDocumentType={onEditDocumentTypeRule}
+          onDeleteDocumentType={onDeleteDocumentTypeRule}
         />
       )}
 
@@ -4056,19 +4250,37 @@ function HrView({
   );
 }
 
-function EmploymentRulesView({ rules, people, canManageRules, onAddRule, onEditRule, onDeleteRule }) {
+function EmploymentRulesView({
+  rules,
+  documentTypes,
+  people,
+  documents,
+  canManageRules,
+  onAddRule,
+  onEditRule,
+  onDeleteRule,
+  onAddDocumentType,
+  onEditDocumentType,
+  onDeleteDocumentType,
+}) {
   return (
     <section className="primary-panel employment-rules-panel">
       <div className="panel-heading">
         <div>
           <span className="eyebrow">Rules</span>
-          <h2>Employment type rules</h2>
+          <h2>Employee rules</h2>
         </div>
-        <button className="soft-btn" disabled={!canManageRules} onClick={onAddRule}><Plus size={17} /> Add employment type</button>
       </div>
       <div className="settings-tag-note employee-admin-note">
         <ListChecks size={16} />
-        <span>Employment rules define the cost formula, required employee to-dos, and which fields appear on employee cards.</span>
+        <span>Rules define employment cost logic and document type date requirements used on employee records.</span>
+      </div>
+      <div className="rules-section-head">
+        <div>
+          <h3>Employment type rules</h3>
+          <p>Cost formula, required employee to-dos, and employee card fields.</p>
+        </div>
+        <button className="soft-btn" disabled={!canManageRules} onClick={onAddRule}><Plus size={17} /> Add employment type</button>
       </div>
       <div className="employment-rule-list">
         {rules.map((rule) => {
@@ -4102,6 +4314,45 @@ function EmploymentRulesView({ rules, people, canManageRules, onAddRule, onEditR
           );
         })}
         {rules.length === 0 && <span className="empty-state">No employment rules have been configured.</span>}
+      </div>
+      <div className="rules-section-head">
+        <div>
+          <h3>Document type tags</h3>
+          <p>Date fields required when a document is added to an employee record.</p>
+        </div>
+        <button className="soft-btn" disabled={!canManageRules} onClick={onAddDocumentType}><Plus size={17} /> Add document type</button>
+      </div>
+      <div className="employment-rule-list">
+        {documentTypes.map((rule) => {
+          const linkedDocuments = documents.filter((document) => document.type === rule.name);
+          const requirements = [
+            rule.requiresDocumentDate && 'Document date',
+            rule.requiresStartDate && 'Start date',
+            rule.requiresEndDate && 'Valid until',
+          ].filter(Boolean);
+          return (
+            <article className="employment-rule-card" key={rule.id}>
+              <div className="employment-rule-main">
+                <div>
+                  <strong>{rule.name}</strong>
+                  <span>{linkedDocuments.length} documents</span>
+                </div>
+                <div className="rule-chip-row">
+                  {requirements.length > 0
+                    ? requirements.map((requirement) => <small key={requirement}>{requirement}</small>)
+                    : <small>No required dates</small>}
+                </div>
+              </div>
+              {canManageRules && (
+                <span className="settings-row-actions">
+                  <button className="icon-btn table-action" onClick={() => onEditDocumentType(rule)} aria-label={`Edit ${rule.name}`}><Pencil size={16} /></button>
+                  <button className="icon-btn table-action danger" onClick={() => onDeleteDocumentType(rule)} aria-label={`Delete ${rule.name}`}><Trash2 size={16} /></button>
+                </span>
+              )}
+            </article>
+          );
+        })}
+        {documentTypes.length === 0 && <span className="empty-state">No document types have been configured.</span>}
       </div>
     </section>
   );
@@ -4250,22 +4501,55 @@ function EmployeeRecordSidebar({
   entries,
   corrections,
   employmentRules,
+  documentTypes,
   canEditPeople,
   onClose,
   onEditEmployee,
   onAddComment,
+  onAddDocument,
+  onDeleteDocument,
   onArchiveEmployee,
   onRestoreEmployee,
   onDeleteEmployee,
 }) {
   const [activeRecordTab, setActiveRecordTab] = useState('overview');
   const [commentText, setCommentText] = useState('');
+  const [documentFormOpen, setDocumentFormOpen] = useState(false);
+  const [documentForm, setDocumentForm] = useState({
+    title: '',
+    typeName: documentTypes[0]?.name || '',
+    newTypeName: '',
+    documentDate: localDate(),
+    startDate: '',
+    endDate: '',
+    requiresDocumentDate: true,
+    requiresStartDate: false,
+    requiresEndDate: false,
+  });
   const employeeDocuments = documents.filter((document) => document.employee === employee.name);
   const employeeComments = Array.isArray(employee.comments) ? employee.comments : [];
   const employmentRule = findEmploymentRule(employee, employmentRules);
   const compensationRows = employeeCompensationRows(employee);
   const requirementItems = employeeRequirementItems(employee, employmentRules);
   const archived = isArchivedEmployee(employee);
+  const selectedDocumentType = documentTypes.find((type) => type.name === documentForm.typeName);
+  const creatingDocumentType = documentForm.typeName === NEW_DOCUMENT_TYPE;
+  const activeDocumentType = creatingDocumentType
+    ? {
+        name: documentForm.newTypeName,
+        requiresDocumentDate: documentForm.requiresDocumentDate,
+        requiresStartDate: documentForm.requiresStartDate,
+        requiresEndDate: documentForm.requiresEndDate,
+      }
+    : selectedDocumentType;
+  const documentTypeOptions = [
+    ...documentTypes.map((type) => ({ name: type.name, meta: [
+      type.requiresDocumentDate && 'Document date',
+      type.requiresStartDate && 'Start date',
+      type.requiresEndDate && 'Valid until',
+    ].filter(Boolean).join(', ') || 'No required dates' })),
+    { name: NEW_DOCUMENT_TYPE, meta: 'Add to Rules' },
+  ];
   const recordTabs = [
     { id: 'overview', label: 'Overview', icon: BriefcaseBusiness },
     { id: 'documents', label: 'Documents', icon: FileText },
@@ -4276,6 +4560,41 @@ function EmployeeRecordSidebar({
   function submitComment() {
     onAddComment(employee, commentText);
     setCommentText('');
+  }
+
+  function updateDocumentForm(field, value) {
+    setDocumentForm((current) => ({
+      ...current,
+      [field]: value,
+      ...(field === 'typeName' && value !== NEW_DOCUMENT_TYPE
+        ? { newTypeName: '' }
+        : {}),
+    }));
+  }
+
+  function submitDocument() {
+    const typeName = creatingDocumentType ? documentForm.newTypeName : documentForm.typeName;
+    const saved = onAddDocument(employee, {
+      ...documentForm,
+      typeName,
+      requiresDocumentDate: Boolean(activeDocumentType?.requiresDocumentDate),
+      requiresStartDate: Boolean(activeDocumentType?.requiresStartDate),
+      requiresEndDate: Boolean(activeDocumentType?.requiresEndDate),
+    });
+    if (!saved) return;
+    setDocumentForm((current) => ({
+      ...current,
+      title: '',
+      typeName: documentTypes[0]?.name || '',
+      newTypeName: '',
+      documentDate: localDate(),
+      startDate: '',
+      endDate: '',
+      requiresDocumentDate: true,
+      requiresStartDate: false,
+      requiresEndDate: false,
+    }));
+    setDocumentFormOpen(false);
   }
 
   return (
@@ -4301,7 +4620,7 @@ function EmployeeRecordSidebar({
               <EmployeeFact icon={UsersRound} label="Employment" value={employee.employment} />
               <EmployeeFact icon={Mail} label="Work email" value={compactValue(employee.email)} />
               <EmployeeFact icon={Phone} label="Phone" value={compactValue(employee.phone)} />
-              <EmployeeFact icon={CalendarClock} label="Start date" value={displayDate(employee.start)} />
+              <EmployeeFact icon={CalendarClock} label="Contract from" value={displayDate(employee.contractStartDate || employee.start)} />
               <EmployeeFact icon={CircleDollarSign} label="Pay type" value={employmentRule?.payType || 'No rule'} />
             </div>
             <div className="employee-record-divider" />
@@ -4397,18 +4716,88 @@ function EmployeeRecordSidebar({
             )}
             {activeRecordTab === 'documents' && (
               <div className="employee-overview-card">
-                <div className="overview-title">
-                  <span><FileText size={19} /></span>
-                  <h3>Employee documents</h3>
+                <div className="overview-title document-title-row">
+                  <div>
+                    <span><FileText size={19} /></span>
+                    <h3>Employee documents</h3>
+                  </div>
+                  <button className="soft-btn compact-action" disabled={!canEditPeople} onClick={() => setDocumentFormOpen((open) => !open)} type="button">
+                    <Plus size={16} /> Add document
+                  </button>
                 </div>
+                {documentFormOpen && (
+                  <div className="employee-document-form">
+                    <label className="field document-title-field">
+                      <span>Document title</span>
+                      <input value={documentForm.title} onChange={(event) => updateDocumentForm('title', event.target.value)} placeholder="Employment contract, annex, certificate..." />
+                    </label>
+                    <label className="field">
+                      <span>Document type</span>
+                      <SimpleDropdown value={documentForm.typeName} options={documentTypeOptions} onChange={(value) => updateDocumentForm('typeName', value)} />
+                    </label>
+                    {creatingDocumentType && (
+                      <>
+                        <label className="field document-title-field">
+                          <span>New document type name</span>
+                          <input value={documentForm.newTypeName} onChange={(event) => updateDocumentForm('newTypeName', event.target.value)} placeholder="Document type name" />
+                        </label>
+                        <div className="document-date-rules">
+                          <label className="toggle-line">
+                            <input type="checkbox" checked={documentForm.requiresDocumentDate} onChange={(event) => updateDocumentForm('requiresDocumentDate', event.target.checked)} />
+                            <span>Requires document date</span>
+                          </label>
+                          <label className="toggle-line">
+                            <input type="checkbox" checked={documentForm.requiresStartDate} onChange={(event) => updateDocumentForm('requiresStartDate', event.target.checked)} />
+                            <span>Requires start date</span>
+                          </label>
+                          <label className="toggle-line">
+                            <input type="checkbox" checked={documentForm.requiresEndDate} onChange={(event) => updateDocumentForm('requiresEndDate', event.target.checked)} />
+                            <span>Requires valid until</span>
+                          </label>
+                        </div>
+                      </>
+                    )}
+                    {activeDocumentType?.requiresDocumentDate && (
+                      <label className="field">
+                        <span>Document date</span>
+                        <input type="date" value={documentForm.documentDate} onInput={(event) => updateDocumentForm('documentDate', event.target.value)} onChange={(event) => updateDocumentForm('documentDate', event.target.value)} />
+                      </label>
+                    )}
+                    {activeDocumentType?.requiresStartDate && (
+                      <label className="field">
+                        <span>Start date</span>
+                        <input type="date" value={documentForm.startDate} onInput={(event) => updateDocumentForm('startDate', event.target.value)} onChange={(event) => updateDocumentForm('startDate', event.target.value)} />
+                      </label>
+                    )}
+                    {activeDocumentType?.requiresEndDate && (
+                      <label className="field">
+                        <span>Valid until</span>
+                        <input type="date" value={documentForm.endDate} onInput={(event) => updateDocumentForm('endDate', event.target.value)} onChange={(event) => updateDocumentForm('endDate', event.target.value)} />
+                      </label>
+                    )}
+                    <div className="employee-document-form-actions">
+                      <button className="soft-btn" type="button" onClick={() => setDocumentFormOpen(false)}>Cancel</button>
+                      <button className="primary-btn" type="button" onClick={submitDocument}>Save document</button>
+                    </div>
+                  </div>
+                )}
                 <div className="employee-record-list">
                   {employeeDocuments.map((document) => (
                     <div className="employee-record-list-item" key={document.id}>
                       <FileText size={20} />
                       <div>
                         <strong>{document.title}</strong>
-                        <span>{document.type} · {displayDate(document.date)} · {document.status}</span>
+                        <span>
+                          {document.type}
+                          {document.documentDate || document.date ? ` · Document ${displayDate(document.documentDate || document.date)}` : ''}
+                          {document.startDate ? ` · From ${displayDate(document.startDate)}` : ''}
+                          {document.endDate ? ` · Valid until ${displayDate(document.endDate)}` : ''}
+                          {` · ${document.status}`}
+                        </span>
                       </div>
+                      {canEditPeople && (
+                        <button className="icon-btn table-action danger" onClick={() => onDeleteDocument(document)} aria-label={`Delete ${document.title}`}><Trash2 size={16} /></button>
+                      )}
                     </div>
                   ))}
                   {employeeDocuments.length === 0 && (
@@ -4524,7 +4913,6 @@ function EmployeeModal({ mode, employee, role, primaryLeadDepartment, employees,
   );
   const levelOptions = ['Operations', 'Team Lead', ...(role === 'management' ? ['Management'] : [])].map((level) => ({ name: level }));
   const normalizedEmploymentRules = normalizeEmploymentRules(employmentRules);
-  const employmentOptions = normalizedEmploymentRules.map((rule) => ({ name: rule.name, meta: rule.payType }));
   const defaultDepartment = employee?.department || (role === 'lead' ? primaryLeadDepartment : availableDepartments[0] || '');
   const initialContractEnd = employee?.contractEndDate || firstIsoDate(employee?.contractValidity || employee?.contract);
   const initialAddressParts = employeeAddressParts(employee || {});
@@ -4730,7 +5118,7 @@ function EmployeeModal({ mode, employee, role, primaryLeadDepartment, employees,
           <section className="employee-form-section">
             <div className="employee-form-section-head">
               <h3>Department and employment</h3>
-              <p>Role scope, department assignment, employment type, and tags.</p>
+              <p>Role scope, department assignment, and tags.</p>
             </div>
             <div className="modal-grid">
               <label className="field">
@@ -4744,14 +5132,6 @@ function EmployeeModal({ mode, employee, role, primaryLeadDepartment, employees,
                 ) : (
                   <SimpleDropdown value={form.department} options={availableDepartments.map((name) => ({ name }))} onChange={(value) => update('department', value)} />
                 )}
-              </label>
-              <label className="field">
-                <span>Employment type</span>
-                <SimpleDropdown value={form.employment} options={employmentOptions} onChange={(value) => update('employment', value)} />
-              </label>
-              <label className="field">
-                <span>Start date</span>
-                <input type="date" value={form.start} max={TODAY} onInput={(event) => update('start', event.target.value)} onChange={(event) => update('start', event.target.value)} />
               </label>
               <label className="field modal-note">
                 <span>Tags</span>
@@ -4856,11 +5236,11 @@ function EmployeeModal({ mode, employee, role, primaryLeadDepartment, employees,
               const hourly = row.payType === PAY_TYPE_HOURLY;
               return (
                 <div className="compensation-editor-row" key={row.id}>
-                  <label className="field">
+                  <label className="field compensation-employment-field">
                     <span>Employment type</span>
                     <SimpleDropdown value={row.employmentType} options={compensationEmploymentOptions} onChange={(value) => updateCompensationRow(row.id, 'employmentType', value)} />
                   </label>
-                  <div className="derived-field compact">
+                  <div className="derived-field compact compensation-paytype-field">
                     <span>Pay type</span>
                     <strong>{row.payType}</strong>
                   </div>
@@ -4882,26 +5262,22 @@ function EmployeeModal({ mode, employee, role, primaryLeadDepartment, employees,
                   )}
                   {monthly && (
                     <>
-                      <label className="field">
+                      <label className="field compensation-gross-salary-field">
                         <span>Gross salary</span>
                         <input type="number" min="0" value={row.grossSalary} onChange={(event) => updateCompensationRow(row.id, 'grossSalary', event.target.value)} />
                       </label>
-                      <label className="field">
+                      <label className="field compensation-gross-gross-field">
                         <span>Gross gross cost</span>
                         <input type="number" min="0" value={row.grossGrossCost} onChange={(event) => updateCompensationRow(row.id, 'grossGrossCost', event.target.value)} />
                       </label>
-                      <label className="field">
+                      <label className="field compensation-meal-field">
                         <span>Meal allowance</span>
                         <input type="number" min="0" value={row.mealAllowance} onChange={(event) => updateCompensationRow(row.id, 'mealAllowance', event.target.value)} />
                       </label>
-                      <label className="field">
+                      <label className="field compensation-transport-field">
                         <span>Transport allowance</span>
                         <input type="number" min="0" value={row.transportAllowance} onChange={(event) => updateCompensationRow(row.id, 'transportAllowance', event.target.value)} />
                       </label>
-                      <div className="derived-field compact">
-                        <span>Monthly hours</span>
-                        <strong>{monthlyWorkingHours(row)} h</strong>
-                      </div>
                     </>
                   )}
                   {hourly && (
@@ -5055,6 +5431,69 @@ function EmploymentRuleModal({ mode, rule, existingRules, onClose, onSave }) {
         <div className="modal-actions">
           <button className="soft-btn" onClick={onClose}>Cancel</button>
           <button className="primary-btn" disabled={!canSave} onClick={() => onSave(form)}>{editing ? 'Save rule' : 'Add rule'}</button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function DocumentTypeRuleModal({ mode, rule, existingRules, onClose, onSave }) {
+  const editing = mode === 'edit';
+  const [form, setForm] = useState({
+    id: rule?.id,
+    originalName: rule?.name || '',
+    name: rule?.name || '',
+    requiresDocumentDate: rule?.requiresDocumentDate ?? true,
+    requiresStartDate: rule?.requiresStartDate ?? false,
+    requiresEndDate: rule?.requiresEndDate ?? false,
+  });
+  const duplicateName = existingRules.some((item) => item.id !== form.id && item.name.toLowerCase() === form.name.trim().toLowerCase());
+  const canSave = Boolean(form.name.trim()) && !duplicateName;
+
+  function update(field, value) {
+    setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  return (
+    <div className="modal-backdrop" onClick={(event) => event.target === event.currentTarget && onClose()}>
+      <section className="entry-modal rule-modal" role="dialog" aria-modal="true">
+        <div className="modal-head">
+          <div>
+            <h2>{editing ? 'Edit document type' : 'Add document type'}</h2>
+            <p>Define which dates are required when this document type is added to an employee record.</p>
+          </div>
+          <button className="icon-btn" onClick={onClose} aria-label="Close"><X size={16} /></button>
+        </div>
+        <div className="modal-grid">
+          <label className="field modal-note">
+            <span>Document type name</span>
+            <input value={form.name} onChange={(event) => update('name', event.target.value)} placeholder="Contract, annex, medical certificate..." />
+          </label>
+          <label className="toggle-line">
+            <input type="checkbox" checked={form.requiresDocumentDate} onChange={(event) => update('requiresDocumentDate', event.target.checked)} />
+            <span>Requires document date</span>
+          </label>
+          <label className="toggle-line">
+            <input type="checkbox" checked={form.requiresStartDate} onChange={(event) => update('requiresStartDate', event.target.checked)} />
+            <span>Requires start date</span>
+          </label>
+          <label className="toggle-line">
+            <input type="checkbox" checked={form.requiresEndDate} onChange={(event) => update('requiresEndDate', event.target.checked)} />
+            <span>Requires valid until date</span>
+          </label>
+          <div className="rule-form-note modal-note">
+            <FileText size={17} />
+            <span>
+              These requirements control which date fields appear in the employee Documents tab and which dates must be completed before saving.
+            </span>
+          </div>
+        </div>
+        {duplicateName && (
+          <div className="modal-warning"><AlertCircle size={16} /> Document type name must be unique.</div>
+        )}
+        <div className="modal-actions">
+          <button className="soft-btn" onClick={onClose}>Cancel</button>
+          <button className="primary-btn" disabled={!canSave} onClick={() => onSave(form)}>{editing ? 'Save type' : 'Add type'}</button>
         </div>
       </section>
     </div>

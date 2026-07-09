@@ -1940,6 +1940,10 @@
     @apply grid grid-cols-[30px_minmax(0,1fr)] gap-3 rounded-[8px] border border-line px-4 py-3;
   }
 
+  .employee-record-list-item:has(.table-action) {
+    @apply grid-cols-[30px_minmax(0,1fr)_auto] items-start;
+  }
+
   .employee-record-list-item svg {
     @apply mt-0.5 text-[#7d8897];
   }
@@ -1962,6 +1966,32 @@
 
   .employee-record-empty strong {
     @apply text-[#202937];
+  }
+
+  .document-title-row {
+    @apply flex items-center justify-between gap-3;
+  }
+
+  .document-title-row > div {
+    @apply flex items-center gap-3;
+  }
+
+  .employee-document-form {
+    @apply mb-4 grid gap-3 rounded-[8px] border border-line bg-[#fbfcfd] p-4 md:grid-cols-2;
+  }
+
+  .employee-document-form .document-title-field,
+  .employee-document-form .document-date-rules,
+  .employee-document-form .employee-document-form-actions {
+    @apply md:col-span-2;
+  }
+
+  .document-date-rules {
+    @apply grid gap-2 rounded-[8px] border border-line bg-white p-3 md:grid-cols-3;
+  }
+
+  .employee-document-form-actions {
+    @apply flex justify-end gap-2;
   }
 
   .employee-comment-form {
@@ -2017,7 +2047,7 @@
   }
 
   .compensation-editor-row {
-    @apply grid grid-cols-[1.25fr_0.8fr_repeat(3,minmax(0,1fr))_34px] items-end gap-2 rounded-[8px] border border-line bg-[#fbfcfe] p-2;
+    @apply grid grid-cols-[repeat(4,minmax(0,1fr))_32px] items-end gap-1.5 rounded-[8px] border border-line bg-[#fbfcfe] p-2;
   }
 
   .compensation-editor-row .field,
@@ -2026,7 +2056,7 @@
   }
 
   .compensation-editor-row input {
-    @apply min-h-[34px] px-2.5 text-[12px];
+    @apply min-h-[32px] px-2.5 text-[12px];
   }
 
   .compensation-editor-row .custom-select {
@@ -2034,20 +2064,56 @@
   }
 
   .compensation-editor-row .custom-select-trigger {
-    @apply min-h-[34px] px-2.5 text-[12px];
+    @apply min-h-[32px] px-2.5 text-[12px];
   }
 
   .compensation-editor-row .icon-btn {
-    @apply col-start-6 row-start-1 h-[32px] w-[32px] self-start justify-self-end;
+    @apply col-start-5 row-start-1 h-[30px] w-[30px] self-start justify-self-end;
+  }
+
+  .compensation-employment-field {
+    @apply md:col-span-2;
+  }
+
+  .compensation-paytype-field {
+    @apply md:col-span-2;
   }
 
   .compensation-worktypes-field,
   .compensation-note-field {
-    @apply min-w-0 md:col-span-2;
+    @apply min-w-0 md:col-span-4;
+  }
+
+  .compensation-gross-salary-field {
+    @apply md:col-start-1;
+  }
+
+  .compensation-meal-field {
+    @apply md:col-start-2;
+  }
+
+  .compensation-transport-field {
+    @apply md:col-start-3;
+  }
+
+  .compensation-gross-gross-field {
+    @apply md:col-start-1 md:col-span-2;
   }
 
   .employment-rules-panel {
     @apply grid gap-4;
+  }
+
+  .rules-section-head {
+    @apply mt-2 flex items-end justify-between gap-4 border-t border-line pt-5;
+  }
+
+  .rules-section-head h3 {
+    @apply m-0 text-[18px] font-black text-[#202937];
+  }
+
+  .rules-section-head p {
+    @apply mt-1 text-sm font-semibold text-[#7d8897];
   }
 
   .employment-rule-list {
