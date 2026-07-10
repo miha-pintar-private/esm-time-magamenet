@@ -900,7 +900,7 @@
   }
 
   .analytics-paytype-head {
-    @apply mb-3 flex flex-wrap items-center gap-2 text-sm font-black text-[#344052];
+    @apply mb-3 flex flex-wrap items-center justify-between gap-2 text-sm font-black text-[#344052];
   }
 
   .analytics-paytype-head span {
@@ -1415,7 +1415,7 @@
   }
 
   .dashboard-current {
-    @apply grid grid-cols-3 gap-3;
+    @apply grid grid-cols-2 gap-3;
   }
 
   .dashboard-current > div {
@@ -2331,7 +2331,7 @@
 
   .compensation-table .employee-record-table-head,
   .compensation-table .employee-record-table-row {
-    @apply grid-cols-[1.1fr_1.3fr_1.4fr_1fr];
+    @apply grid-cols-[1.05fr_1.1fr_1.2fr_1.35fr_1fr];
   }
 
   .employee-record-table-head {
@@ -2344,6 +2344,10 @@
 
   .employee-record-table-row strong {
     @apply m-0 text-[13px] text-[#202937];
+  }
+
+  .employee-record-table-row strong small {
+    @apply mt-1 block w-fit rounded-full border border-[#cfeada] bg-[#f0fbf4] px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.06em] text-[#24864d];
   }
 
   .employee-record-list {

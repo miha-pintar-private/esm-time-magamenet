@@ -733,7 +733,7 @@ const REQUEST_APPROVAL_OPTIONS = [
   { value: 'manual', label: MANUAL_UNLOCK_LABEL },
 ];
 
-const correctionLog = [
+const baseCorrections = [
   { employee: 'Nika Zupan', date: '2026-07-07', change: 'Added 14:00-19:30 container unloading', by: 'Luka Horvat', state: 'Unlocked' },
   { employee: 'Sara Kranjc', date: '2026-07-06', change: 'Requested missing WFH block', by: 'Sara Kranjc', state: 'Pending review' },
   { employee: 'Tim Ravnik', date: '2026-07-03', change: 'Changed campaign work end time', by: 'Maja Novak', state: 'Locked' },
@@ -765,7 +765,6 @@ const timeManagementTabs = [
   { icon: CalendarClock, label: 'Time Management', tab: 'time', path: '/time-management' },
   { icon: BarChart3, label: 'Analytics', tab: 'analytics', path: '/analytics' },
   { icon: Settings, label: 'Settings', tab: 'settings', path: '/settings', requiresSettings: true },
-  { icon: FolderLock, label: 'Correction log', tab: 'corrections', path: '/correction-log' },
 ];
 const timeManagementTabIds = timeManagementTabs.map((item) => item.tab);
 const employeeTabs = [
@@ -953,17 +952,17 @@ const documentationSections = [
       },
       {
         name: 'Time Management subtabs',
-        howItWorks: 'The Time Management sidebar item groups subtabs for the time-entry table, Analytics, Settings, and Correction log. The Time Management subtab is the table and correction workflow view. Browser URLs use hash routes so copied links and refreshed pages work on static hosting such as GitHub Pages.',
+        howItWorks: 'The Time Management sidebar item groups subtabs for the time-entry table, Analytics, and Settings. The Time Management subtab is the table and correction workflow view. Browser URLs use hash routes so copied links and refreshed pages work on static hosting such as GitHub Pages.',
         userSteps: [
           'Open Time Management from the sidebar.',
-          'Use the nested sidebar links to switch between Time Management, Analytics, Settings, and Correction log.',
+          'Use the nested sidebar links to switch between Time Management, Analytics, and Settings.',
           'Use the browser URL or Back and Forward buttons to return to a specific subtab.',
         ],
         specifics: [
           'The Time Management sidebar item remains highlighted while any Time Management subtab is open.',
           'Correction counts are not shown in the sidebar navigation.',
           'Operations users do not see the Settings subtab.',
-          'The subtab URLs remain stable as hash routes: #/time-management, #/analytics, #/settings, and #/correction-log.',
+          'The subtab URLs remain stable as hash routes: #/time-management, #/analytics, and #/settings.',
         ],
       },
     ],
@@ -1075,7 +1074,7 @@ const documentationSections = [
           'Review Workload hours by compensation type to compare Monthly salary, Hourly rate, and Project work users in separate stacked charts.',
           'Review Monthly salary flow below the Monthly salary chart to see Capacity, actual monthly workload segments, and Shortage or Overtime as a capacity waterfall.',
           'Review Workload hours by department to compare stacked work-type hours by department.',
-          'Use General or Detailed above each workload chart. General groups normal work entries under Work. Detailed splits normal work entries by work type. Lunch break, Vacation, Sick leave, and Undefined remain visible in both modes. Shortage and Overtime appear only where a monthly salary capacity chart uses them.',
+          'Use General or Detailed above each workload chart. Each chart keeps its own detail setting. General groups normal work entries under Work. Detailed splits normal work entries by work type. Lunch break, Vacation, Sick leave, and Undefined remain visible in both modes. Shortage and Overtime appear only where a monthly salary capacity chart uses them.',
           'Review Workload flow to see Total work reduced downward by actual recorded and approved absence hours for each workload segment.',
           'Use the Department analytics and User analytics tables to compare hours, percent of time, variance from average, allocated cost, cost per hour, and change over time.',
         ],
@@ -1084,6 +1083,7 @@ const documentationSections = [
           'Analytics scope filters are multi-select filters; leaving a filter empty means all values in the active role scope are included.',
           'People must match every active filter category to remain in scope. For example, selecting a department and tag includes only people who are in that department and have that tag.',
           'Compensation type filters use employee compensation rows. A person remains in scope when at least one compensation row uses a selected pay type, such as Monthly salary, Project work, or Hourly rate.',
+          'Compensation rows are date-aware in Analytics. A time entry is grouped and costed only against compensation rows whose date range includes the entry date. Monthly salary and Hourly rate rows use Valid from / Valid until. Project work rows use Project from / Project to.',
           'The Analytics header shows how many time records and approved absence working days are included in the selected period, so users can confirm whether a date change changed the underlying dataset.',
           'If From is later than To, Analytics automatically reads the range from the earlier date to the later date and shows a warning.',
           'Role scope controls which users, departments, entries, and work types can appear.',
@@ -1097,13 +1097,13 @@ const documentationSections = [
           'Pending, rejected, and deleted absence requests are not included in Analytics workload or cost.',
           'Vacation and sick leave working days exclude Saturdays, Sundays, and configured holiday rules from the Vacation module.',
           'Compensation-type workload charts use the monthly salary workload model only for Monthly salary. Hourly rate and Project work charts are cumulative hour charts that grow with matching recorded hours rather than comparing hours to a capacity target.',
-          'Monthly salary chart entries classify each included entry by the employee compensation row that matches the entry work type. Approved absence days use the first fallback non-project compensation row when available.',
+          'Monthly salary chart entries classify each included entry by the active employee compensation row that matches the entry date and work type. Approved absence days use active fallback non-project compensation rows when available.',
           'Monthly salary flow appears directly below the Monthly salary compensation chart. It uses the same monthly salary workload segments, starts with Capacity, and then draws Work, Lunch break, Vacation, Sick leave, Undefined, Shortage, or Overtime as capacity waterfall bars when those segments exist.',
           'Hourly rate chart entries use matching hourly compensation rows and original analytics entries, without Shortage or Overtime capacity segments.',
-          'Project work chart entries include paid, non-break recorded time entries inside a project row date range. Project work is not mapped to a specific work type, so a person with both hourly and project rows can appear in both charts when the same recorded hours are relevant to both arrangements.',
+          'Project work chart entries include paid, non-break recorded time entries inside the Project from / Project to range. Project work is not mapped to a specific work type, so a person with both hourly and project rows can appear in both charts when the same recorded hours are relevant to both arrangements.',
           'All analytics charts are rendered with Chart.js for consistent axes, legends, tooltips, and responsive sizing.',
           'Workload flow is rendered as a downward waterfall chart from original analytics entries. It starts with Total work, does not include Capacity, Shortage, or Overtime, and each following workload segment is drawn as a floating bar that reduces the remaining total.',
-          'Very small workload flow segments still render with a minimum visible bar length, while the percent label above the bar shows the exact share.',
+          'Very small workload flow segments still render with a minimum visible bar length, while the percent label above the bar shows the exact share. Waterfall segments are shown without connector lines so the chart remains visually clean when segments are small.',
           'Stacked workload bars have a maximum visual thickness so charts with one matching user keep the shared chart height without turning the single bar into a tall block.',
           'The workload charts use configured work type colors from Settings.',
           'The detail table Change column groups the selected entries by calendar month and renders a compact Chart.js trend bar for the row.',
@@ -1114,7 +1114,7 @@ const documentationSections = [
           'Filtered people = visible people matching all selected departments, tags, employment types, compensation types, and people filters',
           'Filtered analytics entries = visible time entries where employee is in filtered people and From <= entry.date <= To + approved vacation/sick working days for filtered people from the Vacation module in the same date range',
           'Vacation or sick leave hours = count(approved working days, excluding weekends and holidays) × 8 × monthly capacity factor for monthly salary employees',
-          'Monthly salary workload capacity = count(inclusive selected-period dates excluding Saturdays, Sundays, and Vacation-module holiday dates) × 8 × monthly capacity factor',
+          'Monthly salary workload capacity = Σ each included working day × 8 × active monthly capacity factor for that date. If two monthly compensation rows are active on the same date, their capacity factors are added.',
           'Monthly salary Shortage workload hours = max(monthly salary workload capacity - recorded work hours - lunch break hours - approved vacation hours - approved sick leave hours - saved Undefined hours, 0)',
           'Monthly salary Overtime workload hours = max(recorded work hours + lunch break hours + approved vacation hours + approved sick leave hours + saved Undefined hours - monthly salary workload capacity, 0)',
           'Department work-type hours = Σ entry.hours for entries whose employee belongs to the department and entry.type matches the work type',
@@ -1122,11 +1122,11 @@ const documentationSections = [
           'Work-type share = work-type hours / total hours for the same department or user × 100',
           'Average share for variance = average(work-type share for the same work type across visible departments or users)',
           'Variance vs average = row work-type share - average share for that work type',
-          'Monthly salary compensation chart value = Σ workload entry hours where compensationRowForEntry(employee, entry).payType equals Monthly salary or Monthly salary - reduced hours, including Shortage or Overtime when applicable',
+          'Monthly salary compensation chart value = Σ workload entry hours where the active compensation row for that entry date has payType Monthly salary or Monthly salary - reduced hours, including Shortage or Overtime when applicable',
           'Monthly salary flow Capacity = Σ monthly salary workload segment hours across users in the selected scope',
           'Monthly salary flow segment value = Σ monthly salary workload segment hours for the segment type',
-          'Hourly rate compensation chart value = Σ original analytics entry hours where compensationRowForEntry(employee, entry).payType equals Hourly rate',
-          'Project work compensation chart value = Σ paid non-break original time-entry hours where employee has a Project work row and entry.date is between Project from and Project to',
+          'Hourly rate compensation chart value = Σ original analytics entry hours where the active compensation row for that entry date has payType Hourly rate',
+          'Project work compensation chart value = Σ paid non-break original time-entry hours where employee has an active Project work row and entry.date is between Project from and Project to',
           'Stacked department workload chart value = original analytics entry hours for each visible department, excluding synthetic Shortage and Overtime entries',
           'Stacked workload axis maximum = the highest visible department or user total hours',
           'Workload flow floating bar = [remaining total after segment, remaining total before segment]',
@@ -1154,9 +1154,11 @@ const documentationSections = [
           'Project rows distribute project value evenly across calendar days between Project from and Project to, then include only unique visible paid-entry dates inside that project range.',
           'Vacation and sick leave do not create project-cost days.',
           'If an employee has mapped compensation rows for specific work types, matching entries use those rows first; unmapped time rows are used as fallback rows.',
+          'Monthly salary and Hourly rate compensation rows apply only while their Valid from / Valid until range includes the entry date. A blank Valid until means the row remains open-ended. Project work rows use Project from / Project to instead.',
+          'If multiple compensation rows are active and match the same entry date, their costs are added together. This supports two concurrent active employments.',
         ],
         metrics: [
-          'Allocated analytics cost = Σ employeeRuleCost(user, selected time entries + approved vacation/sick working-day entries, configured work types)',
+          'Allocated analytics cost = Σ employeeRuleCost(user, selected time entries + approved vacation/sick working-day entries, configured work types) using only compensation rows active on each entry date',
           'Row cost = Σ employeeRuleCost(user, row work-type entries, configured work types) for entries included in that department or user row',
           'Cost per hour = row cost / max(row hours, 1)',
           'Monthly entry cost = entry.hours × ((grossGrossCost + mealAllowance + transportAllowance) / max(monthlyWorkingDays × 8 × monthly capacity factor, 1))',
@@ -1201,7 +1203,7 @@ const documentationSections = [
           'Management and team leads can edit the profile from the sidebar and save the employee.',
           'In the employee form User info section, enter the full name, then Address, Post number, and City on one row, Personal ID / EMŠO and Tax number on one row, and Work email, Phone number, Private email, and Annual vacation allowance.',
           'Then enter department, role level, tags, contract from and contract to dates, medical exam completion date, safety training completion and expiry dates, and compensation rows.',
-          'Use Add row in Compensation rows to add another work arrangement. Select the employment type from the Rules list; the pay type and visible compensation fields follow that rule.',
+          'Use Add row in Compensation rows to add another work arrangement. Select the employment type from the Rules list; the pay type and visible compensation fields follow that rule. For Monthly salary and Hourly rate rows, set Valid from and leave Valid until empty when the arrangement has no planned end date. For Project work rows, set Project from and Project to.',
           'Open Documents, click Add document, drop a file onto the upload area or click it to choose a file from the system file picker, enter the document title, choose or create a document type, complete the required document dates, and save the document record.',
           'Management and team leads can open Comments, enter an internal note, and click Add comment to store it on the employee record.',
           'Management and team leads can open Archive / delete user to archive an employee as inactive, restore an archived employee, or delete the employee and linked local records.',
@@ -1232,7 +1234,7 @@ const documentationSections = [
           'Address, Post number, City, Work email, Phone number, and Private email are optional fields stored directly on the employee record. Existing local employee records can remain blank until edited.',
           'For compatibility with older local records, the app still keeps a combined address value generated from Address, Post number, and City.',
           'The Overview tab Work setup list is a flat divided status list driven by the employee employment rule pay type. Monthly salary employees show the contract period and, when the rule requires them, Medical exam and Safety training details. Hourly rate and Project work employees show the contract period. Displayed employee record dates use day-month-year format.',
-          'The Overview tab Compensation setup uses a flat divided table without an extra panel frame. It shows each compensation row by employment type, work types, cost details, and project period; on narrow screens the same fields stack with labels.',
+          'The Overview tab Compensation setup uses a flat divided table without an extra panel frame. It shows each compensation row by employment type, validity period, work types, cost details, and project period; on narrow screens the same fields stack with labels. Rows active today are marked Active and sorted first.',
           'The Contract and compliance form section is split into separate rows for Contract, Medical, and Safety training. Row controls align vertically so the Contract from field, Contract to field, and No end date button scan as one row.',
           'The Contract row stores Contract from and Contract to dates. Contract from is also saved as the employee start date for employee table, sidebar, and older local records that still read the start field. Turning on No end date clears Contract to, disables that date input, and saves the contract as indefinite. Turning the button off restores an editable Contract to date seeded from Contract from, the employee start date, or today.',
           'Medical exam stores only the date the employee completed the exam in the Medical row. If the completed date is empty, the form shows a red inline warning with an alert icon under the date input.',
@@ -1262,10 +1264,13 @@ const documentationSections = [
           'When an employee name or department is changed, matching local time entries, documents, correction records, active unlocks, table filters, and the active timer are updated to keep local records linked.',
           'Deleting an employee asks for confirmation: Are you sure you want to delete this employee and all linked local records?',
           'Deleting an employee removes linked local time entries, documents, correction records, active unlock windows, matching employee table filters, and any active timer for that employee.',
-          'Compensation rows are stored on the employee profile. Each row selects an employment type from Rules. Monthly salary and Hourly rate rows can be mapped to one or more Time Management work types.',
+          'Compensation rows are stored on the employee profile. Each row selects an employment type from Rules. Monthly salary and Hourly rate rows have Valid from plus optional Valid until dates and can be mapped to one or more Time Management work types. Project work rows use Project from and Project to as their active date range.',
+          'Valid from is required for Monthly salary and Hourly rate compensation rows. Valid until can stay empty, which means the compensation row has no end date. If Valid until is set, it must be on or after Valid from.',
+          'Compensation row date ranges control analytics and cost calculations by entry date. A half-time monthly row can be active for one date range and a full-time monthly row can take over later; Analytics uses whichever row is active on each date. Project work rows are active only from Project from through Project to.',
+          'If two compensation rows are active on the same date, the active employments are both shown in the Overview tab and their monthly capacity and matching costs are added together.',
           'The first compensation row is treated as the primary employment type.',
           'The employee table Employment type column shows the employment type from the first compensation row.',
-          'When an employee has more than one non-project compensation row, every non-project row must have at least one applicable work type selected so the app knows which cost applies to each entry.',
+          'When active compensation rows have work type mappings, matching entries use those mapped rows first. Active unmapped monthly or hourly rows are used as fallback rows, and multiple matching active rows are added together.',
           'Monthly salary compensation rows let users enter gross salary, meal allowance, transport allowance, gross gross cost, and an optional note. Monthly hours are calculated automatically from the current month working days for cost calculations but are not shown in the employee form.',
           'Hourly rate rows show hourly rate, meal allowance, transport allowance, and note fields. Meal and transport values can be 0.',
           'Project work rows use a dedicated edit layout: employment type, pay type, and work-type scope stay grouped at the top, project name uses a full-width field, Project from, Project to, and project value share the next row, and the note spans the full row. Project work applies to all paid work types for time tracking and does not use a work type selector. Project name and a valid date range are required. At least one row remains in the form.',
@@ -1487,24 +1492,6 @@ const documentationSections = [
           'People in scope on a tag card = count(visible people in the department), or count(all visible people) for All departments',
         ],
       },
-      {
-        name: 'Correction log',
-        howItWorks: 'The Correction log subtab shows visible audit records for unlocks, requests, edits, deletions, declines, and locks.',
-        userSteps: [
-          'Open Time Management, then open the Correction log subtab.',
-          'Review the change, employee, date or date range, actor, and state.',
-          'Switch role to change which audit records are visible.',
-        ],
-        specifics: [
-          'Management sees all correction records.',
-          'Team Lead sees records for employees in the visible people scope.',
-          'Operations sees records for their own user and any employee visible in their role scope.',
-          'The empty state says: No correction records in this scope.',
-        ],
-        metrics: [
-          'Visible correction records = count(corrections visible to the active role)',
-        ],
-      },
     ],
   },
   {
@@ -1531,7 +1518,7 @@ const documentationSections = [
           {
             entity: 'employees',
             source: 'Employee database; initial sample data from people',
-            required: 'id, name, level, department, employment, contract dates, contact fields, tags, compensationRows, vacationDaysAvailable, archived status',
+            required: 'id, name, level, department, employment, contract dates, contact fields, tags, compensationRows with validFrom and optional validUntil for monthly or hourly rows and projectStartDate/projectEndDate for project rows, vacationDaysAvailable, archived status',
             links: 'Referenced by entries.employee, documents.employee, absenceRequests.employee, corrections.employee, correctionWindows.employee, rolePeople, department leads, activeSession.employee',
           },
           {
@@ -1590,7 +1577,7 @@ const documentationSections = [
           },
           {
             entity: 'corrections and correctionWindows',
-            source: 'Correction requests, manual unlocks, entry edits, entry deletes; initial correction records from correctionLog',
+            source: 'Correction requests, manual unlocks, entry edits, entry deletes; initial correction records from baseCorrections',
             required: 'employee, date or from/to range, change, by, state; windows also need request status, expiry, requestKey when linked',
             links: 'Uses employees.name and entries date ranges; controls past-entry edit permission and audit visibility by role scope',
           },
@@ -1634,7 +1621,7 @@ const documentationSections = [
                         children: [
                           { node: 'Paid hours', detail: 'Includes only entries whose work type is configured as paid.' },
                           { node: 'Allocated cost', detail: 'Uses the employee compensation row that matches the entry work type and pay type.' },
-                          { node: 'Correction log', detail: 'Entry edits and deletes add audit records, and correction windows control operations edits on past dates.' },
+                          { node: 'Correction workflow', detail: 'Correction requests and correction windows control operations edits on past dates.' },
                         ],
                       },
                       {
@@ -1683,8 +1670,8 @@ const documentationSections = [
           {
             area: 'Paid hours and entry cost',
             uses: 'entries, employees.compensationRows, workType.paid, work type mappings, monthly working days, project date ranges',
-            includes: 'Visible paid entries, matching monthly or hourly compensation rows, fallback non-project rows, and visible paid entry dates inside project ranges.',
-            excludes: 'Unpaid work types, Lunch break, unknown work types, archived employees outside role scope, and project dates with no visible paid entry.',
+            includes: 'Visible paid entries, matching active monthly or hourly compensation rows, fallback non-project rows active on the entry date, and visible paid entry dates inside active project ranges.',
+            excludes: 'Unpaid work types, Lunch break, unknown work types, archived employees outside role scope, entries outside compensation row active date ranges, and project dates with no visible paid entry.',
             output: 'Paid hour totals, cost cards, analytics allocated cost, cost per hour, and pay-type workload grouping.',
           },
           {
@@ -1720,7 +1707,7 @@ const documentationSections = [
           'Department -> Employee: employees.department must match an existing department name, or the app can create or use Undefined department when a department is deleted.',
           'Department -> Work type: work types can be scoped to one department or All departments.',
           'Tag -> Employee and Work type: work type tags restrict who can select that work type.',
-          'Employee -> Compensation rows: compensationRows define monthly, hourly, or project cost rules and optional work type mappings.',
+          'Employee -> Compensation rows: compensationRows define monthly, hourly, or project cost rules, monthly/hourly Valid from / Valid until ranges, project Project from / Project to ranges, and optional work type mappings.',
           'Employee + Work type -> Time entry: the manual entry form and timer save entries only when the work type is valid for the selected employee scope.',
           'Time entry -> Analytics: analytics groups entries by employee, department, work type, date range, paid status, and allocated cost.',
           'Employee -> Documents and Rules: document type rules define required document dates; employment rules define to-dos and pay type context.',
@@ -1729,7 +1716,7 @@ const documentationSections = [
         ],
         metrics: [
           'Time entry eligibility = employee in role scope + work type department match + matching tag requirement + date/edit permission',
-          'Cost relationship = entries.employee -> employee.compensationRows -> matching workTypes and payType -> allocated cost',
+          'Cost relationship = entries.employee -> employee.compensationRows active on entry.date -> matching workTypes and payType -> allocated cost',
           'Analytics relationship = role scope + analytics filters + time entries + approved absence working days - excluded statuses/weekends/holidays',
         ],
       },
@@ -1855,7 +1842,6 @@ const documentationSections = [
           'Time Management opens from the sidebar and uses #/time-management for the table subtab.',
           'Analytics is a Time Management subtab and uses #/analytics.',
           'Settings is a Time Management subtab, uses #/settings, and is hidden for Operations users.',
-          'Correction log is a Time Management subtab and uses #/correction-log.',
           'Documentation uses #/documentation.',
           'Static builds use the GitHub Pages project base path /esm-time-magamenet/ so bundled assets load from the same project URL while hash routes keep working.',
           'When an Operations user lands on Settings, the app redirects to the Time Management table subtab because Operations users cannot manage settings.',
@@ -2309,6 +2295,24 @@ function employeeCompensationRows(employee) {
   }];
 }
 
+function compensationRowPayTypeUpdate(row, payType) {
+  if (payType === PAY_TYPE_PROJECT) {
+    return {
+      payType,
+      projectStartDate: row.projectStartDate || row.validFrom || TODAY,
+      projectEndDate: row.projectEndDate || row.validUntil || row.validFrom || TODAY,
+    };
+  }
+  if (row.payType === PAY_TYPE_PROJECT) {
+    return {
+      payType,
+      validFrom: row.validFrom || row.projectStartDate || TODAY,
+      validUntil: row.validUntil || row.projectEndDate || '',
+    };
+  }
+  return { payType };
+}
+
 function findEmploymentRule(employee, ruleItems) {
   const normalizedRules = normalizeEmploymentRules(ruleItems);
   return normalizedRules.find((rule) => rule.name === employee.employment) || normalizedRules[0];
@@ -2332,8 +2336,8 @@ function monthlyCapacityPercentForRow(row, employee, ruleItems) {
 
 function compensationRowActiveOnDate(row, dateValue = TODAY) {
   if (!row) return false;
-  const validFrom = row.validFrom || '';
-  const validUntil = row.validUntil || '';
+  const validFrom = row.payType === PAY_TYPE_PROJECT ? row.projectStartDate : row.validFrom;
+  const validUntil = row.payType === PAY_TYPE_PROJECT ? row.projectEndDate : row.validUntil;
   return (!validFrom || dateValue >= validFrom) && (!validUntil || dateValue <= validUntil);
 }
 
@@ -2342,9 +2346,21 @@ function compensationRowStatus(row, dateValue = TODAY) {
 }
 
 function compensationValidityLabel(row) {
-  const start = row.validFrom ? displayDate(row.validFrom) : 'No start';
-  const end = row.validUntil ? displayDate(row.validUntil) : 'No end';
+  const startValue = row.payType === PAY_TYPE_PROJECT ? row.projectStartDate : row.validFrom;
+  const endValue = row.payType === PAY_TYPE_PROJECT ? row.projectEndDate : row.validUntil;
+  const start = startValue ? displayDate(startValue) : 'No start';
+  const end = endValue ? displayDate(endValue) : 'No end';
   return `${compensationRowStatus(row)} · ${start} to ${end}`;
+}
+
+function compensationSortStartDate(row) {
+  return row.payType === PAY_TYPE_PROJECT ? row.projectStartDate : row.validFrom;
+}
+
+function compensationHasValidityDates(row) {
+  return row.payType === PAY_TYPE_PROJECT
+    ? Boolean(row.projectStartDate || row.projectEndDate)
+    : Boolean(row.validFrom || row.validUntil);
 }
 
 function activeMonthlyCompensationRows(employee, dateValue = TODAY) {
@@ -2354,10 +2370,12 @@ function activeMonthlyCompensationRows(employee, dateValue = TODAY) {
 }
 
 function employeeMonthlyCapacityPercent(employee, ruleItems, dateValue = TODAY) {
+  const monthlyRows = employeeCompensationRows(employee).filter((row) => isMonthlyPayType(row.payType));
   const activeRows = activeMonthlyCompensationRows(employee, dateValue);
+  const hasDatedRows = monthlyRows.some((row) => compensationHasValidityDates(row));
   const rows = activeRows.length > 0
     ? activeRows
-    : employeeCompensationRows(employee).filter((row) => isMonthlyPayType(row.payType));
+    : (hasDatedRows ? [] : monthlyRows);
   return rows.reduce((sum, row) => sum + monthlyCapacityPercentForRow(row, employee, ruleItems), 0);
 }
 
@@ -2412,24 +2430,25 @@ function employeeRuleCost(employee, ruleItems, entries = [], configuredTypes = [
   const workEntries = employeeEntries.filter((entry) => !entry.absenceType);
   const projectRows = rows.filter((row) => row.payType === PAY_TYPE_PROJECT);
   const timeRows = rows.filter((row) => row.payType !== PAY_TYPE_PROJECT);
-  const scopedRows = timeRows.filter((row) => row.workTypes.length > 0);
-  const fallbackRows = timeRows.filter((row) => row.workTypes.length === 0);
   const timeCost = employeeEntries.reduce((sum, entry) => {
     const activeTimeRows = timeRows.filter((row) => compensationRowActiveOnDate(row, entry.date || TODAY));
+    if (entry.date && activeTimeRows.length === 0) return sum;
     const activeScopedRows = activeTimeRows.filter((row) => row.workTypes.length > 0);
     const activeFallbackRows = activeTimeRows.filter((row) => row.workTypes.length === 0);
-    const row = entry.absenceType
-      ? (activeFallbackRows[0] || activeTimeRows[0] || fallbackRows[0] || timeRows[0])
-      : activeScopedRows.find((item) => rowMatchesEntry(item, entry, false))
-        || activeFallbackRows.find((item) => rowMatchesEntry(item, entry, true));
-    if (!row) return sum;
-    if (row.payType === PAY_TYPE_HOURLY) {
-      return sum + ((Number(row.hourlyRate) || 0) * (Number(entry.hours) || 0));
-    }
-    const monthlyTotal = entry.absenceType ? monthlyCompensationBaseCost(row) : monthlyCompensationTotal(row);
-    if (!monthlyTotal) return sum;
-    const capacityPercent = monthlyCapacityPercentForRow(row, employee, ruleItems);
-    return sum + ((monthlyTotal / Math.max(entryMonthlyWorkingHours(row, entry, capacityPercent), 1)) * (Number(entry.hours) || 0));
+    const matchingScopedRows = activeScopedRows.filter((item) => rowMatchesEntry(item, entry, false));
+    const matchingFallbackRows = activeFallbackRows.filter((item) => rowMatchesEntry(item, entry, true));
+    const candidateRows = entry.absenceType
+      ? (activeFallbackRows.length > 0 ? activeFallbackRows : activeTimeRows)
+      : (matchingScopedRows.length > 0 ? matchingScopedRows : matchingFallbackRows);
+    return sum + candidateRows.reduce((rowSum, row) => {
+      if (row.payType === PAY_TYPE_HOURLY) {
+        return rowSum + ((Number(row.hourlyRate) || 0) * (Number(entry.hours) || 0));
+      }
+      const monthlyTotal = entry.absenceType ? monthlyCompensationBaseCost(row) : monthlyCompensationTotal(row);
+      if (!monthlyTotal) return rowSum;
+      const capacityPercent = monthlyCapacityPercentForRow(row, employee, ruleItems);
+      return rowSum + ((monthlyTotal / Math.max(entryMonthlyWorkingHours(row, entry, capacityPercent), 1)) * (Number(entry.hours) || 0));
+    }, 0);
   }, 0);
   const matchedHourlyRows = timeRows.filter((row) => (
     row.payType === PAY_TYPE_HOURLY
@@ -2633,31 +2652,6 @@ function workloadSegmentsForEntries(entries = [], mode, configuredTypes = []) {
     });
 }
 
-function aggregateSegmentsForRows(rows = []) {
-  const hoursBySegment = new Map();
-  const colorBySegment = new Map();
-  rows.forEach((row) => {
-    row.segments.forEach((segment) => {
-      hoursBySegment.set(segment.typeName, (hoursBySegment.get(segment.typeName) || 0) + (Number(segment.hours) || 0));
-      colorBySegment.set(segment.typeName, segment.color);
-    });
-  });
-  const totalHours = Array.from(hoursBySegment.values()).reduce((sum, hours) => sum + hours, 0);
-  return Array.from(hoursBySegment.entries())
-    .map(([typeName, hours]) => ({
-      typeName,
-      hours,
-      share: totalHours ? (hours / totalHours) * 100 : 0,
-      color: colorBySegment.get(typeName) || workTypeColor(typeName),
-    }))
-    .filter((segment) => segment.hours > 0)
-    .sort((first, second) => {
-      const segmentOrder = compareWorkloadSegmentNames(first.typeName, second.typeName);
-      if (segmentOrder !== 0) return segmentOrder;
-      return second.hours - first.hours || first.typeName.localeCompare(second.typeName);
-    });
-}
-
 function isPaidWorkloadEntry(entry, configuredTypes = []) {
   const paidByType = new Map(configuredTypes.map((type) => [type.name, type.paid !== false]));
   return entry
@@ -2713,11 +2707,10 @@ function compensationRowForEntry(employee, entry) {
   const scopedRows = timeRows.filter((row) => row.workTypes.length > 0);
   const fallbackRows = timeRows.filter((row) => row.workTypes.length === 0);
 
-  if (entry?.absenceType) return fallbackRows[0] || timeRows[0] || rows[0];
+  if (entry?.absenceType) return fallbackRows[0] || timeRows[0];
   return scopedRows.find((row) => rowMatchesEntry(row, entry, false))
     || fallbackRows.find((row) => rowMatchesEntry(row, entry, true))
-    || activeRows.find((row) => row.payType === PAY_TYPE_PROJECT)
-    || rows[0];
+    || activeRows.find((row) => row.payType === PAY_TYPE_PROJECT);
 }
 
 function entryCostForEmployee(employee, entries, employmentRules, configuredTypes) {
@@ -3164,7 +3157,7 @@ function App() {
   const [documents, setDocuments] = useState(stored.documents || baseDocuments);
   const [absenceRequests, setAbsenceRequests] = useState(stored.absenceRequests || baseAbsenceRequests);
   const [absenceRules, setAbsenceRules] = useState(stored.absenceRules || baseAbsenceRules);
-  const [corrections, setCorrections] = useState(stored.corrections || correctionLog);
+  const [corrections, setCorrections] = useState(stored.corrections || baseCorrections);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedWorkType, setSelectedWorkType] = useState(stored.selectedWorkType === LEGACY_WFH_WORK_TYPE ? '' : stored.selectedWorkType || '');
   const [tableFilters, setTableFilters] = useState(() => initialTableFilters(stored.tableFilters));
@@ -3409,9 +3402,8 @@ function App() {
       sum + employeeRuleCost(person, employmentRuleItems, visibleEntries, configuredWorkTypes)
     ), 0);
     const locked = visibleEntries.filter((entry) => !canEditEntryDate(role, currentCorrectionWindows, entry.employee, entry.date)).length;
-    const correctionsCount = corrections.filter((item) => role === 'management' || item.employee === activeRole.person || activeVisiblePeople.some((person) => person.name === item.employee)).length;
-    return { hours, paidHours, entryCost, locked, corrections: correctionsCount };
-  }, [visibleEntries, activeVisiblePeople, corrections, currentCorrectionWindows, role, activeRole.person, configuredWorkTypes, employmentRuleItems]);
+    return { hours, paidHours, entryCost, locked };
+  }, [visibleEntries, activeVisiblePeople, currentCorrectionWindows, role, configuredWorkTypes, employmentRuleItems]);
 
   const filteredTotals = useMemo(() => {
     const workTypeByName = new Map(configuredWorkTypes.map((type) => [type.name, type]));
@@ -4908,7 +4900,6 @@ function App() {
             onDeleteWorkType={deleteWorkType}
           />
         )}
-        {tab === 'corrections' && <CorrectionLogView corrections={corrections} role={role} activeRole={activeRole} people={activeVisiblePeople} />}
         {['hr', 'hr-vacation', 'hr-departments', 'hr-rules', 'hr-tags'].includes(tab) && (
           <HrView
             section={tab === 'hr-vacation' ? 'vacation' : tab === 'hr-departments' ? 'departments' : tab === 'hr-rules' ? 'rules' : tab === 'hr-tags' ? 'tags' : 'employees'}
@@ -5381,11 +5372,6 @@ function DashboardView({ role, activeRole, totals, entries, documents, activeSes
             <strong>{totals.locked}</strong>
             <small>Past dates need a correction window</small>
           </div>
-          <div>
-            <span>Corrections</span>
-            <strong>{totals.corrections}</strong>
-            <small>Visible audit records</small>
-          </div>
         </div>
         <div className="record-list">
           {recentEntries.map((entry) => (
@@ -5400,37 +5386,6 @@ function DashboardView({ role, activeRole, totals, entries, documents, activeSes
               <b>{entry.hours} h</b>
             </div>
           ))}
-        </div>
-      </section>
-    </div>
-  );
-}
-
-function CorrectionLogView({ corrections, role, activeRole, people }) {
-  const visibleNames = new Set(people.map((person) => person.name));
-  const visibleCorrections = role === 'management'
-    ? corrections
-    : corrections.filter((item) => item.employee === activeRole.person || visibleNames.has(item.employee));
-  return (
-    <div className="workspace">
-      <section className="primary-panel">
-        <div className="panel-heading">
-          <div>
-            <span className="eyebrow">Correction log</span>
-            <h2>Audit trail</h2>
-          </div>
-        </div>
-        <div className="record-list">
-          {visibleCorrections.map((item, index) => (
-            <div className="record-row" key={`${item.employee}-${item.date}-${item.change}-${index}`}>
-              <div>
-                <strong>{item.change}</strong>
-                <span>{item.employee} · {item.date} · by {item.by}</span>
-              </div>
-              <em>{item.state}</em>
-            </div>
-          ))}
-          {visibleCorrections.length === 0 && <span className="empty-state">No correction records in this scope.</span>}
         </div>
       </section>
     </div>
@@ -5576,7 +5531,7 @@ function fieldLocation(entity, field) {
 
   if (normalizedEntity === 'employees') {
     if (normalizedField === 'id') return 'Internal employee record key in localStorage; used to keep the selected employee stable while filters change.';
-    if (normalizedField === 'name') return 'Employees table, employee record header, top-bar role preview, time-entry employee selectors, filters, Dashboard recent rows, Vacation requests, and Correction log.';
+    if (normalizedField === 'name') return 'Employees table, employee record header, top-bar role preview, time-entry employee selectors, filters, Dashboard recent rows, and Vacation requests.';
     if (normalizedField === 'level') return 'Employees table Role level column, employee edit form, role scope rules, vacation approval scope, and Settings visibility.';
     if (normalizedField === 'department') return 'Employees table, employee record, department filters, analytics grouping, time-entry scope, lead scope, tags, and workload charts.';
     if (normalizedField === 'employment') return 'Employees table Employment type column, employee record Work setup, Rules matching, and Analytics employment-type filters.';
@@ -5590,7 +5545,7 @@ function fieldLocation(entity, field) {
 
   if (normalizedEntity === 'entries') {
     if (normalizedField === 'id') return 'Internal time-entry key used by edit and delete actions.';
-    if (normalizedField === 'employee') return 'Time Management table, manual entry modal, timer save flow, Dashboard recent rows, Analytics rows, and Correction log.';
+    if (normalizedField === 'employee') return 'Time Management table, manual entry modal, timer save flow, Dashboard recent rows, and Analytics rows.';
     if (normalizedField === 'department') return 'Time Management employee department pill, department filters, and Analytics department grouping.';
     if (normalizedField === 'date') return 'Time Management filters, manual entry modal, Dashboard recent rows, correction windows, and Analytics period filters.';
     if (normalizedField === 'type') return 'Work type column, timer selector, manual entry modal, paid-hour logic, cost mapping, and Analytics workload segments.';
@@ -7164,7 +7119,7 @@ function EmployeeRecordSidebar({
     .sort((first, second) => {
       const activeDiff = Number(compensationRowActiveOnDate(second)) - Number(compensationRowActiveOnDate(first));
       if (activeDiff !== 0) return activeDiff;
-      return (second.validFrom || '').localeCompare(first.validFrom || '');
+      return (compensationSortStartDate(second) || '').localeCompare(compensationSortStartDate(first) || '');
     });
   const requirementItems = employeeRequirementItems(employee, employmentRules);
   const archived = isArchivedEmployee(employee);
@@ -7698,16 +7653,16 @@ function EmployeeModal({ mode, employee, role, primaryLeadDepartment, employees,
     person.id !== form.id && person.name.toLowerCase() === form.name.trim().toLowerCase()
   ));
   const hasMultiplePayRows = form.compensationRows.length > 1;
-  const hasUnscopedRequiredRows = hasMultiplePayRows && form.compensationRows.some((row) => row.payType !== PAY_TYPE_PROJECT && row.workTypes.length === 0);
   const hasInvalidProjectRows = form.compensationRows.some((row) => (
     row.payType === PAY_TYPE_PROJECT
     && (!row.projectName.trim() || !row.projectStartDate || !row.projectEndDate || row.projectStartDate > row.projectEndDate)
   ));
   const hasInvalidCompensationValidityRows = form.compensationRows.some((row) => (
-    !row.validFrom || (row.validUntil && row.validUntil < row.validFrom)
+    row.payType !== PAY_TYPE_PROJECT
+    && (!row.validFrom || (row.validUntil && row.validUntil < row.validFrom))
   ));
   const hasNoContractEndDate = !form.contractEndDate;
-  const canSave = Boolean(form.name.trim() && form.department && form.level) && !duplicateName && !hasUnscopedRequiredRows && !hasInvalidProjectRows && !hasInvalidCompensationValidityRows;
+  const canSave = Boolean(form.name.trim() && form.department && form.level) && !duplicateName && !hasInvalidProjectRows && !hasInvalidCompensationValidityRows;
   const compensationEmploymentOptions = normalizedEmploymentRules.map((rule) => ({ name: rule.name, meta: rule.payType }));
   const compensationWorkTypeOptions = workTypes
     .filter((type) => workTypeMatchesPerson(type, { department: form.department, tags: form.tags }))
@@ -7724,7 +7679,7 @@ function EmployeeModal({ mode, employee, role, primaryLeadDepartment, employees,
                 ? {
                     ...row,
                     employmentType: value,
-                    payType: normalizedEmploymentRules.find((rule) => rule.name === value)?.payType || row.payType,
+                    ...compensationRowPayTypeUpdate(row, normalizedEmploymentRules.find((rule) => rule.name === value)?.payType || row.payType),
                   }
                 : row
             )),
@@ -7750,7 +7705,7 @@ function EmployeeModal({ mode, employee, role, primaryLeadDepartment, employees,
               ...row,
               [field]: value,
               ...(field === 'employmentType'
-                ? { payType: normalizedEmploymentRules.find((rule) => rule.name === value)?.payType || row.payType }
+                ? compensationRowPayTypeUpdate(row, normalizedEmploymentRules.find((rule) => rule.name === value)?.payType || row.payType)
                 : {}),
             }
           : row
@@ -7991,14 +7946,18 @@ function EmployeeModal({ mode, employee, role, primaryLeadDepartment, employees,
                     <span>Pay type</span>
                     <strong>{row.payType}</strong>
                   </div>
-                  <label className="field compensation-valid-from-field">
-                    <span>Valid from</span>
-                    <input type="date" value={row.validFrom} onInput={(event) => updateCompensationRow(row.id, 'validFrom', event.target.value)} onChange={(event) => updateCompensationRow(row.id, 'validFrom', event.target.value)} />
-                  </label>
-                  <label className="field compensation-valid-until-field">
-                    <span>Valid until</span>
-                    <input type="date" value={row.validUntil} onInput={(event) => updateCompensationRow(row.id, 'validUntil', event.target.value)} onChange={(event) => updateCompensationRow(row.id, 'validUntil', event.target.value)} />
-                  </label>
+                  {row.payType !== PAY_TYPE_PROJECT && (
+                    <>
+                      <label className="field compensation-valid-from-field">
+                        <span>Valid from</span>
+                        <input type="date" value={row.validFrom} onInput={(event) => updateCompensationRow(row.id, 'validFrom', event.target.value)} onChange={(event) => updateCompensationRow(row.id, 'validFrom', event.target.value)} />
+                      </label>
+                      <label className="field compensation-valid-until-field">
+                        <span>Valid until</span>
+                        <input type="date" value={row.validUntil} onInput={(event) => updateCompensationRow(row.id, 'validUntil', event.target.value)} onChange={(event) => updateCompensationRow(row.id, 'validUntil', event.target.value)} />
+                      </label>
+                    </>
+                  )}
                   {row.payType !== PAY_TYPE_PROJECT ? (
                     <label className="field compensation-worktypes-field">
                       <span>Applies to work types</span>
@@ -8094,14 +8053,11 @@ function EmployeeModal({ mode, employee, role, primaryLeadDepartment, employees,
         {duplicateName && (
           <div className="modal-warning"><AlertCircle size={16} /> Employee name must be unique.</div>
         )}
-        {hasUnscopedRequiredRows && (
-          <div className="modal-warning"><AlertCircle size={16} /> Select applicable work types for every non-project compensation row when an employee has multiple employment types.</div>
-        )}
         {hasInvalidProjectRows && (
           <div className="modal-warning"><AlertCircle size={16} /> Project work requires a project name and a valid Project from / Project to date range.</div>
         )}
         {hasInvalidCompensationValidityRows && (
-          <div className="modal-warning"><AlertCircle size={16} /> Each compensation row requires Valid from. Valid until can stay empty, but if set it must be on or after Valid from.</div>
+          <div className="modal-warning"><AlertCircle size={16} /> Monthly salary and hourly rate rows require Valid from. Valid until can stay empty, but if set it must be on or after Valid from.</div>
         )}
 
         <div className="modal-actions">
@@ -8297,7 +8253,17 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
     compensationTypes: [],
     people: [],
   });
-  const [workloadMode, setWorkloadMode] = useState('general');
+  const [workloadModes, setWorkloadModes] = useState({
+    monthlySalary: 'general',
+    hourlyRate: 'general',
+    projectWork: 'general',
+    monthlySalaryFlow: 'general',
+    department: 'general',
+    totalFlow: 'general',
+  });
+  const setWorkloadMode = (key, value) => {
+    setWorkloadModes((current) => ({ ...current, [key]: value }));
+  };
   const normalizedFilters = useMemo(() => {
     if (filters.from && filters.to && filters.from > filters.to) {
       return { from: filters.to, to: filters.from, reversed: true };
@@ -8374,11 +8340,18 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
     const cost = filteredPeople
       .filter((person) => person.department === department)
       .reduce((sum, person) => sum + employeeRuleCost(person, employmentRules, departmentEntries, configuredWorkTypes), 0);
-    const segments = workloadSegmentsForEntries(departmentEntries, workloadMode, configuredWorkTypes);
+    const segments = workloadSegmentsForEntries(departmentEntries, workloadModes.department, configuredWorkTypes);
     return { label: department, meta: `${departmentPeople.size} user${departmentPeople.size === 1 ? '' : 's'}`, hours, cost, segments };
   }).filter((row) => row.hours > 0).sort((first, second) => second.hours - first.hours);
   const payTypeWorkloads = analyticsPayTypeOptions.map((payType) => {
     const payTypeEntries = payTypeEntriesForChart(payType.name, analyticsEntries, workloadEntries, peopleByName, configuredWorkTypes);
+    const payTypeHours = payTypeEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
+    const modeKey = payType.name === PAY_TYPE_MONTHLY
+      ? 'monthlySalary'
+      : payType.name === PAY_TYPE_HOURLY
+        ? 'hourlyRate'
+        : 'projectWork';
+    const chartMode = workloadModes[modeKey] || 'general';
     const rows = filteredPeople.map((person) => {
       const personEntries = payTypeEntries.filter((entry) => entry.employee === person.name);
       const personAnalyticsEntries = analyticsEntries.filter((entry) => {
@@ -8389,16 +8362,23 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
       });
       const hours = personEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
       const cost = employeeRuleCost(person, employmentRules, personAnalyticsEntries, configuredWorkTypes);
-      const segments = workloadSegmentsForEntries(personEntries, workloadMode, configuredWorkTypes);
+      const segments = workloadSegmentsForEntries(personEntries, chartMode, configuredWorkTypes);
       return { label: person.name, meta: person.department, hours, cost, segments };
     }).filter((row) => row.hours > 0).sort((first, second) => second.hours - first.hours);
     return {
       payType: payType.name,
-      hours: payTypeEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0),
+      modeKey,
+      hours: payTypeHours,
       rows,
+      flowRows: payType.name === PAY_TYPE_MONTHLY
+        ? workloadSegmentsForEntries(payTypeEntries, workloadModes.monthlySalaryFlow, configuredWorkTypes).map((segment) => ({
+            ...segment,
+            share: payTypeHours ? (segment.hours / payTypeHours) * 100 : 0,
+          }))
+        : [],
     };
   });
-  const flowRows = workloadSegmentsForEntries(analyticsEntries, workloadMode, configuredWorkTypes)
+  const flowRows = workloadSegmentsForEntries(analyticsEntries, workloadModes.totalFlow, configuredWorkTypes)
     .map((segment) => ({
       ...segment,
       share: totalHours ? (segment.hours / totalHours) * 100 : 0,
@@ -8487,16 +8467,15 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
         <ChartHeading
           kicker="Monthly salary / Hourly rate / Project work"
           title="Workload hours by compensation type"
-          actions={<WorkloadModeToggle value={workloadMode} onChange={setWorkloadMode} />}
         />
-        <PayTypeWorkloadCharts groups={payTypeWorkloads} />
+        <PayTypeWorkloadCharts groups={payTypeWorkloads} workloadModes={workloadModes} onModeChange={setWorkloadMode} />
       </section>
 
       <section className="primary-panel analytics-chart-panel">
         <ChartHeading
           kicker={activePlatform.stack}
           title="Workload hours by department"
-          actions={<WorkloadModeToggle value={workloadMode} onChange={setWorkloadMode} />}
+          actions={<WorkloadModeToggle value={workloadModes.department} onChange={(value) => setWorkloadMode('department', value)} />}
         />
         <StackedWorkloadChart rows={departmentWorkload} />
       </section>
@@ -8505,7 +8484,7 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
         <ChartHeading
           kicker="Total scope"
           title="Workload flow"
-          actions={<WorkloadModeToggle value={workloadMode} onChange={setWorkloadMode} />}
+          actions={<WorkloadModeToggle value={workloadModes.totalFlow} onChange={(value) => setWorkloadMode('totalFlow', value)} />}
         />
         <WorkloadFlowChart rows={flowRows} totalHours={totalHours} variant="total" />
       </section>
@@ -8523,23 +8502,25 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
   );
 }
 
-function PayTypeWorkloadCharts({ groups }) {
+function PayTypeWorkloadCharts({ groups, workloadModes, onModeChange }) {
   const monthlyRows = groups.find((group) => group.payType === PAY_TYPE_MONTHLY)?.rows || [];
   const monthlyHours = monthlyRows.reduce((sum, row) => sum + (Number(row.hours) || 0), 0);
-  const monthlyFlowRows = aggregateSegmentsForRows(monthlyRows);
-  const monthlySalaryChartHeight = `${Math.max(monthlyRows.length * 54 + 88, 260)}px`;
+  const monthlyFlowRows = groups.find((group) => group.payType === PAY_TYPE_MONTHLY)?.flowRows || [];
+  const monthlySalaryChartHeight = `${Math.max(monthlyRows.length * 38 + 64, 188)}px`;
   return (
     <div className="analytics-paytype-grid">
       {groups.map((group) => (
         <article className="analytics-paytype-section" key={group.payType}>
           <div className="analytics-paytype-head">
             <span>{group.payType}</span>
+            <WorkloadModeToggle value={workloadModes[group.modeKey] || 'general'} onChange={(value) => onModeChange(group.modeKey, value)} />
           </div>
           <StackedWorkloadChart rows={group.rows} chartHeight={monthlySalaryChartHeight} emptyMessage={`No ${group.payType.toLowerCase()} users match the selected filters.`} />
           {group.payType === PAY_TYPE_MONTHLY && (
             <div className="analytics-paytype-flow">
               <div className="analytics-paytype-head">
                 <span>Monthly salary flow</span>
+                <WorkloadModeToggle value={workloadModes.monthlySalaryFlow} onChange={(value) => onModeChange('monthlySalaryFlow', value)} />
               </div>
               <WorkloadFlowChart
                 rows={monthlyFlowRows}
@@ -8585,15 +8566,20 @@ const chartFont = {
   weight: 750,
 };
 
+const compactChartFont = {
+  ...chartFont,
+  weight: 800,
+};
+
 const sharedChartPlugins = {
   legend: {
     position: 'bottom',
     labels: {
-      boxWidth: 10,
-      boxHeight: 10,
+      boxWidth: 8,
+      boxHeight: 8,
       color: '#526070',
-      font: { ...chartFont, size: 12 },
-      padding: 18,
+      font: { ...compactChartFont, size: 10 },
+      padding: 10,
       usePointStyle: true,
       pointStyle: 'rectRounded',
     },
@@ -8604,9 +8590,9 @@ const sharedChartPlugins = {
     borderWidth: 1,
     titleColor: '#ffffff',
     bodyColor: '#e5edf6',
-    padding: 12,
+    padding: 10,
     displayColors: true,
-    boxPadding: 5,
+    boxPadding: 4,
     callbacks: {
       label: (context) => `${context.dataset.label}: ${compactHours(context.parsed.x ?? context.parsed.y ?? 0)}`,
     },
@@ -8614,7 +8600,7 @@ const sharedChartPlugins = {
 };
 
 function StackedWorkloadChart({ rows, emptyMessage = 'No time entries match the selected analytics period.', chartHeight }) {
-  const resolvedChartHeight = chartHeight || `${Math.max(rows.length * 54 + 88, 260)}px`;
+  const resolvedChartHeight = chartHeight || `${Math.max(rows.length * 38 + 64, 188)}px`;
   if (rows.length === 0) {
     return (
       <div className="chartjs-shell stacked-workload-chart empty-chart-shell" style={{ '--chart-height': resolvedChartHeight }}>
@@ -8633,9 +8619,9 @@ function StackedWorkloadChart({ rows, emptyMessage = 'No time entries match the 
       borderWidth: 0,
       borderRadius: 2,
       borderSkipped: false,
-      maxBarThickness: 28,
-      barPercentage: 0.66,
-      categoryPercentage: 0.82,
+      maxBarThickness: 18,
+      barPercentage: 0.58,
+      categoryPercentage: 0.74,
     })),
   };
   const rowDetails = new Map(rows.map((row) => [row.label, row]));
@@ -8652,7 +8638,7 @@ function StackedWorkloadChart({ rows, emptyMessage = 'No time entries match the 
         border: { display: false },
         ticks: {
           color: '#8b96a4',
-          font: { ...chartFont, size: 11 },
+          font: { ...compactChartFont, size: 9 },
           callback: (value) => compactHours(value),
         },
       },
@@ -8662,7 +8648,7 @@ function StackedWorkloadChart({ rows, emptyMessage = 'No time entries match the 
         border: { display: false },
         ticks: {
           color: '#334052',
-          font: { ...chartFont, size: 12, weight: 850 },
+          font: { ...compactChartFont, size: 10, weight: 850 },
         },
       },
     },
@@ -8750,45 +8736,29 @@ function WorkloadFlowChart({ rows, totalHours, variant = 'cumulative', emptyMess
         borderRadius: 3,
         borderSkipped: false,
         minBarLength: 4,
-        barPercentage: 0.58,
-        categoryPercentage: 0.74,
+        barPercentage: 0.42,
+        categoryPercentage: 0.58,
       },
     ],
   };
-  const flowConnectorPlugin = {
-    id: 'flowConnector',
+  const flowPercentLabelsPlugin = {
+    id: 'flowPercentLabels',
     afterDatasetsDraw(chart) {
       const meta = chart.getDatasetMeta(0);
-      const { ctx, scales } = chart;
+      const { ctx } = chart;
       const bars = meta.data;
-      if (!bars?.length || !scales?.y) return;
+      if (!bars?.length) return;
 
       ctx.save();
-      ctx.setLineDash([4, 5]);
-      ctx.strokeStyle = '#b7c3d4';
-      ctx.lineWidth = 1;
-      flowBars.slice(1).forEach((bar, index) => {
-        const previousElement = bars[index];
-        const currentElement = bars[index + 1];
-        if (!previousElement || !currentElement) return;
-        const y = scales.y.getPixelForValue(bar.start);
-        const previousRight = previousElement.x + ((previousElement.width || 0) / 2);
-        const currentLeft = currentElement.x - ((currentElement.width || 0) / 2);
-        ctx.beginPath();
-        ctx.moveTo(previousRight, y);
-        ctx.lineTo(currentLeft, y);
-        ctx.stroke();
-      });
-      ctx.setLineDash([]);
       ctx.fillStyle = '#4c5c70';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'bottom';
-      ctx.font = '800 12px Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.font = '800 10px Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
       flowBars.forEach((bar, index) => {
         if (!bar.showPercent) return;
         const element = bars[index];
         if (!element) return;
-        const y = Math.min(element.y, element.base) - 8;
+        const y = Math.min(element.y, element.base) - 6;
         ctx.fillText(percent(bar.share, 2), element.x, y);
       });
       ctx.restore();
@@ -8804,7 +8774,7 @@ function WorkloadFlowChart({ rows, totalHours, variant = 'cumulative', emptyMess
         border: { display: false },
         ticks: {
           color: '#526070',
-          font: { ...chartFont, size: 12, weight: 850 },
+          font: { ...compactChartFont, size: 10, weight: 850 },
           maxRotation: 0,
           autoSkip: false,
         },
@@ -8816,7 +8786,7 @@ function WorkloadFlowChart({ rows, totalHours, variant = 'cumulative', emptyMess
         border: { display: false },
         ticks: {
           color: '#8b96a4',
-          font: { ...chartFont, size: 11 },
+          font: { ...compactChartFont, size: 9 },
           callback: (value) => compactHours(value),
         },
       },
@@ -8836,7 +8806,7 @@ function WorkloadFlowChart({ rows, totalHours, variant = 'cumulative', emptyMess
   };
   return (
     <div className="chartjs-shell workload-flow-chart">
-      <Bar data={data} options={options} plugins={[flowConnectorPlugin]} />
+      <Bar data={data} options={options} plugins={[flowPercentLabelsPlugin]} />
     </div>
   );
 }
