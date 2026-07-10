@@ -900,15 +900,15 @@
   }
 
   .analytics-paytype-head {
-    @apply mb-3 flex flex-wrap items-center justify-between gap-2 text-sm font-black text-[#344052];
+    @apply mb-3 flex flex-wrap items-center gap-2 text-sm font-black text-[#344052];
   }
 
   .analytics-paytype-head span {
     @apply text-[12px] uppercase tracking-[0.08em] text-[#8a96a7];
   }
 
-  .analytics-paytype-head strong {
-    @apply rounded-full border border-[#d9eadf] bg-[#f2fbf5] px-3 py-1 text-[#1e8f55];
+  .empty-chart-shell {
+    @apply flex items-start;
   }
 
   .analytics-data-table {

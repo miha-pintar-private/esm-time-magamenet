@@ -1077,6 +1077,7 @@ const documentationSections = [
           'Hourly rate chart entries use matching hourly compensation rows and original analytics entries, without Shortage or Overtime capacity segments.',
           'Project work chart entries include paid, non-break recorded time entries inside a project row date range. Project work is not mapped to a specific work type, so a person with both hourly and project rows can appear in both charts when the same recorded hours are relevant to both arrangements.',
           'All analytics charts are rendered with Chart.js for consistent axes, legends, tooltips, and responsive sizing.',
+          'Stacked workload bars have a maximum visual thickness so charts with one matching user keep the shared chart height without turning the single bar into a tall block.',
           'The workload charts use configured work type colors from Settings.',
           'The detail table Change column groups the selected entries by calendar month and renders a compact Chart.js trend bar for the row.',
           'The variance column compares the row share with the average share for the same work type across all visible departments or all visible users.',
@@ -8338,15 +8339,16 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
 }
 
 function PayTypeWorkloadCharts({ groups }) {
+  const monthlyRows = groups.find((group) => group.payType === PAY_TYPE_MONTHLY)?.rows || [];
+  const monthlySalaryChartHeight = `${Math.max(monthlyRows.length * 54 + 88, 260)}px`;
   return (
     <div className="analytics-paytype-grid">
       {groups.map((group) => (
         <article className="analytics-paytype-section" key={group.payType}>
           <div className="analytics-paytype-head">
             <span>{group.payType}</span>
-            <strong>{compactHours(group.hours)}</strong>
           </div>
-          <StackedWorkloadChart rows={group.rows} emptyMessage={`No ${group.payType.toLowerCase()} users match the selected filters.`} />
+          <StackedWorkloadChart rows={group.rows} chartHeight={monthlySalaryChartHeight} emptyMessage={`No ${group.payType.toLowerCase()} users match the selected filters.`} />
         </article>
       ))}
     </div>
@@ -8411,8 +8413,15 @@ const sharedChartPlugins = {
   },
 };
 
-function StackedWorkloadChart({ rows, emptyMessage = 'No time entries match the selected analytics period.' }) {
-  if (rows.length === 0) return <span className="empty-state">{emptyMessage}</span>;
+function StackedWorkloadChart({ rows, emptyMessage = 'No time entries match the selected analytics period.', chartHeight }) {
+  const resolvedChartHeight = chartHeight || `${Math.max(rows.length * 54 + 88, 260)}px`;
+  if (rows.length === 0) {
+    return (
+      <div className="chartjs-shell stacked-workload-chart empty-chart-shell" style={{ '--chart-height': resolvedChartHeight }}>
+        <span className="empty-state">{emptyMessage}</span>
+      </div>
+    );
+  }
   const typeNames = Array.from(new Set(rows.flatMap((row) => row.segments.map((segment) => segment.typeName)))).sort(compareWorkloadSegmentNames);
   const colorByType = new Map(rows.flatMap((row) => row.segments.map((segment) => [segment.typeName, segment.color])));
   const data = {
@@ -8424,6 +8433,7 @@ function StackedWorkloadChart({ rows, emptyMessage = 'No time entries match the 
       borderWidth: 0,
       borderRadius: 2,
       borderSkipped: false,
+      maxBarThickness: 28,
       barPercentage: 0.66,
       categoryPercentage: 0.82,
     })),
@@ -8475,7 +8485,7 @@ function StackedWorkloadChart({ rows, emptyMessage = 'No time entries match the 
     },
   };
   return (
-    <div className="chartjs-shell stacked-workload-chart" style={{ '--chart-height': `${Math.max(rows.length * 54 + 88, 260)}px` }}>
+    <div className="chartjs-shell stacked-workload-chart" style={{ '--chart-height': resolvedChartHeight }}>
       <Bar data={data} options={options} />
     </div>
   );
