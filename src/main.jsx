@@ -2269,6 +2269,8 @@ function employeeCompensationRows(employee) {
     return employee.compensationRows.map((row, index) => ({
       id: row.id || index + 1,
       employmentType: row.employmentType || row.workType || employee.employment || 'Employment type',
+      validFrom: row.validFrom || row.effectiveFrom || employee.contractStartDate || employee.start || '',
+      validUntil: row.validUntil || row.effectiveUntil || '',
       workTypes: Array.isArray(row.workTypes)
         ? row.workTypes
         : (row.workType && ![employee.employment, 'Employment', 'Work'].includes(row.workType) ? [row.workType] : []),
@@ -2289,6 +2291,8 @@ function employeeCompensationRows(employee) {
   return [{
     id: 1,
     employmentType: employee.employment || 'Employment type',
+    validFrom: employee.contractStartDate || employee.start || TODAY,
+    validUntil: '',
     workTypes: [],
     payType: PAY_TYPE_MONTHLY,
     grossSalary: 0,
@@ -2326,9 +2330,35 @@ function monthlyCapacityPercentForRow(row, employee, ruleItems) {
   return monthlyCapacityPercentForRule(rule);
 }
 
-function employeeMonthlyCapacityPercent(employee, ruleItems) {
-  const monthlyRow = employeeCompensationRows(employee).find((row) => isMonthlyPayType(row.payType));
-  return monthlyCapacityPercentForRow(monthlyRow, employee, ruleItems);
+function compensationRowActiveOnDate(row, dateValue = TODAY) {
+  if (!row) return false;
+  const validFrom = row.validFrom || '';
+  const validUntil = row.validUntil || '';
+  return (!validFrom || dateValue >= validFrom) && (!validUntil || dateValue <= validUntil);
+}
+
+function compensationRowStatus(row, dateValue = TODAY) {
+  return compensationRowActiveOnDate(row, dateValue) ? 'Active' : 'Inactive';
+}
+
+function compensationValidityLabel(row) {
+  const start = row.validFrom ? displayDate(row.validFrom) : 'No start';
+  const end = row.validUntil ? displayDate(row.validUntil) : 'No end';
+  return `${compensationRowStatus(row)} · ${start} to ${end}`;
+}
+
+function activeMonthlyCompensationRows(employee, dateValue = TODAY) {
+  return employeeCompensationRows(employee).filter((row) => (
+    isMonthlyPayType(row.payType) && compensationRowActiveOnDate(row, dateValue)
+  ));
+}
+
+function employeeMonthlyCapacityPercent(employee, ruleItems, dateValue = TODAY) {
+  const activeRows = activeMonthlyCompensationRows(employee, dateValue);
+  const rows = activeRows.length > 0
+    ? activeRows
+    : employeeCompensationRows(employee).filter((row) => isMonthlyPayType(row.payType));
+  return rows.reduce((sum, row) => sum + monthlyCapacityPercentForRow(row, employee, ruleItems), 0);
 }
 
 function sumCompensationRows(rows, field, payType) {
@@ -2349,13 +2379,18 @@ function projectRowCost(row, entries) {
   const projectDays = daysInclusive(row.projectStartDate, row.projectEndDate);
   if (!projectDays) return 0;
   const visibleProjectDates = new Set(entries
-    .filter((entry) => entry.date >= row.projectStartDate && entry.date <= row.projectEndDate)
+    .filter((entry) => (
+      entry.date >= row.projectStartDate
+      && entry.date <= row.projectEndDate
+      && compensationRowActiveOnDate(row, entry.date)
+    ))
     .map((entry) => entry.date));
   return ((Number(row.oneTimeAmount) || 0) / projectDays) * visibleProjectDates.size;
 }
 
 function rowMatchesEntry(row, entry, fallback = false) {
   if (!entry) return false;
+  if (entry.date && !compensationRowActiveOnDate(row, entry.date)) return false;
   const scopedTypes = Array.isArray(row.workTypes) ? row.workTypes.filter(Boolean) : [];
   if (scopedTypes.length === 0) return fallback;
   return scopedTypes.includes(entry.type);
@@ -2380,10 +2415,13 @@ function employeeRuleCost(employee, ruleItems, entries = [], configuredTypes = [
   const scopedRows = timeRows.filter((row) => row.workTypes.length > 0);
   const fallbackRows = timeRows.filter((row) => row.workTypes.length === 0);
   const timeCost = employeeEntries.reduce((sum, entry) => {
+    const activeTimeRows = timeRows.filter((row) => compensationRowActiveOnDate(row, entry.date || TODAY));
+    const activeScopedRows = activeTimeRows.filter((row) => row.workTypes.length > 0);
+    const activeFallbackRows = activeTimeRows.filter((row) => row.workTypes.length === 0);
     const row = entry.absenceType
-      ? (fallbackRows[0] || timeRows[0])
-      : scopedRows.find((item) => rowMatchesEntry(item, entry, false))
-        || fallbackRows.find((item) => rowMatchesEntry(item, entry, true));
+      ? (activeFallbackRows[0] || activeTimeRows[0] || fallbackRows[0] || timeRows[0])
+      : activeScopedRows.find((item) => rowMatchesEntry(item, entry, false))
+        || activeFallbackRows.find((item) => rowMatchesEntry(item, entry, true));
     if (!row) return sum;
     if (row.payType === PAY_TYPE_HOURLY) {
       return sum + ((Number(row.hourlyRate) || 0) * (Number(entry.hours) || 0));
@@ -2426,7 +2464,7 @@ function absenceAnalyticsEntries(requests = [], rules = [], people = [], from, t
         })
         .map((date) => {
           const monthBounds = isoMonthBounds(date);
-          const capacityFactor = employeeMonthlyCapacityPercent(person, employmentRules) / 100;
+          const capacityFactor = employeeMonthlyCapacityPercent(person, employmentRules, date) / 100;
           return {
             id: `absence-${request.id}-${date}`,
             employee: request.employee,
@@ -2493,7 +2531,13 @@ function hasMonthlySalaryRow(employee) {
 
 function workloadCapacityHours(employee, from, to, absenceRules = [], employmentRules = []) {
   if (!from || !to || !hasMonthlySalaryRow(employee)) return 0;
-  return countWorkingDays(from, to, holidayDateSet(absenceRules)) * 8 * (employeeMonthlyCapacityPercent(employee, employmentRules) / 100);
+  const holidayDates = holidayDateSet(absenceRules);
+  return datesBetween(from, to).reduce((sum, date) => {
+    const parsed = parseIsoDate(date);
+    const day = parsed?.getDay();
+    if (day === 0 || day === 6 || holidayDates.has(date)) return sum;
+    return sum + (8 * (employeeMonthlyCapacityPercent(employee, employmentRules, date) / 100));
+  }, 0);
 }
 
 function canCarryOvertime(entry) {
@@ -2627,6 +2671,7 @@ function projectRowsForEntry(employee, entry, configuredTypes = []) {
   if (!isPaidWorkloadEntry(entry, configuredTypes)) return [];
   return employeeCompensationRows(employee).filter((row) => (
     row.payType === PAY_TYPE_PROJECT
+    && compensationRowActiveOnDate(row, entry.date)
     && row.projectStartDate
     && row.projectEndDate
     && entry.date >= row.projectStartDate
@@ -2663,14 +2708,15 @@ function periodLabel(dateValue) {
 
 function compensationRowForEntry(employee, entry) {
   const rows = employeeCompensationRows(employee);
-  const timeRows = rows.filter((row) => row.payType !== PAY_TYPE_PROJECT);
+  const activeRows = entry?.date ? rows.filter((row) => compensationRowActiveOnDate(row, entry.date)) : rows;
+  const timeRows = activeRows.filter((row) => row.payType !== PAY_TYPE_PROJECT);
   const scopedRows = timeRows.filter((row) => row.workTypes.length > 0);
   const fallbackRows = timeRows.filter((row) => row.workTypes.length === 0);
 
   if (entry?.absenceType) return fallbackRows[0] || timeRows[0] || rows[0];
   return scopedRows.find((row) => rowMatchesEntry(row, entry, false))
     || fallbackRows.find((row) => rowMatchesEntry(row, entry, true))
-    || rows.find((row) => row.payType === PAY_TYPE_PROJECT)
+    || activeRows.find((row) => row.payType === PAY_TYPE_PROJECT)
     || rows[0];
 }
 
@@ -7114,7 +7160,12 @@ function EmployeeRecordSidebar({
   const employeeDocuments = documents.filter((document) => document.employee === employee.name);
   const employeeComments = Array.isArray(employee.comments) ? employee.comments : [];
   const employmentRule = findEmploymentRule(employee, employmentRules);
-  const compensationRows = employeeCompensationRows(employee);
+  const compensationRows = employeeCompensationRows(employee)
+    .sort((first, second) => {
+      const activeDiff = Number(compensationRowActiveOnDate(second)) - Number(compensationRowActiveOnDate(first));
+      if (activeDiff !== 0) return activeDiff;
+      return (second.validFrom || '').localeCompare(first.validFrom || '');
+    });
   const requirementItems = employeeRequirementItems(employee, employmentRules);
   const archived = isArchivedEmployee(employee);
   const selectedDocumentType = documentTypes.find((type) => type.name === documentForm.typeName);
@@ -7323,13 +7374,18 @@ function EmployeeRecordSidebar({
                   <div className="employee-record-table compensation-table">
                     <div className="employee-record-table-head">
                       <span>Employment type</span>
+                      <span>Validity</span>
                       <span>Work types</span>
                       <span>Cost details</span>
                       <span>Project period</span>
                     </div>
                     {compensationRows.map((row) => (
                       <div className="employee-record-table-row" key={row.id}>
-                        <strong data-label="Employment type">{row.employmentType}</strong>
+                        <strong data-label="Employment type">
+                          {row.employmentType}
+                          {compensationRowActiveOnDate(row) && <small>Active</small>}
+                        </strong>
+                        <span data-label="Validity">{compensationValidityLabel(row)}</span>
                         <span data-label="Work types">{row.payType === PAY_TYPE_PROJECT ? 'All paid work types' : (row.workTypes.length > 0 ? row.workTypes.join(', ') : 'All eligible work types')}</span>
                         <span data-label="Cost details">
                           {isMonthlyPayType(row.payType) && `${money(monthlyCompensationTotal(row))} monthly total`}
@@ -7647,8 +7703,11 @@ function EmployeeModal({ mode, employee, role, primaryLeadDepartment, employees,
     row.payType === PAY_TYPE_PROJECT
     && (!row.projectName.trim() || !row.projectStartDate || !row.projectEndDate || row.projectStartDate > row.projectEndDate)
   ));
+  const hasInvalidCompensationValidityRows = form.compensationRows.some((row) => (
+    !row.validFrom || (row.validUntil && row.validUntil < row.validFrom)
+  ));
   const hasNoContractEndDate = !form.contractEndDate;
-  const canSave = Boolean(form.name.trim() && form.department && form.level) && !duplicateName && !hasUnscopedRequiredRows && !hasInvalidProjectRows;
+  const canSave = Boolean(form.name.trim() && form.department && form.level) && !duplicateName && !hasUnscopedRequiredRows && !hasInvalidProjectRows && !hasInvalidCompensationValidityRows;
   const compensationEmploymentOptions = normalizedEmploymentRules.map((rule) => ({ name: rule.name, meta: rule.payType }));
   const compensationWorkTypeOptions = workTypes
     .filter((type) => workTypeMatchesPerson(type, { department: form.department, tags: form.tags }))
@@ -7708,6 +7767,8 @@ function EmployeeModal({ mode, employee, role, primaryLeadDepartment, employees,
         {
           id: Date.now(),
           employmentType: defaultRule?.name || '',
+          validFrom: TODAY,
+          validUntil: '',
           workTypes: [],
           payType: defaultRule?.payType || PAY_TYPE_MONTHLY,
           grossSalary: 0,
@@ -7930,6 +7991,14 @@ function EmployeeModal({ mode, employee, role, primaryLeadDepartment, employees,
                     <span>Pay type</span>
                     <strong>{row.payType}</strong>
                   </div>
+                  <label className="field compensation-valid-from-field">
+                    <span>Valid from</span>
+                    <input type="date" value={row.validFrom} onInput={(event) => updateCompensationRow(row.id, 'validFrom', event.target.value)} onChange={(event) => updateCompensationRow(row.id, 'validFrom', event.target.value)} />
+                  </label>
+                  <label className="field compensation-valid-until-field">
+                    <span>Valid until</span>
+                    <input type="date" value={row.validUntil} onInput={(event) => updateCompensationRow(row.id, 'validUntil', event.target.value)} onChange={(event) => updateCompensationRow(row.id, 'validUntil', event.target.value)} />
+                  </label>
                   {row.payType !== PAY_TYPE_PROJECT ? (
                     <label className="field compensation-worktypes-field">
                       <span>Applies to work types</span>
@@ -8030,6 +8099,9 @@ function EmployeeModal({ mode, employee, role, primaryLeadDepartment, employees,
         )}
         {hasInvalidProjectRows && (
           <div className="modal-warning"><AlertCircle size={16} /> Project work requires a project name and a valid Project from / Project to date range.</div>
+        )}
+        {hasInvalidCompensationValidityRows && (
+          <div className="modal-warning"><AlertCircle size={16} /> Each compensation row requires Valid from. Valid until can stay empty, but if set it must be on or after Valid from.</div>
         )}
 
         <div className="modal-actions">
