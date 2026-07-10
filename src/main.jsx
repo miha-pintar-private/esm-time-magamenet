@@ -1102,8 +1102,9 @@ const documentationSections = [
           'Hourly rate chart entries use matching hourly compensation rows and original analytics entries, without Shortage or Overtime capacity segments.',
           'Project work chart entries include paid, non-break recorded time entries inside the Project from / Project to range. Project work is not mapped to a specific work type, so a person with both hourly and project rows can appear in both charts when the same recorded hours are relevant to both arrangements.',
           'All analytics charts are rendered with Chart.js for consistent axes, legends, tooltips, and responsive sizing.',
+          'Analytics uses compact panel spacing, smaller section headings, denser filters, tighter table rows, and width-fitted charts to keep more metrics and charts visible without reducing chart bar readability.',
           'Workload flow is rendered as a downward waterfall chart from original analytics entries. It starts with Total work, does not include Capacity, Shortage, or Overtime, and each following workload segment is drawn as a floating bar that reduces the remaining total.',
-          'Very small workload flow segments still render with a minimum visible bar length, while the percent label above the bar shows the exact share. Waterfall segments are shown without connector lines so the chart remains visually clean when segments are small.',
+          'Very small workload flow segments still render with a minimum visible bar length, while the percent label above the bar shows the exact share. Flow charts use dashed connector lines between waterfall segments to make each remaining-balance step easier to follow.',
           'Stacked workload bars have a maximum visual thickness so charts with one matching user keep the shared chart height without turning the single bar into a tall block.',
           'The workload charts use configured work type colors from Settings.',
           'The detail table Change column groups the selected entries by calendar month and renders a compact Chart.js trend bar for the row.',
@@ -8506,7 +8507,7 @@ function PayTypeWorkloadCharts({ groups, workloadModes, onModeChange }) {
   const monthlyRows = groups.find((group) => group.payType === PAY_TYPE_MONTHLY)?.rows || [];
   const monthlyHours = monthlyRows.reduce((sum, row) => sum + (Number(row.hours) || 0), 0);
   const monthlyFlowRows = groups.find((group) => group.payType === PAY_TYPE_MONTHLY)?.flowRows || [];
-  const monthlySalaryChartHeight = `${Math.max(monthlyRows.length * 38 + 64, 188)}px`;
+  const monthlySalaryChartHeight = `${Math.max(monthlyRows.length * 44 + 70, 220)}px`;
   return (
     <div className="analytics-paytype-grid">
       {groups.map((group) => (
@@ -8566,20 +8567,15 @@ const chartFont = {
   weight: 750,
 };
 
-const compactChartFont = {
-  ...chartFont,
-  weight: 800,
-};
-
 const sharedChartPlugins = {
   legend: {
     position: 'bottom',
     labels: {
-      boxWidth: 8,
-      boxHeight: 8,
+      boxWidth: 10,
+      boxHeight: 10,
       color: '#526070',
-      font: { ...compactChartFont, size: 10 },
-      padding: 10,
+      font: { ...chartFont, size: 12 },
+      padding: 18,
       usePointStyle: true,
       pointStyle: 'rectRounded',
     },
@@ -8590,9 +8586,9 @@ const sharedChartPlugins = {
     borderWidth: 1,
     titleColor: '#ffffff',
     bodyColor: '#e5edf6',
-    padding: 10,
+    padding: 12,
     displayColors: true,
-    boxPadding: 4,
+    boxPadding: 5,
     callbacks: {
       label: (context) => `${context.dataset.label}: ${compactHours(context.parsed.x ?? context.parsed.y ?? 0)}`,
     },
@@ -8600,7 +8596,7 @@ const sharedChartPlugins = {
 };
 
 function StackedWorkloadChart({ rows, emptyMessage = 'No time entries match the selected analytics period.', chartHeight }) {
-  const resolvedChartHeight = chartHeight || `${Math.max(rows.length * 38 + 64, 188)}px`;
+  const resolvedChartHeight = chartHeight || `${Math.max(rows.length * 44 + 70, 220)}px`;
   if (rows.length === 0) {
     return (
       <div className="chartjs-shell stacked-workload-chart empty-chart-shell" style={{ '--chart-height': resolvedChartHeight }}>
@@ -8619,9 +8615,9 @@ function StackedWorkloadChart({ rows, emptyMessage = 'No time entries match the 
       borderWidth: 0,
       borderRadius: 2,
       borderSkipped: false,
-      maxBarThickness: 18,
-      barPercentage: 0.58,
-      categoryPercentage: 0.74,
+      maxBarThickness: 28,
+      barPercentage: 0.66,
+      categoryPercentage: 0.82,
     })),
   };
   const rowDetails = new Map(rows.map((row) => [row.label, row]));
@@ -8629,6 +8625,7 @@ function StackedWorkloadChart({ rows, emptyMessage = 'No time entries match the 
     indexAxis: 'y',
     responsive: true,
     maintainAspectRatio: false,
+    layout: { padding: { right: 12 } },
     animation: { duration: 560, easing: 'easeOutQuart' },
     scales: {
       x: {
@@ -8638,7 +8635,7 @@ function StackedWorkloadChart({ rows, emptyMessage = 'No time entries match the 
         border: { display: false },
         ticks: {
           color: '#8b96a4',
-          font: { ...compactChartFont, size: 9 },
+          font: { ...chartFont, size: 11 },
           callback: (value) => compactHours(value),
         },
       },
@@ -8648,7 +8645,7 @@ function StackedWorkloadChart({ rows, emptyMessage = 'No time entries match the 
         border: { display: false },
         ticks: {
           color: '#334052',
-          font: { ...compactChartFont, size: 10, weight: 850 },
+          font: { ...chartFont, size: 12, weight: 850 },
         },
       },
     },
@@ -8736,29 +8733,48 @@ function WorkloadFlowChart({ rows, totalHours, variant = 'cumulative', emptyMess
         borderRadius: 3,
         borderSkipped: false,
         minBarLength: 4,
-        barPercentage: 0.42,
-        categoryPercentage: 0.58,
+        barPercentage: 0.58,
+        categoryPercentage: 0.74,
       },
     ],
   };
-  const flowPercentLabelsPlugin = {
-    id: 'flowPercentLabels',
+  const flowAnnotationsPlugin = {
+    id: 'flowAnnotations',
     afterDatasetsDraw(chart) {
       const meta = chart.getDatasetMeta(0);
-      const { ctx } = chart;
+      const { chartArea, ctx, scales } = chart;
       const bars = meta.data;
-      if (!bars?.length) return;
+      if (!bars?.length || !chartArea || !scales?.y) return;
 
       ctx.save();
+      ctx.beginPath();
+      ctx.rect(chartArea.left, chartArea.top, chartArea.right - chartArea.left, chartArea.bottom - chartArea.top);
+      ctx.clip();
+      ctx.setLineDash([4, 5]);
+      ctx.strokeStyle = '#b7c3d4';
+      ctx.lineWidth = 1;
+      flowBars.slice(1).forEach((bar, index) => {
+        const previousElement = bars[index];
+        const currentElement = bars[index + 1];
+        if (!previousElement || !currentElement) return;
+        const y = scales.y.getPixelForValue(bar.start);
+        const previousRight = previousElement.x + ((previousElement.width || 0) / 2);
+        const currentLeft = currentElement.x - ((currentElement.width || 0) / 2);
+        ctx.beginPath();
+        ctx.moveTo(Math.max(previousRight, chartArea.left), y);
+        ctx.lineTo(Math.min(currentLeft, chartArea.right), y);
+        ctx.stroke();
+      });
+      ctx.setLineDash([]);
       ctx.fillStyle = '#4c5c70';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'bottom';
-      ctx.font = '800 10px Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.font = '800 12px Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
       flowBars.forEach((bar, index) => {
         if (!bar.showPercent) return;
         const element = bars[index];
         if (!element) return;
-        const y = Math.min(element.y, element.base) - 6;
+        const y = Math.min(element.y, element.base) - 8;
         ctx.fillText(percent(bar.share, 2), element.x, y);
       });
       ctx.restore();
@@ -8767,6 +8783,7 @@ function WorkloadFlowChart({ rows, totalHours, variant = 'cumulative', emptyMess
   const options = {
     responsive: true,
     maintainAspectRatio: false,
+    layout: { padding: { right: 12 } },
     animation: { duration: 560, easing: 'easeOutQuart' },
     scales: {
       x: {
@@ -8774,7 +8791,7 @@ function WorkloadFlowChart({ rows, totalHours, variant = 'cumulative', emptyMess
         border: { display: false },
         ticks: {
           color: '#526070',
-          font: { ...compactChartFont, size: 10, weight: 850 },
+          font: { ...chartFont, size: 12, weight: 850 },
           maxRotation: 0,
           autoSkip: false,
         },
@@ -8786,7 +8803,7 @@ function WorkloadFlowChart({ rows, totalHours, variant = 'cumulative', emptyMess
         border: { display: false },
         ticks: {
           color: '#8b96a4',
-          font: { ...compactChartFont, size: 9 },
+          font: { ...chartFont, size: 11 },
           callback: (value) => compactHours(value),
         },
       },
@@ -8806,7 +8823,7 @@ function WorkloadFlowChart({ rows, totalHours, variant = 'cumulative', emptyMess
   };
   return (
     <div className="chartjs-shell workload-flow-chart">
-      <Bar data={data} options={options} plugins={[flowPercentLabelsPlugin]} />
+      <Bar data={data} options={options} plugins={[flowAnnotationsPlugin]} />
     </div>
   );
 }
