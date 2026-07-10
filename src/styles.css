@@ -2555,6 +2555,10 @@
     @apply col-start-5 row-start-1 h-[30px] w-[30px] self-start justify-self-end;
   }
 
+  .project-compensation-row {
+    @apply grid-cols-[minmax(0,1.1fr)_minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_32px];
+  }
+
   .compensation-employment-field {
     @apply md:col-span-2;
   }
@@ -2582,6 +2586,19 @@
 
   .compensation-gross-gross-field {
     @apply md:col-start-1 md:col-span-2;
+  }
+
+  .project-compensation-row .compensation-worktypes-field {
+    @apply md:col-span-4;
+  }
+
+  .compensation-project-name-field {
+    @apply md:col-span-2;
+  }
+
+  .compensation-project-date-field,
+  .compensation-project-value-field {
+    @apply min-w-0;
   }
 
   .employment-rules-panel {
