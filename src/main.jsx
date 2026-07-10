@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
+  ArcElement,
   BarElement,
   CategoryScale,
   Chart as ChartJS,
@@ -8,7 +9,7 @@ import {
   LinearScale,
   Tooltip,
 } from 'chart.js';
-import { Bar } from 'react-chartjs-2';
+import { Bar, Doughnut } from 'react-chartjs-2';
 import {
   Activity,
   AlertCircle,
@@ -51,7 +52,7 @@ import {
 } from 'lucide-react';
 import './styles.css';
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend);
 
 const roles = {
   management: {
@@ -1066,107 +1067,116 @@ const documentationSections = [
       },
       {
         name: 'Department and user work-type analytics',
-        howItWorks: 'Analytics filters the active role scope by an independent date range plus optional department, tag, employment type, compensation type, and people filters, then shows how much time each department and user spent on every recorded work type plus approved vacation and sick leave working days. The page starts with compensation-type workload charts, then includes a department workload chart, a scope-level workload flow chart, and detail tables for departments and users.',
+        howItWorks: 'Analytics filters the active role scope by an independent date range plus optional department, tag, employment type, compensation type, and people filters, then keeps the existing workload charts and detail tables for time analysis. The workload area uses a compact chart layout: compensation-type charts share one row on wide screens, ordinary chart panels can sit side by side, and workload flow charts remain full-width for readability.',
         userSteps: [
           'Open Time Management, then open the Analytics subtab.',
           'Set From and To dates in the Analytics header, or click Last 30 days.',
           'Use Analytics scope filters to select one or more departments, tags, employment types, compensation types, or people.',
-          'Review Workload hours by compensation type to compare Monthly salary, Hourly rate, and Project work users in separate stacked charts.',
-          'Review Monthly salary flow below the Monthly salary chart to see Capacity, actual monthly workload segments, and Shortage or Overtime as a capacity waterfall.',
-          'Review Workload hours by department to compare stacked work-type hours by department.',
-          'Use General or Detailed above each workload chart. Each chart keeps its own detail setting. General groups normal work entries under Work. Detailed splits normal work entries by work type. Lunch break, Vacation, Sick leave, and Undefined remain visible in both modes. Shortage and Overtime appear only where a monthly salary capacity chart uses them.',
-          'Review Workload flow to see Total work reduced downward by actual recorded and approved absence hours for each workload segment.',
-          'Use the Department analytics and User analytics tables to compare hours, percent of time, variance from average, allocated cost, cost per hour, and change over time.',
+          'Review Workload hours by compensation type to compare Monthly salary, Hourly rate, and Project work users.',
+          'Review Workload hours by department and Workload flow to compare time distribution.',
+          'Use Department analytics and User analytics to compare hours, share, variance, cost, cost per hour, and trend change.',
+        ],
+        specifics: [
+          'Analytics date filters do not change the Time Management entry table filters.',
+          'On wide screens, non-flow analytics charts are grouped into compact rows. Flow charts remain full-width because their connector and cumulative bar labels need more horizontal room.',
+          'Approved vacation and sick leave are included as derived analytics entries for approved working days in the selected range.',
+          'General mode groups normal work entries under Work. Detailed mode splits normal work entries by work type. Lunch break, Vacation, Sick leave, and Undefined remain visible in both modes.',
+          'Monthly salary workload charts include Shortage when selected workload is below capacity and Overtime when selected workload exceeds capacity.',
+          'Pending, rejected, and deleted absence requests are excluded.',
+          'When no entries match the selected period, charts and tables show an empty state instead of zero-filled rows.',
+        ],
+        metrics: [
+          'Filtered analytics entries = visible time entries for filtered people within the selected date range + approved vacation/sick working-day entries in the same range',
+          'Department work-type hours = Σ entry.hours for entries whose employee belongs to the department and entry.type matches the work type',
+          'User work-type hours = Σ entry.hours where entry.employee matches the user and entry.type matches the work type',
+          'Work-type share = work-type hours / total hours for the same department or user × 100',
+          'Variance vs average = row work-type share - average share for that work type across visible departments or users',
+          'Trend bar value = row hours grouped by calendar month in the selected analytics period',
+        ],
+      },
+      {
+        name: 'Department cost analysis',
+        howItWorks: 'Below the existing time analytics, Analytics summarizes cost by department with expandable work-type detail inside each department. The cost section shows total cost, effective work hours, undefined hours, and vacation / sick cost for the selected period. A department cost doughnut chart is grouped with the department workload chart on wide screens and shows how the selected total cost is split across departments.',
+        userSteps: [
+          'Open Time Management, then open the Analytics subtab.',
+          'Set From and To dates in the Analytics header, or click Last 30 days.',
+          'Use Analytics scope filters to select one or more departments, tags, employment types, compensation types, or people.',
+          'Scroll below the workload charts and detail tables.',
+          'Review Total cost, Effective work hours, Undefined hours, and Vacation / sick cost in the cost summary row.',
+          'Review Cost analysis by department and work type. Department rows are the larger summary rows; click a department row chevron to open or close the indented work-type split inside that department.',
+          'Review Department cost flow to see the selected total cost distributed across departments in a doughnut chart.',
         ],
         specifics: [
           'Analytics date filters do not change the Time Management entry table filters.',
           'Analytics scope filters are multi-select filters; leaving a filter empty means all values in the active role scope are included.',
           'People must match every active filter category to remain in scope. For example, selecting a department and tag includes only people who are in that department and have that tag.',
           'Compensation type filters use employee compensation rows. A person remains in scope when at least one compensation row uses a selected pay type, such as Monthly salary, Project work, or Hourly rate.',
-          'Compensation rows are date-aware in Analytics. A time entry is grouped and costed only against compensation rows whose date range includes the entry date. Monthly salary and Hourly rate rows use Valid from / Valid until. Project work rows use Project from / Project to.',
+          'Compensation rows are date-aware in Analytics. Monthly salary and Hourly rate rows use Valid from / Valid until. Project work rows use Project from / Project to.',
           'The Analytics header shows how many time records and approved absence working days are included in the selected period, so users can confirm whether a date change changed the underlying dataset.',
           'If From is later than To, Analytics automatically reads the range from the earlier date to the later date and shows a warning.',
           'Role scope controls which users, departments, entries, and work types can appear.',
-          'Only work types, vacation days, or sick leave days with hours in the selected date range are shown in the workload charts and tables.',
-          'Work from home is not shown as a workload chart category because it is a Home flag on a time entry, not a work type.',
+          'Only departments and work types with cost, effective hours, undefined hours, or approved vacation / sick cost in the selected date range are shown.',
+          'Department cost rows are collapsed by default. Opening or closing one department does not change the selected filters, totals, or cost flow.',
+          'Work from home is not shown as a separate cost category because it is a Home flag on a time entry, not a work type.',
           'Approved vacation and sick leave are included as derived 8-hour analytics entries for each working day in the selected range.',
-          'For Monthly salary compensation charts, workload uses period working capacity. If recorded work, lunch break, vacation, sick leave, and saved Undefined hours are below capacity, the missing hours are shown as Shortage. If they are above capacity, the excess work portion is shown as Overtime and the stacked bar extends beyond the normal capacity.',
-          'Shortage is shown as the rightmost red workload segment. Overtime is shown as a green workload segment.',
-          'Workload hours by department uses original analytics entries only, so it shows actual work types, lunch break, vacation, and sick leave by department without Shortage or Overtime capacity segments.',
-          'Undefined can also come from saved time entries where the user selected the Undefined work type.',
+          'Monthly salary cost is treated as a working-day cost for the selected period. Each active monthly salary row contributes one daily cost on every working day in the date range, including days with vacation or sick leave.',
+          'For monthly salary rows, Capacity percent controls daily capacity hours. If recorded work, lunch break, vacation, sick leave, and saved Undefined hours are below capacity, the missing capacity is counted under Undefined hours.',
+          'Undefined hours include Lunch break, saved Undefined entries, unpaid work types, and missing monthly salary capacity.',
+          'Effective work hours include non-absence work entries that are not Lunch break, not Undefined, and not configured as unpaid.',
           'Pending, rejected, and deleted absence requests are not included in Analytics workload or cost.',
           'Vacation and sick leave working days exclude Saturdays, Sundays, and configured holiday rules from the Vacation module.',
-          'Compensation-type workload charts use the monthly salary workload model only for Monthly salary. Hourly rate and Project work charts are cumulative hour charts that grow with matching recorded hours rather than comparing hours to a capacity target.',
-          'Monthly salary chart entries classify each included entry by the active employee compensation row that matches the entry date and work type. Approved absence days use active fallback non-project compensation rows when available.',
-          'Monthly salary flow appears directly below the Monthly salary compensation chart. It uses the same monthly salary workload segments, starts with Capacity, and then draws Work, Lunch break, Vacation, Sick leave, Undefined, Shortage, or Overtime as capacity waterfall bars when those segments exist.',
-          'Hourly rate chart entries use matching hourly compensation rows and original analytics entries, without Shortage or Overtime capacity segments.',
-          'Project work chart entries include paid, non-break recorded time entries inside the Project from / Project to range. Project work is not mapped to a specific work type, so a person with both hourly and project rows can appear in both charts when the same recorded hours are relevant to both arrangements.',
-          'All analytics charts are rendered with Chart.js for consistent axes, legends, tooltips, responsive sizing, and square-ended bars.',
-          'Analytics uses compact panel spacing, smaller section headings, denser filters, tighter table rows, and width-fitted charts to keep more metrics and charts visible without reducing chart bar readability.',
-          'Workload flow is rendered as a downward waterfall chart from original analytics entries. It starts with Total work, does not include Capacity, Shortage, or Overtime, and each following workload segment is drawn as a floating bar that reduces the remaining total.',
-          'Very small workload flow segments still render with a minimum visible bar length in the direction of the flow, while the percent label above the bar shows the exact share. Flow charts use dashed connector lines between waterfall segments to make each remaining-balance step easier to follow.',
-          'Stacked workload bars have a maximum visual thickness so charts with one matching user keep the shared chart height without turning the single bar into a tall block.',
-          'The workload charts use configured work type colors from Settings.',
-          'The detail table Change column groups the selected entries by calendar month and renders a compact Chart.js trend bar for the row.',
-          'The variance column compares the row share with the average share for the same work type across all visible departments or all visible users.',
-          'When no entries match the selected period, charts and tables show an empty state instead of zero-filled rows.',
+          'Hourly rows multiply matched entry hours by hourly rate and add configured meal and transport allowances proportionally across matched entries for that row.',
+          'Project rows distribute project value evenly across calendar days between Project from and Project to, then allocate visible project-day cost across paid entries on that day.',
+          'The department cost doughnut chart uses each department cost divided by the selected total cost. The center label shows the total cost and the legend shows each department amount and share.',
+          'When no cost records match the selected period, the table and flow show empty states instead of zero-filled rows.',
         ],
         metrics: [
           'Filtered people = visible people matching all selected departments, tags, employment types, compensation types, and people filters',
           'Filtered analytics entries = visible time entries where employee is in filtered people and From <= entry.date <= To + approved vacation/sick working days for filtered people from the Vacation module in the same date range',
           'Vacation or sick leave hours = count(approved working days, excluding weekends and holidays) × 8 × monthly capacity factor for monthly salary employees',
-          'Monthly salary workload capacity = Σ each included working day × 8 × active monthly capacity factor for that date. If two monthly compensation rows are active on the same date, their capacity factors are added.',
-          'Monthly salary Shortage workload hours = max(monthly salary workload capacity - recorded work hours - lunch break hours - approved vacation hours - approved sick leave hours - saved Undefined hours, 0)',
-          'Monthly salary Overtime workload hours = max(recorded work hours + lunch break hours + approved vacation hours + approved sick leave hours + saved Undefined hours - monthly salary workload capacity, 0)',
-          'Department work-type hours = Σ entry.hours for entries whose employee belongs to the department and entry.type matches the work type',
-          'User work-type hours = Σ entry.hours where entry.employee matches the user and entry.type matches the work type',
-          'Work-type share = work-type hours / total hours for the same department or user × 100',
-          'Average share for variance = average(work-type share for the same work type across visible departments or users)',
-          'Variance vs average = row work-type share - average share for that work type',
-          'Monthly salary compensation chart value = Σ workload entry hours where the active compensation row for that entry date has payType Monthly salary or Monthly salary - reduced hours, including Shortage or Overtime when applicable',
-          'Monthly salary flow Capacity = Σ monthly salary workload segment hours across users in the selected scope',
-          'Monthly salary flow segment value = Σ monthly salary workload segment hours for the segment type',
-          'Hourly rate compensation chart value = Σ original analytics entry hours where the active compensation row for that entry date has payType Hourly rate',
-          'Project work compensation chart value = Σ paid non-break original time-entry hours where employee has an active Project work row and entry.date is between Project from and Project to',
-          'Stacked department workload chart value = original analytics entry hours for each visible department, excluding synthetic Shortage and Overtime entries',
-          'Stacked workload axis maximum = the highest visible department or user total hours',
-          'Workload flow floating bar = [remaining total after segment, remaining total before segment]. Very small segments may use a minimum visual bar length in the flow direction, but tooltips and percent labels still use exact hours.',
-          'Workload flow percent label = segment original analytics hours / total selected analytics hours × 100%',
-          'Trend bar value = row hours grouped by calendar month in the selected analytics period',
+          'Monthly salary daily cost = (grossGrossCost + mealAllowance + transportAllowance) / working days in the entry month, excluding weekends and configured holidays',
+          'Monthly salary daily capacity hours = 8 × active monthly capacity percent',
+          'Monthly salary missing capacity hours = max(daily capacity hours - recorded work hours - lunch break hours - approved vacation hours - approved sick leave hours - saved Undefined hours, 0)',
+          'Monthly salary category cost = monthly salary daily cost × category hours / max(total categorized day hours, daily capacity hours, 1)',
+          'Effective work hours = Σ hours for non-absence entries where type is not Lunch break, not Undefined, and not configured unpaid',
+          'Undefined hours = Σ Lunch break hours + saved Undefined hours + unpaid work-type hours + monthly salary missing capacity hours',
+          'Vacation / sick cost = Σ cost allocated to Vacation and Sick leave categories',
+          'Department total cost = Σ work-type total cost for that department',
+          'Work-type share in department = work-type total cost / department total cost × 100',
+          'Department doughnut share = department total cost / selected total cost × 100',
         ],
       },
       {
         name: 'Analytics cost allocation',
-        howItWorks: 'Analytics allocates employee cost to the selected time entries and approved vacation or sick leave before summarizing cost by user, department, and work type. Monthly salary cost is spread across recorded paid hours using monthly working hours, while hourly and project rows follow their configured cost rules.',
+        howItWorks: 'Analytics allocates employee cost to the selected period before summarizing it by department and work type. Monthly salary cost is spread by working day capacity, while hourly and project rows follow their configured cost rules.',
         userSteps: [
           'Open Time Management, then open the Analytics subtab.',
           'Set the analytics date range.',
-          'Review Allocated cost in the KPI row.',
-          'Review Cost and Cost / h in the department and user detail tables.',
+          'Review Total cost in the KPI row.',
+          'Review department summary rows and indented work-type rows in the cost analysis table.',
+          'Review Department cost flow for the department split in the doughnut chart.',
         ],
         specifics: [
-          'Only paid, non-break time entries and approved vacation or sick leave working days are included in employee cost calculations.',
-          'Monthly salary rows distribute gross gross cost plus meal and transport allowances over monthly working days × 8 hours × Capacity percent.',
+          'Monthly salary cost is included for each selected working day where the monthly salary row is active, even when there are no recorded work entries on that day.',
           'Monthly salary - reduced hours changes the divisor and analytics capacity only. The entered gross gross cost and allowances are already considered adjusted budget values and are not reduced again.',
-          'Vacation and sick leave use 8 hours × Capacity percent per approved working day and use monthly gross gross cost only, without meal or transport allowances. The monthly divisor is the absence month working-day count after weekends and Vacation-module holidays are excluded, multiplied by Capacity percent.',
-          'If salary rows are mapped to specific work types, vacation and sick leave use the first unmapped non-project row, or the first non-project row when no unmapped row exists.',
-          'Hourly rows multiply matched entry hours by hourly rate and add configured meal and transport allowances once for each matched hourly row.',
-          'Vacation and sick leave on hourly rows multiply 8 hours per working day by the hourly rate and do not add meal or transport allowances.',
-          'Project rows distribute project value evenly across calendar days between Project from and Project to, then include only unique visible paid-entry dates inside that project range.',
-          'Vacation and sick leave do not create project-cost days.',
+          'Vacation and sick leave count as working-day cost categories for monthly salary employees.',
+          'If an active monthly salary day has less categorized time than capacity, the missing capacity is allocated to Undefined.',
+          'Hourly rows multiply matched entry hours by hourly rate and add configured meal and transport allowances proportionally across matched entries.',
+          'Vacation and sick leave on hourly rows multiply derived absence hours by the hourly rate.',
+          'Project rows distribute project value evenly across calendar days between Project from and Project to, then allocate visible project-day cost across paid time entries on that project day.',
           'If an employee has mapped compensation rows for specific work types, matching entries use those rows first; unmapped time rows are used as fallback rows.',
           'Monthly salary and Hourly rate compensation rows apply only while their Valid from / Valid until range includes the entry date. A blank Valid until means the row remains open-ended. Project work rows use Project from / Project to instead.',
           'If multiple compensation rows are active and match the same entry date, their costs are added together. This supports two concurrent active employments.',
         ],
         metrics: [
-          'Allocated analytics cost = Σ employeeRuleCost(user, selected time entries + approved vacation/sick working-day entries, configured work types) using only compensation rows active on each entry date',
-          'Row cost = Σ employeeRuleCost(user, row work-type entries, configured work types) for entries included in that department or user row',
-          'Cost per hour = row cost / max(row hours, 1)',
-          'Monthly entry cost = entry.hours × ((grossGrossCost + mealAllowance + transportAllowance) / max(monthlyWorkingDays × 8 × monthly capacity factor, 1))',
-          'Monthly vacation/sick cost = absenceWorkingDays × 8 × monthly capacity factor × (grossGrossCost / max(monthWorkingDaysExcludingWeekendsAndHolidays × 8 × monthly capacity factor, 1))',
+          'Total cost = Σ department total cost in the selected Analytics scope',
+          'Monthly salary daily cost = active monthly row monthly total / working days in that month, excluding weekends and configured holidays',
+          'Monthly salary monthly total = grossGrossCost + mealAllowance + transportAllowance',
+          'Monthly salary category cost = daily cost × category hours / max(total categorized day hours, daily capacity hours, 1)',
           'Hourly entry cost = entry.hours × hourlyRate',
-          'Hourly vacation/sick cost = absenceWorkingDays × 8 × hourlyRate',
-          'Project visible cost = project daily cost × count(unique selected paid-entry dates inside the project period)',
+          'Hourly allowance allocation = row allowance total × entry hours / total matched row hours',
+          'Project daily cost = project value / count(calendar days from Project from through Project to)',
+          'Project visible category cost = project daily cost × entry hours / total paid project hours on that date',
         ],
       },
     ],
@@ -2672,6 +2682,202 @@ function projectRowsForEntry(employee, entry, configuredTypes = []) {
     && entry.date >= row.projectStartDate
     && entry.date <= row.projectEndDate
   ));
+}
+
+function isUndefinedCostEntry(entry, configuredTypes = []) {
+  const configured = configuredTypes.find((type) => type.name === entry?.type);
+  return entry?.break === true
+    || entry?.type === LUNCH_BREAK_TYPE
+    || entry?.type === UNDEFINED_WORK_TYPE
+    || configured?.paid === false;
+}
+
+function isEffectiveWorkEntry(entry, configuredTypes = []) {
+  return entry
+    && !entry.absenceType
+    && entry.syntheticWorkload !== true
+    && !isUndefinedCostEntry(entry, configuredTypes);
+}
+
+function costCategoryForEntry(entry, configuredTypes = []) {
+  if (entry?.absenceType || entry?.type === 'Vacation' || entry?.type === 'Sick leave') return entry.type;
+  if (isUndefinedCostEntry(entry, configuredTypes)) return UNDEFINED_WORK_TYPE;
+  return entry?.type || UNDEFINED_WORK_TYPE;
+}
+
+function addCostBucket(buckets, department, typeName, values = {}) {
+  const key = `${department}|||${typeName}`;
+  const current = buckets.get(key) || {
+    department,
+    typeName,
+    totalCost: 0,
+    effectiveHours: 0,
+    undefinedHours: 0,
+    absenceCost: 0,
+  };
+  current.totalCost += Number(values.totalCost) || 0;
+  current.effectiveHours += Number(values.effectiveHours) || 0;
+  current.undefinedHours += Number(values.undefinedHours) || 0;
+  current.absenceCost += Number(values.absenceCost) || 0;
+  buckets.set(key, current);
+}
+
+function matchingTimeRowsForEntry(rows, entry) {
+  const activeTimeRows = rows.filter((row) => row.payType !== PAY_TYPE_PROJECT && compensationRowActiveOnDate(row, entry.date || TODAY));
+  const activeScopedRows = activeTimeRows.filter((row) => row.workTypes.length > 0);
+  const activeFallbackRows = activeTimeRows.filter((row) => row.workTypes.length === 0);
+  const matchingScopedRows = activeScopedRows.filter((row) => rowMatchesEntry(row, entry, false));
+  const matchingFallbackRows = activeFallbackRows.filter((row) => rowMatchesEntry(row, entry, true));
+  if (entry.absenceType) return activeFallbackRows.length > 0 ? activeFallbackRows : activeTimeRows;
+  return matchingScopedRows.length > 0 ? matchingScopedRows : matchingFallbackRows;
+}
+
+function buildCostAnalysis({ people = [], entries = [], configuredTypes = [], employmentRules = [], absenceRules = [], from, to }) {
+  const buckets = new Map();
+  const holidayDates = holidayDateSet(absenceRules);
+  const peopleByName = new Map(people.map((person) => [person.name, person]));
+  const entryDates = entries.map((entry) => entry.date).filter(Boolean).sort();
+  const rangeFrom = from || entryDates[0] || TODAY;
+  const rangeTo = to || entryDates[entryDates.length - 1] || rangeFrom;
+  const entriesByPersonDate = new Map();
+  entries.forEach((entry) => {
+    if (!peopleByName.has(entry.employee) || entry.syntheticWorkload === true) return;
+    const key = `${entry.employee}|||${entry.date}`;
+    entriesByPersonDate.set(key, [...(entriesByPersonDate.get(key) || []), entry]);
+  });
+
+  people.forEach((person) => {
+    const rows = employeeCompensationRows(person);
+    const personEntries = entries.filter((entry) => entry.employee === person.name && entry.syntheticWorkload !== true);
+    const monthlyDateSet = new Set();
+
+    datesBetween(rangeFrom, rangeTo).forEach((date) => {
+      const parsed = parseIsoDate(date);
+      const day = parsed?.getDay();
+      if (day === 0 || day === 6 || holidayDates.has(date)) return;
+      const activeMonthlyRows = rows.filter((row) => isMonthlyPayType(row.payType) && compensationRowActiveOnDate(row, date));
+      if (activeMonthlyRows.length === 0) return;
+      monthlyDateSet.add(date);
+
+      const monthBounds = isoMonthBounds(date);
+      const monthWorkingDays = Math.max(countWorkingDays(monthBounds.start, monthBounds.end, holidayDates), 1);
+      const dailyCost = activeMonthlyRows.reduce((sum, row) => sum + (monthlyCompensationTotal(row) / monthWorkingDays), 0);
+      const capacityHours = activeMonthlyRows.reduce((sum, row) => (
+        sum + (8 * (monthlyCapacityPercentForRow(row, person, employmentRules) / 100))
+      ), 0);
+      const dayEntries = entriesByPersonDate.get(`${person.name}|||${date}`) || [];
+      const categoryHours = new Map();
+      dayEntries.forEach((entry) => {
+        const category = costCategoryForEntry(entry, configuredTypes);
+        categoryHours.set(category, (categoryHours.get(category) || 0) + (Number(entry.hours) || 0));
+      });
+      const recordedHours = Array.from(categoryHours.values()).reduce((sum, hours) => sum + hours, 0);
+      const missingHours = Math.max(capacityHours - recordedHours, 0);
+      if (missingHours > 0) {
+        categoryHours.set(UNDEFINED_WORK_TYPE, (categoryHours.get(UNDEFINED_WORK_TYPE) || 0) + missingHours);
+      }
+      const denominator = Math.max(Array.from(categoryHours.values()).reduce((sum, hours) => sum + hours, 0), capacityHours, 1);
+      categoryHours.forEach((hours, typeName) => {
+        const cost = dailyCost * (hours / denominator);
+        addCostBucket(buckets, person.department, typeName, {
+          totalCost: cost,
+          effectiveHours: ['Vacation', 'Sick leave', UNDEFINED_WORK_TYPE].includes(typeName) ? 0 : hours,
+          undefinedHours: typeName === UNDEFINED_WORK_TYPE ? hours : 0,
+          absenceCost: ['Vacation', 'Sick leave'].includes(typeName) ? cost : 0,
+        });
+      });
+    });
+
+    personEntries.forEach((entry) => {
+      const typeName = costCategoryForEntry(entry, configuredTypes);
+      const dayHasMonthlyCost = monthlyDateSet.has(entry.date);
+      const timeRows = matchingTimeRowsForEntry(rows, entry)
+        .filter((row) => !dayHasMonthlyCost || !isMonthlyPayType(row.payType));
+      const timeCost = timeRows.reduce((sum, row) => {
+        if (row.payType === PAY_TYPE_HOURLY) return sum + ((Number(row.hourlyRate) || 0) * (Number(entry.hours) || 0));
+        if (!isMonthlyPayType(row.payType)) return sum;
+        const capacityPercent = monthlyCapacityPercentForRow(row, person, employmentRules);
+        const monthlyTotal = entry.absenceType ? monthlyCompensationBaseCost(row) : monthlyCompensationTotal(row);
+        return sum + ((monthlyTotal / Math.max(entryMonthlyWorkingHours(row, entry, capacityPercent), 1)) * (Number(entry.hours) || 0));
+      }, 0);
+      addCostBucket(buckets, person.department, typeName, {
+        totalCost: timeCost,
+        effectiveHours: !dayHasMonthlyCost && isEffectiveWorkEntry(entry, configuredTypes) ? Number(entry.hours) || 0 : 0,
+        undefinedHours: !dayHasMonthlyCost && isUndefinedCostEntry(entry, configuredTypes) ? Number(entry.hours) || 0 : 0,
+        absenceCost: entry.absenceType ? timeCost : 0,
+      });
+    });
+
+    rows.filter((row) => row.payType === PAY_TYPE_HOURLY).forEach((row) => {
+      const matchedEntries = personEntries.filter((entry) => (
+        !entry.absenceType
+        && rowMatchesEntry(row, entry, row.workTypes.length === 0)
+        && compensationRowActiveOnDate(row, entry.date || TODAY)
+      ));
+      const allowanceTotal = (Number(row.mealAllowance) || 0) + (Number(row.transportAllowance) || 0);
+      const matchedHours = matchedEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
+      if (!allowanceTotal || !matchedHours) return;
+      matchedEntries.forEach((entry) => {
+        const typeName = costCategoryForEntry(entry, configuredTypes);
+        addCostBucket(buckets, person.department, typeName, {
+          totalCost: allowanceTotal * ((Number(entry.hours) || 0) / matchedHours),
+        });
+      });
+    });
+
+    rows.filter((row) => row.payType === PAY_TYPE_PROJECT).forEach((row) => {
+      const projectDays = daysInclusive(row.projectStartDate, row.projectEndDate);
+      if (!projectDays) return;
+      const dailyProjectCost = (Number(row.oneTimeAmount) || 0) / projectDays;
+      datesBetween(row.projectStartDate, row.projectEndDate)
+        .filter((date) => date >= rangeFrom && date <= rangeTo)
+        .forEach((date) => {
+          const dayEntries = (entriesByPersonDate.get(`${person.name}|||${date}`) || [])
+            .filter((entry) => isPaidWorkloadEntry(entry, configuredTypes));
+          const dayHours = dayEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
+          if (!dayHours) return;
+          dayEntries.forEach((entry) => {
+            const typeName = costCategoryForEntry(entry, configuredTypes);
+            addCostBucket(buckets, person.department, typeName, {
+              totalCost: dailyProjectCost * ((Number(entry.hours) || 0) / dayHours),
+            });
+          });
+        });
+    });
+  });
+
+  const departmentMap = new Map();
+  Array.from(buckets.values()).forEach((bucket) => {
+    const department = departmentMap.get(bucket.department) || {
+      department: bucket.department,
+      totalCost: 0,
+      effectiveHours: 0,
+      undefinedHours: 0,
+      absenceCost: 0,
+      workTypes: [],
+    };
+    department.totalCost += bucket.totalCost;
+    department.effectiveHours += bucket.effectiveHours;
+    department.undefinedHours += bucket.undefinedHours;
+    department.absenceCost += bucket.absenceCost;
+    department.workTypes.push(bucket);
+    departmentMap.set(bucket.department, department);
+  });
+
+  const departments = Array.from(departmentMap.values())
+    .map((department) => ({
+      ...department,
+      workTypes: department.workTypes.sort((first, second) => second.totalCost - first.totalCost || first.typeName.localeCompare(second.typeName)),
+    }))
+    .filter((department) => department.totalCost > 0 || department.effectiveHours > 0 || department.undefinedHours > 0)
+    .sort((first, second) => second.totalCost - first.totalCost || first.department.localeCompare(second.department));
+  const totals = departments.reduce((sum, department) => ({
+    totalCost: sum.totalCost + department.totalCost,
+    effectiveHours: sum.effectiveHours + department.effectiveHours,
+    undefinedHours: sum.undefinedHours + department.undefinedHours,
+    absenceCost: sum.absenceCost + department.absenceCost,
+  }), { totalCost: 0, effectiveHours: 0, undefinedHours: 0, absenceCost: 0 });
+  return { departments, totals };
 }
 
 function payTypeEntriesForChart(payType, analyticsEntries = [], workloadEntries = [], peopleByName = new Map(), configuredTypes = []) {
@@ -8305,6 +8511,15 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
   const peopleByName = useMemo(() => new Map(filteredPeople.map((person) => [person.name, person])), [filteredPeople]);
   const totalHours = analyticsEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
   const absenceHours = periodAbsenceEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
+  const costAnalysis = useMemo(() => buildCostAnalysis({
+    people: filteredPeople,
+    entries: analyticsEntries,
+    configuredTypes: configuredWorkTypes,
+    employmentRules,
+    absenceRules,
+    from: normalizedFilters.from,
+    to: normalizedFilters.to,
+  }), [filteredPeople, analyticsEntries, configuredWorkTypes, employmentRules, absenceRules, normalizedFilters.from, normalizedFilters.to]);
   const analyticsPeriodLabel = normalizedFilters.from && normalizedFilters.to
     ? `${displayDate(normalizedFilters.from)} to ${displayDate(normalizedFilters.to)}`
     : normalizedFilters.from
@@ -8344,6 +8559,7 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
     const segments = workloadSegmentsForEntries(departmentEntries, workloadModes.department, configuredWorkTypes);
     return { label: department, meta: `${departmentPeople.size} user${departmentPeople.size === 1 ? '' : 's'}`, hours, cost, segments };
   }).filter((row) => row.hours > 0).sort((first, second) => second.hours - first.hours);
+  const departmentChartHeight = `${Math.max(departmentWorkload.length * 56 + 70, 220)}px`;
   const payTypeWorkloads = analyticsPayTypeOptions.map((payType) => {
     const payTypeEntries = payTypeEntriesForChart(payType.name, analyticsEntries, workloadEntries, peopleByName, configuredWorkTypes);
     const payTypeHours = payTypeEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
@@ -8472,14 +8688,21 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
         <PayTypeWorkloadCharts groups={payTypeWorkloads} workloadModes={workloadModes} onModeChange={setWorkloadMode} />
       </section>
 
-      <section className="primary-panel analytics-chart-panel">
-        <ChartHeading
-          kicker={activePlatform.stack}
-          title="Workload hours by department"
-          actions={<WorkloadModeToggle value={workloadModes.department} onChange={(value) => setWorkloadMode('department', value)} />}
-        />
-        <StackedWorkloadChart rows={departmentWorkload} />
-      </section>
+      <div className="analytics-compact-grid">
+        <section className="primary-panel analytics-chart-panel">
+          <ChartHeading
+            kicker={activePlatform.stack}
+            title="Workload hours by department"
+            actions={<WorkloadModeToggle value={workloadModes.department} onChange={(value) => setWorkloadMode('department', value)} />}
+          />
+          <StackedWorkloadChart rows={departmentWorkload} chartHeight={departmentChartHeight} />
+        </section>
+
+        <section className="primary-panel analytics-chart-panel">
+          <ChartHeading kicker={activePlatform.stack} title="Department cost flow" />
+          <CostDepartmentFlow departments={costAnalysis.departments} totalCost={costAnalysis.totals.totalCost} />
+        </section>
+      </div>
 
       <section className="primary-panel analytics-chart-panel">
         <ChartHeading
@@ -8499,6 +8722,155 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
         <ChartHeading kicker="User analytics" title="Hours, share, variance, cost, and change" />
         <AnalyticsDetailTable rows={userRows} firstColumn="User" />
       </section>
+
+      <section className="primary-panel analytics-table-panel">
+        <ChartHeading kicker="Costs" title="Cost analysis by department and work type" />
+        <div className="cost-summary-metrics">
+          <div>
+            <span>Total cost</span>
+            <strong>{money(costAnalysis.totals.totalCost)}</strong>
+          </div>
+          <div>
+            <span>Effective work hours</span>
+            <strong>{compactHours(costAnalysis.totals.effectiveHours)}</strong>
+          </div>
+          <div>
+            <span>Undefined hours</span>
+            <strong>{compactHours(costAnalysis.totals.undefinedHours)}</strong>
+          </div>
+          <div>
+            <span>Vacation / sick cost</span>
+            <strong>{money(costAnalysis.totals.absenceCost)}</strong>
+          </div>
+        </div>
+        <CostAnalysisTable departments={costAnalysis.departments} totalCost={costAnalysis.totals.totalCost} />
+      </section>
+
+    </div>
+  );
+}
+
+function CostAnalysisTable({ departments, totalCost }) {
+  const [expandedDepartments, setExpandedDepartments] = useState(() => new Set());
+  const toggleDepartment = (departmentName) => {
+    setExpandedDepartments((current) => {
+      const next = new Set(current);
+      if (next.has(departmentName)) {
+        next.delete(departmentName);
+      } else {
+        next.add(departmentName);
+      }
+      return next;
+    });
+  };
+
+  if (departments.length === 0) return <span className="empty-state table-empty">No cost records match the selected period.</span>;
+  return (
+    <div className="cost-analysis-table">
+      <div className="cost-analysis-head">
+        <span>Cost group</span>
+        <span>Effective hours</span>
+        <span>Undefined hours</span>
+        <span>Vacation / sick cost</span>
+        <span>Total cost</span>
+        <span>Share</span>
+      </div>
+      {departments.map((department) => {
+        const expanded = expandedDepartments.has(department.department);
+        return (
+          <React.Fragment key={department.department}>
+            <div className="cost-analysis-row department-total">
+              <button
+                className="cost-department-toggle"
+                type="button"
+                onClick={() => toggleDepartment(department.department)}
+                aria-expanded={expanded}
+                aria-label={`${expanded ? 'Collapse' : 'Expand'} ${department.department} work types`}
+              >
+                <ChevronDown size={16} />
+                <strong>{department.department}</strong>
+              </button>
+              <span>{compactHours(department.effectiveHours)}</span>
+              <span>{compactHours(department.undefinedHours)}</span>
+              <span>{money(department.absenceCost)}</span>
+              <span>{money(department.totalCost)}</span>
+              <span className="cost-share-pill">{percent(totalCost ? (department.totalCost / totalCost) * 100 : 0)}</span>
+            </div>
+            {expanded && department.workTypes.map((row) => (
+              <div className="cost-analysis-row worktype-row" key={`${department.department}-${row.typeName}`}>
+                <strong><i />{row.typeName}</strong>
+                <span>{compactHours(row.effectiveHours)}</span>
+                <span>{compactHours(row.undefinedHours)}</span>
+                <span>{money(row.absenceCost)}</span>
+                <span>{money(row.totalCost)}</span>
+                <span className="cost-share-pill muted">{percent(department.totalCost ? (row.totalCost / department.totalCost) * 100 : 0)}</span>
+              </div>
+            ))}
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+}
+
+function CostDepartmentFlow({ departments, totalCost }) {
+  if (departments.length === 0 || !totalCost) return <span className="empty-state">No department costs are available for this period.</span>;
+  const colors = ['#2f65dc', '#28a35a', '#f4b740', '#ff6247', '#7b62d8', '#2bbdaf', '#75869a'];
+  const data = {
+    labels: departments.map((department) => department.department),
+    datasets: [
+      {
+        label: 'Cost',
+        data: departments.map((department) => department.totalCost),
+        backgroundColor: departments.map((_, index) => colors[index % colors.length]),
+        borderColor: '#ffffff',
+        borderWidth: 4,
+        hoverOffset: 6,
+      },
+    ],
+  };
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '68%',
+    animation: { duration: 560, easing: 'easeOutQuart' },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        ...sharedChartPlugins.tooltip,
+        callbacks: {
+          label: (context) => {
+            const value = Number(context.parsed) || 0;
+            return `${context.label}: ${money(value)} · ${percent(totalCost ? (value / totalCost) * 100 : 0)}`;
+          },
+        },
+      },
+    },
+  };
+  return (
+    <div className="cost-doughnut">
+      <div className="cost-doughnut-chart">
+        <Doughnut data={data} options={options} />
+        <div className="cost-doughnut-center">
+          <span>Total cost</span>
+          <strong>{money(totalCost)}</strong>
+        </div>
+      </div>
+      <div className="cost-doughnut-legend">
+        {departments.map((department, index) => {
+          const share = (department.totalCost / totalCost) * 100;
+          const color = colors[index % colors.length];
+          return (
+            <div className="cost-doughnut-legend-item" key={department.department}>
+              <i style={{ '--department-cost-color': color }} />
+              <div>
+                <strong>{department.department}</strong>
+                <span>{money(department.totalCost)} · {percent(share)}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -8507,32 +8879,32 @@ function PayTypeWorkloadCharts({ groups, workloadModes, onModeChange }) {
   const monthlyRows = groups.find((group) => group.payType === PAY_TYPE_MONTHLY)?.rows || [];
   const monthlyHours = monthlyRows.reduce((sum, row) => sum + (Number(row.hours) || 0), 0);
   const monthlyFlowRows = groups.find((group) => group.payType === PAY_TYPE_MONTHLY)?.flowRows || [];
-  const monthlySalaryChartHeight = `${Math.max(monthlyRows.length * 44 + 70, 220)}px`;
   return (
     <div className="analytics-paytype-grid">
-      {groups.map((group) => (
-        <article className="analytics-paytype-section" key={group.payType}>
-          <div className="analytics-paytype-head">
-            <span>{group.payType}</span>
-            <WorkloadModeToggle value={workloadModes[group.modeKey] || 'general'} onChange={(value) => onModeChange(group.modeKey, value)} />
-          </div>
-          <StackedWorkloadChart rows={group.rows} chartHeight={monthlySalaryChartHeight} emptyMessage={`No ${group.payType.toLowerCase()} users match the selected filters.`} />
-          {group.payType === PAY_TYPE_MONTHLY && (
-            <div className="analytics-paytype-flow">
-              <div className="analytics-paytype-head">
-                <span>Monthly salary flow</span>
-                <WorkloadModeToggle value={workloadModes.monthlySalaryFlow} onChange={(value) => onModeChange('monthlySalaryFlow', value)} />
-              </div>
-              <WorkloadFlowChart
-                rows={monthlyFlowRows}
-                totalHours={monthlyHours}
-                variant="capacity"
-                emptyMessage="No monthly salary workload flow is available for this period."
-              />
+      {groups.map((group) => {
+        const chartHeight = `${Math.max(group.rows.length * 38 + 70, 210)}px`;
+        return (
+          <article className="analytics-paytype-section" key={group.payType}>
+            <div className="analytics-paytype-head">
+              <span>{group.payType}</span>
+              <WorkloadModeToggle value={workloadModes[group.modeKey] || 'general'} onChange={(value) => onModeChange(group.modeKey, value)} />
             </div>
-          )}
-        </article>
-      ))}
+            <StackedWorkloadChart rows={group.rows} chartHeight={chartHeight} emptyMessage={`No ${group.payType.toLowerCase()} users match the selected filters.`} />
+          </article>
+        );
+      })}
+      <article className="analytics-paytype-section analytics-paytype-flow-section">
+        <div className="analytics-paytype-head">
+          <span>Monthly salary flow</span>
+          <WorkloadModeToggle value={workloadModes.monthlySalaryFlow} onChange={(value) => onModeChange('monthlySalaryFlow', value)} />
+        </div>
+        <WorkloadFlowChart
+          rows={monthlyFlowRows}
+          totalHours={monthlyHours}
+          variant="capacity"
+          emptyMessage="No monthly salary workload flow is available for this period."
+        />
+      </article>
     </div>
   );
 }

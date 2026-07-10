@@ -800,8 +800,13 @@
     @apply grid-cols-1 gap-4;
   }
 
-  .analytics-workspace > .primary-panel {
+  .analytics-workspace > .primary-panel,
+  .analytics-compact-grid > .primary-panel {
     @apply w-full max-w-full rounded-[10px] px-4 pb-4 pt-3.5;
+  }
+
+  .analytics-compact-grid {
+    @apply grid grid-cols-2 gap-4;
   }
 
   .analytics-workspace .panel-heading {
@@ -929,11 +934,11 @@
   }
 
   .analytics-paytype-grid {
-    @apply grid gap-3;
+    @apply grid grid-cols-3 gap-3;
   }
 
   .analytics-paytype-section {
-    @apply border-t border-line pt-3 first:border-t-0 first:pt-0;
+    @apply min-w-0 border-l border-line pl-3 first:border-l-0 first:pl-0;
   }
 
   .analytics-paytype-head {
@@ -944,8 +949,8 @@
     @apply text-[10px] uppercase tracking-[0.08em] text-[#8a96a7];
   }
 
-  .analytics-paytype-flow {
-    @apply mt-3 border-t border-dashed border-line pt-3;
+  .analytics-paytype-flow-section {
+    @apply col-span-full border-l-0 border-t border-dashed border-line pl-0 pt-3;
   }
 
   .field-label-with-info {
@@ -1009,6 +1014,137 @@
 
   .analytics-data-row strong {
     @apply min-w-0 truncate text-[#334052];
+  }
+
+  .cost-summary-metrics {
+    @apply mb-3 grid grid-cols-4 gap-2.5;
+  }
+
+  .cost-summary-metrics > div {
+    @apply grid min-h-[74px] content-center gap-1 rounded-[10px] border border-[#d7e2ef] bg-[#fbfdff] px-3;
+  }
+
+  .cost-summary-metrics span {
+    @apply text-[10px] font-black uppercase tracking-[0.08em] text-[#8e9cac];
+  }
+
+  .cost-summary-metrics strong {
+    @apply text-[18px] font-black text-[#273246];
+  }
+
+  .cost-analysis-table {
+    @apply block w-full overflow-x-auto rounded-[12px] border border-[#d7e2ef] bg-white;
+  }
+
+  .cost-analysis-head,
+  .cost-analysis-row {
+    display: grid;
+    grid-template-columns: minmax(220px, 1.5fr) 126px 126px 146px 120px 84px;
+    min-width: 840px;
+    align-items: center;
+    gap: 12px;
+    padding: 0 10px;
+  }
+
+  .cost-analysis-head {
+    @apply min-h-8 border-b border-[#d7e2ef] bg-[#f5f8fb] text-[10px] font-black uppercase tracking-[0.08em] text-[#8e9cac];
+  }
+
+  .cost-analysis-row {
+    @apply min-h-[34px] border-b border-[#e3ebf4] text-[12px] font-bold text-[#344052];
+  }
+
+  .cost-analysis-row:last-child {
+    @apply border-b-0;
+  }
+
+  .cost-analysis-row.department-total {
+    @apply min-h-[40px] bg-[#fbfdff] font-black text-[#273246];
+  }
+
+  .cost-analysis-row.department-total strong {
+    @apply text-[#253247];
+  }
+
+  .cost-department-toggle {
+    @apply inline-flex min-w-0 cursor-pointer items-center gap-2 bg-transparent p-0 text-left;
+  }
+
+  .cost-department-toggle svg {
+    @apply shrink-0 text-[#7d8da0] transition-transform duration-150;
+  }
+
+  .cost-department-toggle[aria-expanded="true"] svg {
+    @apply rotate-180;
+  }
+
+  .cost-department-toggle:focus-visible {
+    @apply rounded-md outline-none ring-2 ring-[#9db8ff] ring-offset-2;
+  }
+
+  .cost-analysis-row.worktype-row {
+    @apply text-[#526174];
+  }
+
+  .cost-analysis-row.worktype-row strong {
+    @apply flex min-w-0 items-center gap-2 pl-3 font-extrabold text-[#526174];
+  }
+
+  .cost-analysis-row.worktype-row strong i {
+    @apply h-px w-4 shrink-0 bg-[#c8d5e4];
+  }
+
+  .cost-share-pill {
+    @apply inline-flex w-fit min-w-[54px] justify-center rounded-md bg-[#dff6e8] px-2 py-0.5 text-[11px] font-black text-[#168853];
+  }
+
+  .cost-share-pill.muted {
+    @apply bg-[#eef2f7] text-[#617084];
+  }
+
+  .cost-doughnut {
+    @apply grid grid-cols-[minmax(260px,360px)_minmax(260px,1fr)] items-center gap-6 rounded-[12px] border border-[#d7e2ef] bg-white p-4;
+  }
+
+  .cost-doughnut-chart {
+    @apply relative mx-auto h-[260px] w-full max-w-[320px];
+  }
+
+  .cost-doughnut-center {
+    @apply pointer-events-none absolute left-1/2 top-1/2 grid w-[132px] -translate-x-1/2 -translate-y-1/2 place-items-center gap-1 text-center;
+  }
+
+  .cost-doughnut-center span {
+    @apply text-[10px] font-black uppercase tracking-[0.1em] text-[#8e9cac];
+  }
+
+  .cost-doughnut-center strong {
+    @apply text-[22px] font-black leading-tight text-[#243044];
+  }
+
+  .cost-doughnut-legend {
+    @apply grid gap-2.5;
+  }
+
+  .cost-doughnut-legend-item {
+    @apply grid grid-cols-[12px_minmax(0,1fr)] items-center gap-3 rounded-[9px] border border-[#e3ebf4] bg-[#fbfdff] px-3 py-2.5;
+  }
+
+  .cost-doughnut-legend-item i {
+    background: var(--department-cost-color);
+    @apply h-3 w-3 rounded-full;
+  }
+
+  .cost-doughnut-legend-item div {
+    @apply grid min-w-0 gap-0.5;
+  }
+
+  .cost-doughnut-legend-item strong {
+    @apply truncate text-[13px] font-black text-[#2d384a];
+  }
+
+  .cost-doughnut-legend-item span {
+    @apply text-[12px] font-extrabold text-[#66758a];
   }
 
   .delta-cell {
@@ -4030,6 +4166,14 @@
       @apply grid-cols-2;
     }
 
+    .analytics-paytype-grid {
+      @apply grid-cols-2;
+    }
+
+    .analytics-paytype-flow-section {
+      @apply col-span-full;
+    }
+
     .table-toolbar .soft-btn {
       @apply px-3.5 text-[12px];
     }
@@ -4290,6 +4434,10 @@
       @apply grid-cols-2;
     }
 
+    .cost-summary-metrics {
+      @apply grid-cols-2;
+    }
+
     .topbar {
       @apply grid-cols-1 items-stretch;
     }
@@ -4507,10 +4655,22 @@
     .role-switcher,
     .time-metrics,
     .analytics-kpis,
+    .analytics-compact-grid,
+    .analytics-paytype-grid,
     .dashboard-current,
+    .cost-summary-metrics,
+    .cost-doughnut,
     .settings-page,
     .documentation-layout {
       @apply grid-cols-1;
+    }
+
+    .analytics-paytype-section {
+      @apply border-l-0 border-t border-line pl-0 pt-3 first:border-t-0 first:pt-0;
+    }
+
+    .cost-doughnut-chart {
+      @apply h-[230px] max-w-[280px];
     }
 
     .documentation-index {
