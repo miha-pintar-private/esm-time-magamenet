@@ -1067,8 +1067,9 @@ const documentationSections = [
           'Only work types, vacation days, or sick leave days with hours in the selected date range are shown in the workload charts and tables.',
           'Work from home is not shown as a workload chart category because it is a Home flag on a time entry, not a work type.',
           'Approved vacation and sick leave are included as derived 8-hour analytics entries for each working day in the selected range.',
-          'For Monthly salary employees, workload charts use period working capacity. If recorded work, lunch break, vacation, sick leave, and saved Undefined hours are below capacity, the missing hours are shown as Shortage. If they are above capacity, the excess work portion is shown as Overtime and the stacked bar extends beyond the normal capacity.',
+          'For Monthly salary compensation charts, workload uses period working capacity. If recorded work, lunch break, vacation, sick leave, and saved Undefined hours are below capacity, the missing hours are shown as Shortage. If they are above capacity, the excess work portion is shown as Overtime and the stacked bar extends beyond the normal capacity.',
           'Shortage is shown as the rightmost red workload segment. Overtime is shown as a green workload segment.',
+          'Workload hours by department uses original analytics entries only, so it shows actual work types, lunch break, vacation, and sick leave by department without Shortage or Overtime capacity segments.',
           'Undefined can also come from saved time entries where the user selected the Undefined work type.',
           'Pending, rejected, and deleted absence requests are not included in Analytics workload or cost.',
           'Vacation and sick leave working days exclude Saturdays, Sundays, and configured holiday rules from the Vacation module.',
@@ -1098,7 +1099,7 @@ const documentationSections = [
           'Monthly salary compensation chart value = Σ workload entry hours where compensationRowForEntry(employee, entry).payType equals Monthly salary, including Shortage or Overtime when applicable',
           'Hourly rate compensation chart value = Σ original analytics entry hours where compensationRowForEntry(employee, entry).payType equals Hourly rate',
           'Project work compensation chart value = Σ paid non-break original time-entry hours where employee has a Project work row and entry.date is between Project from and Project to',
-          'Stacked department workload chart value = work-type hours for each visible department',
+          'Stacked department workload chart value = original analytics entry hours for each visible department, excluding synthetic Shortage and Overtime entries',
           'Stacked workload axis maximum = the highest visible department or user total hours',
           'Workload flow percent = work-type hours / total selected analytics hours × 100%',
           'Trend bar value = row hours grouped by calendar month in the selected analytics period',
@@ -8183,12 +8184,11 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
   });
   const departmentWorkload = departmentNames.map((department) => {
     const departmentPeople = new Set(filteredPeople.filter((person) => person.department === department).map((person) => person.name));
-    const departmentEntries = workloadEntries.filter((entry) => departmentPeople.has(entry.employee));
-    const departmentAnalyticsEntries = analyticsEntries.filter((entry) => departmentPeople.has(entry.employee));
+    const departmentEntries = analyticsEntries.filter((entry) => departmentPeople.has(entry.employee));
     const hours = departmentEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
     const cost = filteredPeople
       .filter((person) => person.department === department)
-      .reduce((sum, person) => sum + employeeRuleCost(person, employmentRules, departmentAnalyticsEntries, configuredWorkTypes), 0);
+      .reduce((sum, person) => sum + employeeRuleCost(person, employmentRules, departmentEntries, configuredWorkTypes), 0);
     const segments = workloadSegmentsForEntries(departmentEntries, workloadMode, configuredWorkTypes);
     return { label: department, meta: `${departmentPeople.size} user${departmentPeople.size === 1 ? '' : 's'}`, hours, cost, segments };
   }).filter((row) => row.hours > 0).sort((first, second) => second.hours - first.hours);
