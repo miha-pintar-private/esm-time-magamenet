@@ -1104,7 +1104,7 @@ const documentationSections = [
           'All analytics charts are rendered with Chart.js for consistent axes, legends, tooltips, and responsive sizing.',
           'Analytics uses compact panel spacing, smaller section headings, denser filters, tighter table rows, and width-fitted charts to keep more metrics and charts visible without reducing chart bar readability.',
           'Workload flow is rendered as a downward waterfall chart from original analytics entries. It starts with Total work, does not include Capacity, Shortage, or Overtime, and each following workload segment is drawn as a floating bar that reduces the remaining total.',
-          'Very small workload flow segments still render with a minimum visible bar length, while the percent label above the bar shows the exact share. Flow charts use dashed connector lines between waterfall segments to make each remaining-balance step easier to follow.',
+          'Very small workload flow segments still render with a minimum visible bar length in the direction of the flow, while the percent label above the bar shows the exact share. Flow charts use dashed connector lines between waterfall segments to make each remaining-balance step easier to follow.',
           'Stacked workload bars have a maximum visual thickness so charts with one matching user keep the shared chart height without turning the single bar into a tall block.',
           'The workload charts use configured work type colors from Settings.',
           'The detail table Change column groups the selected entries by calendar month and renders a compact Chart.js trend bar for the row.',
@@ -1130,7 +1130,7 @@ const documentationSections = [
           'Project work compensation chart value = Σ paid non-break original time-entry hours where employee has an active Project work row and entry.date is between Project from and Project to',
           'Stacked department workload chart value = original analytics entry hours for each visible department, excluding synthetic Shortage and Overtime entries',
           'Stacked workload axis maximum = the highest visible department or user total hours',
-          'Workload flow floating bar = [remaining total after segment, remaining total before segment]',
+          'Workload flow floating bar = [remaining total after segment, remaining total before segment]. Very small segments may use a minimum visual bar length in the flow direction, but tooltips and percent labels still use exact hours.',
           'Workload flow percent label = segment original analytics hours / total selected analytics hours × 100%',
           'Trend bar value = row hours grouped by calendar month in the selected analytics period',
         ],
@@ -8722,17 +8722,29 @@ function WorkloadFlowChart({ rows, totalHours, variant = 'cumulative', emptyMess
           };
         });
       })();
+  const minimumVisibleFlowHours = totalHours > 0 ? Math.min(Math.max(totalHours * 0.01, 1), 6) : 0;
+  const visualFlowRange = (bar) => {
+    const lower = Math.min(bar.start, bar.end);
+    const upper = Math.max(bar.start, bar.end);
+    const exactSpan = upper - lower;
+    if (!bar.showPercent || !minimumVisibleFlowHours || exactSpan >= minimumVisibleFlowHours) {
+      return [lower, upper];
+    }
+    if (bar.start > bar.end) {
+      return [Math.max(bar.start - minimumVisibleFlowHours, 0), bar.start];
+    }
+    return [bar.start, bar.start + minimumVisibleFlowHours];
+  };
   const data = {
     labels: flowBars.map((row) => row.label),
     datasets: [
       {
         label: 'Hours',
-        data: flowBars.map((row) => [Math.min(row.start, row.end), Math.max(row.start, row.end)]),
+        data: flowBars.map((row) => visualFlowRange(row)),
         backgroundColor: flowBars.map((row) => row.color),
         borderWidth: 0,
         borderRadius: 3,
         borderSkipped: false,
-        minBarLength: 4,
         barPercentage: 0.58,
         categoryPercentage: 0.74,
       },
