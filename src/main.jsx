@@ -25,6 +25,7 @@ import {
   Filter,
   FolderLock,
   Home,
+  Info,
   ListChecks,
   LayoutDashboard,
   Lock,
@@ -1356,7 +1357,7 @@ const documentationSections = [
           'Click Add employment type.',
           'Enter the employment type name.',
           'Choose Monthly salary, Monthly salary - reduced hours, Project work, or Hourly rate as the cost method.',
-          'For a monthly salary method, set Capacity percent. Use 100 for full-time monthly salary or a lower percent such as 50 for reduced working time.',
+          'For Monthly salary - reduced hours, set Capacity percent, such as 50 for half-time work.',
           'Select whether the rule requires an employment contract, medical exam, and safety training.',
           'Save the rule, then assign that employment type on an employee profile.',
           'To configure document types, click Add document type.',
@@ -1368,7 +1369,7 @@ const documentationSections = [
           'Employment type names are required and must be unique.',
           'Document type names are required and must be unique.',
           'Monthly salary defaults to requiring employment contract, medical exam, and safety training.',
-          'Monthly salary - reduced hours also defaults to employment contract, medical exam, and safety training, and shows Capacity percent in the rule form and table.',
+          'Monthly salary - reduced hours also defaults to employment contract, medical exam, and safety training, and shows Capacity percent in the rule form and table. Standard Monthly salary keeps 100% capacity and does not show the Capacity percent field in the form.',
           'Capacity percent reduces expected Analytics capacity hours and the monthly cost divisor. It does not reduce entered salary, allowances, gross gross cost, project value, or any budget value.',
           'Project work and Hourly rate default to requiring an employment contract only, but medical exam and safety training can be enabled manually.',
           'Rules assigned to employees cannot be deleted.',
@@ -8096,9 +8097,21 @@ function EmploymentRuleModal({ mode, rule, existingRules, onClose, onSave }) {
             <span>Cost method</span>
             <SimpleDropdown value={form.payType} options={payTypeOptions} onChange={(value) => update('payType', value)} />
           </label>
-          {isMonthlyPayType(form.payType) && (
+          {form.payType === PAY_TYPE_MONTHLY_REDUCED && (
             <label className="field modal-note">
-              <span>Capacity percent</span>
+              <span className="field-label-with-info">
+                Capacity percent
+                <span
+                  className="info-tooltip"
+                  tabIndex="0"
+                  aria-label="Capacity percent means how much of full-time capacity the person works. 50 means 50 percent of full-time. 30 means 30 percent, not 70 percent. Salary, allowances, and budget values are not reduced again."
+                >
+                  <Info size={14} />
+                  <span className="info-tooltip-content" role="tooltip">
+                    Capacity percent means how much of full-time capacity the person works. 50 means 50% of full-time. 30 means 30%, not 70%. Salary, allowances, and budget values are already adjusted and are not reduced again.
+                  </span>
+                </span>
+              </span>
               <input
                 type="number"
                 min="1"

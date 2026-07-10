@@ -911,6 +911,31 @@
     @apply mt-5 border-t border-dashed border-line pt-4;
   }
 
+  .field-label-with-info {
+    @apply inline-flex items-center gap-1.5;
+  }
+
+  .field-label-with-info svg {
+    @apply text-[#8a96a7];
+  }
+
+  .info-tooltip {
+    @apply relative inline-flex cursor-help items-center rounded-full outline-none;
+  }
+
+  .info-tooltip:focus-visible {
+    @apply ring-2 ring-[#9db8ff] ring-offset-2;
+  }
+
+  .info-tooltip-content {
+    @apply pointer-events-none invisible absolute left-1/2 top-[calc(100%+8px)] z-50 w-[280px] -translate-x-1/2 rounded-lg border border-[#d9e2ef] bg-[#1f2937] px-3 py-2 text-left text-[12px] font-bold leading-[1.45] normal-case tracking-normal text-white opacity-0 shadow-[0_12px_30px_rgba(15,23,42,0.18)] transition;
+  }
+
+  .info-tooltip:hover .info-tooltip-content,
+  .info-tooltip:focus-visible .info-tooltip-content {
+    @apply visible opacity-100;
+  }
+
   .empty-chart-shell {
     @apply flex items-start;
   }
