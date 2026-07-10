@@ -934,11 +934,19 @@
   }
 
   .analytics-paytype-grid {
-    @apply grid grid-cols-3 gap-3;
+    @apply grid gap-3;
+  }
+
+  .analytics-paytype-secondary-grid {
+    @apply grid grid-cols-2 gap-3 border-t border-dashed border-line pt-3;
   }
 
   .analytics-paytype-section {
     @apply min-w-0 border-l border-line pl-3 first:border-l-0 first:pl-0;
+  }
+
+  .analytics-paytype-primary-section {
+    @apply border-l-0 pl-0;
   }
 
   .analytics-paytype-head {
@@ -950,7 +958,7 @@
   }
 
   .analytics-paytype-flow-section {
-    @apply col-span-full border-l-0 border-t border-dashed border-line pl-0 pt-3;
+    @apply border-l-0 border-t border-dashed border-line pl-0 pt-3;
   }
 
   .field-label-with-info {
@@ -4167,11 +4175,11 @@
     }
 
     .analytics-paytype-grid {
-      @apply grid-cols-2;
+      @apply gap-3;
     }
 
-    .analytics-paytype-flow-section {
-      @apply col-span-full;
+    .analytics-paytype-secondary-grid {
+      @apply grid-cols-1;
     }
 
     .table-toolbar .soft-btn {

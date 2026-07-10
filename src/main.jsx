@@ -1067,7 +1067,7 @@ const documentationSections = [
       },
       {
         name: 'Department and user work-type analytics',
-        howItWorks: 'Analytics filters the active role scope by an independent date range plus optional department, tag, employment type, compensation type, and people filters, then keeps the existing workload charts and detail tables for time analysis. The workload area uses a compact chart layout: compensation-type charts share one row on wide screens, ordinary chart panels can sit side by side, and workload flow charts remain full-width for readability.',
+        howItWorks: 'Analytics filters the active role scope by an independent date range plus optional department, tag, employment type, compensation type, and people filters, then keeps the existing workload charts and detail tables for time analysis. The workload compensation layout shows Monthly salary and Monthly salary flow as separate full-width rows, then places Hourly rate and Project work next to each other on wide screens.',
         userSteps: [
           'Open Time Management, then open the Analytics subtab.',
           'Set From and To dates in the Analytics header, or click Last 30 days.',
@@ -1078,7 +1078,7 @@ const documentationSections = [
         ],
         specifics: [
           'Analytics date filters do not change the Time Management entry table filters.',
-          'On wide screens, non-flow analytics charts are grouped into compact rows. Flow charts remain full-width because their connector and cumulative bar labels need more horizontal room.',
+          'In Workload hours by compensation type, Monthly salary and Monthly salary flow each use their own row. Hourly rate and Project work share the row below on wide screens and stack on narrow screens.',
           'Approved vacation and sick leave are included as derived analytics entries for approved working days in the selected range.',
           'General mode groups normal work entries under Work. Detailed mode splits normal work entries by work type. Lunch break, Vacation, Sick leave, and Undefined remain visible in both modes.',
           'Monthly salary workload charts include Shortage when selected workload is below capacity and Overtime when selected workload exceeds capacity.',
@@ -8876,23 +8876,22 @@ function CostDepartmentFlow({ departments, totalCost }) {
 }
 
 function PayTypeWorkloadCharts({ groups, workloadModes, onModeChange }) {
-  const monthlyRows = groups.find((group) => group.payType === PAY_TYPE_MONTHLY)?.rows || [];
+  const monthlyGroup = groups.find((group) => group.payType === PAY_TYPE_MONTHLY);
+  const secondaryGroups = groups.filter((group) => group.payType !== PAY_TYPE_MONTHLY);
+  const monthlyRows = monthlyGroup?.rows || [];
   const monthlyHours = monthlyRows.reduce((sum, row) => sum + (Number(row.hours) || 0), 0);
-  const monthlyFlowRows = groups.find((group) => group.payType === PAY_TYPE_MONTHLY)?.flowRows || [];
+  const monthlyFlowRows = monthlyGroup?.flowRows || [];
   return (
     <div className="analytics-paytype-grid">
-      {groups.map((group) => {
-        const chartHeight = `${Math.max(group.rows.length * 38 + 70, 210)}px`;
-        return (
-          <article className="analytics-paytype-section" key={group.payType}>
-            <div className="analytics-paytype-head">
-              <span>{group.payType}</span>
-              <WorkloadModeToggle value={workloadModes[group.modeKey] || 'general'} onChange={(value) => onModeChange(group.modeKey, value)} />
-            </div>
-            <StackedWorkloadChart rows={group.rows} chartHeight={chartHeight} emptyMessage={`No ${group.payType.toLowerCase()} users match the selected filters.`} />
-          </article>
-        );
-      })}
+      {monthlyGroup && (
+        <article className="analytics-paytype-section analytics-paytype-primary-section">
+          <div className="analytics-paytype-head">
+            <span>{monthlyGroup.payType}</span>
+            <WorkloadModeToggle value={workloadModes[monthlyGroup.modeKey] || 'general'} onChange={(value) => onModeChange(monthlyGroup.modeKey, value)} />
+          </div>
+          <StackedWorkloadChart rows={monthlyGroup.rows} chartHeight={`${Math.max(monthlyGroup.rows.length * 38 + 70, 210)}px`} emptyMessage={`No ${monthlyGroup.payType.toLowerCase()} users match the selected filters.`} />
+        </article>
+      )}
       <article className="analytics-paytype-section analytics-paytype-flow-section">
         <div className="analytics-paytype-head">
           <span>Monthly salary flow</span>
@@ -8905,6 +8904,20 @@ function PayTypeWorkloadCharts({ groups, workloadModes, onModeChange }) {
           emptyMessage="No monthly salary workload flow is available for this period."
         />
       </article>
+      <div className="analytics-paytype-secondary-grid">
+        {secondaryGroups.map((group) => {
+          const chartHeight = `${Math.max(group.rows.length * 38 + 70, 210)}px`;
+          return (
+            <article className="analytics-paytype-section" key={group.payType}>
+              <div className="analytics-paytype-head">
+                <span>{group.payType}</span>
+                <WorkloadModeToggle value={workloadModes[group.modeKey] || 'general'} onChange={(value) => onModeChange(group.modeKey, value)} />
+              </div>
+              <StackedWorkloadChart rows={group.rows} chartHeight={chartHeight} emptyMessage={`No ${group.payType.toLowerCase()} users match the selected filters.`} />
+            </article>
+          );
+        })}
+      </div>
     </div>
   );
 }
