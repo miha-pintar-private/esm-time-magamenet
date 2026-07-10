@@ -365,9 +365,12 @@ function ensureSystemWorkTypes(types = []) {
 }
 
 const PAY_TYPE_MONTHLY = 'Monthly salary';
+const PAY_TYPE_MONTHLY_REDUCED = 'Monthly salary - reduced hours';
 const PAY_TYPE_PROJECT = 'Project work';
 const PAY_TYPE_HOURLY = 'Hourly rate';
-const payTypeOptions = [PAY_TYPE_MONTHLY, PAY_TYPE_HOURLY, PAY_TYPE_PROJECT].map((name) => ({ name }));
+const payTypeOptions = [PAY_TYPE_MONTHLY, PAY_TYPE_MONTHLY_REDUCED, PAY_TYPE_HOURLY, PAY_TYPE_PROJECT].map((name) => ({ name }));
+const analyticsPayTypeOptions = [PAY_TYPE_MONTHLY, PAY_TYPE_HOURLY, PAY_TYPE_PROJECT].map((name) => ({ name }));
+const MONTHLY_PAY_TYPES = [PAY_TYPE_MONTHLY, PAY_TYPE_MONTHLY_REDUCED];
 const NEW_DOCUMENT_TYPE = 'Create new document type';
 
 const employmentRules = [
@@ -448,7 +451,8 @@ function normalizeEmploymentRules(items) {
   return (Array.isArray(items) && items.length > 0 ? items : employmentRules).map((rule, index) => ({
     id: rule.id || index + 1,
     name: rule.name || 'Employment type',
-    payType: [PAY_TYPE_MONTHLY, PAY_TYPE_PROJECT, PAY_TYPE_HOURLY].includes(rule.payType) ? rule.payType : PAY_TYPE_MONTHLY,
+    payType: [PAY_TYPE_MONTHLY, PAY_TYPE_MONTHLY_REDUCED, PAY_TYPE_PROJECT, PAY_TYPE_HOURLY].includes(rule.payType) ? rule.payType : PAY_TYPE_MONTHLY,
+    monthlyCapacityPercent: clampMonthlyCapacityPercent(rule.monthlyCapacityPercent, rule.payType === PAY_TYPE_MONTHLY_REDUCED ? 50 : 100),
     requiresContract: rule.requiresContract !== false,
     requiresMedical: Boolean(rule.requiresMedical),
     requiresSafety: Boolean(rule.requiresSafety),
@@ -472,6 +476,21 @@ function defaultRuleCardFields(payType) {
   if (payType === PAY_TYPE_HOURLY) return ['hourlyRate', 'contract', 'cost'];
   if (payType === PAY_TYPE_PROJECT) return ['contract', 'projectAmount', 'cost'];
   return ['contract', 'medical', 'safety', 'cost'];
+}
+
+function isMonthlyPayType(payType) {
+  return MONTHLY_PAY_TYPES.includes(payType);
+}
+
+function payTypeMatchesAnalyticsGroup(groupPayType, rowPayType) {
+  if (groupPayType === PAY_TYPE_MONTHLY) return isMonthlyPayType(rowPayType);
+  return rowPayType === groupPayType;
+}
+
+function clampMonthlyCapacityPercent(value, fallback = 100) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) return fallback;
+  return Math.min(Math.max(numeric, 1), 100);
 }
 
 function normalizeSettingsTags(tags) {
@@ -1017,9 +1036,11 @@ const documentationSections = [
           'When an employee has multiple non-project compensation rows, management or the team lead must select the work types that belong to each non-project row.',
           'Project work is not mapped to work types. Project hours can be tracked through any paid work type.',
           'Project work cost is distributed evenly by calendar day between Project from and Project to.',
+          'Monthly salary - reduced hours uses the employment rule Capacity percent for monthly-hour capacity and the monthly divisor, but it does not reduce the entered gross gross cost, meal allowance, transport allowance, or other budget values.',
         ],
         metrics: [
-          'Monthly entry cost = entry.hours × ((grossGrossCost + mealAllowance + transportAllowance) / max(monthlyWorkingDays × 8, 1))',
+          'Monthly capacity factor = employmentRule.monthlyCapacityPercent / 100, default 1.0',
+          'Monthly entry cost = entry.hours × ((grossGrossCost + mealAllowance + transportAllowance) / max(monthlyWorkingDays × 8 × monthly capacity factor, 1))',
           'Hourly entry cost = entry.hours × hourlyRate',
           'Hourly row allowances = mealAllowance + transportAllowance once per matched row',
           'Project daily cost = projectValue / count(calendar days from Project from through Project to)',
@@ -1051,9 +1072,10 @@ const documentationSections = [
           'Set From and To dates in the Analytics header, or click Last 30 days.',
           'Use Analytics scope filters to select one or more departments, tags, employment types, compensation types, or people.',
           'Review Workload hours by compensation type to compare Monthly salary, Hourly rate, and Project work users in separate stacked charts.',
+          'Review Monthly salary flow below the Monthly salary chart to see Capacity, actual monthly workload segments, and Shortage or Overtime as a capacity waterfall.',
           'Review Workload hours by department to compare stacked work-type hours by department.',
-          'Use General or Detailed above each workload chart. General groups normal work entries under Work. Detailed splits normal work entries by work type. Lunch break, Vacation, Sick leave, Undefined, Shortage, and Overtime remain visible in both modes.',
-          'Review Workload flow to see the selected scope split by work type.',
+          'Use General or Detailed above each workload chart. General groups normal work entries under Work. Detailed splits normal work entries by work type. Lunch break, Vacation, Sick leave, and Undefined remain visible in both modes. Shortage and Overtime appear only where a monthly salary capacity chart uses them.',
+          'Review Workload flow to see Total work reduced downward by actual recorded and approved absence hours for each workload segment.',
           'Use the Department analytics and User analytics tables to compare hours, percent of time, variance from average, allocated cost, cost per hour, and change over time.',
         ],
         specifics: [
@@ -1075,9 +1097,12 @@ const documentationSections = [
           'Vacation and sick leave working days exclude Saturdays, Sundays, and configured holiday rules from the Vacation module.',
           'Compensation-type workload charts use the monthly salary workload model only for Monthly salary. Hourly rate and Project work charts are cumulative hour charts that grow with matching recorded hours rather than comparing hours to a capacity target.',
           'Monthly salary chart entries classify each included entry by the employee compensation row that matches the entry work type. Approved absence days use the first fallback non-project compensation row when available.',
+          'Monthly salary flow appears directly below the Monthly salary compensation chart. It uses the same monthly salary workload segments, starts with Capacity, and then draws Work, Lunch break, Vacation, Sick leave, Undefined, Shortage, or Overtime as capacity waterfall bars when those segments exist.',
           'Hourly rate chart entries use matching hourly compensation rows and original analytics entries, without Shortage or Overtime capacity segments.',
           'Project work chart entries include paid, non-break recorded time entries inside a project row date range. Project work is not mapped to a specific work type, so a person with both hourly and project rows can appear in both charts when the same recorded hours are relevant to both arrangements.',
           'All analytics charts are rendered with Chart.js for consistent axes, legends, tooltips, and responsive sizing.',
+          'Workload flow is rendered as a downward waterfall chart from original analytics entries. It starts with Total work, does not include Capacity, Shortage, or Overtime, and each following workload segment is drawn as a floating bar that reduces the remaining total.',
+          'Very small workload flow segments still render with a minimum visible bar length, while the percent label above the bar shows the exact share.',
           'Stacked workload bars have a maximum visual thickness so charts with one matching user keep the shared chart height without turning the single bar into a tall block.',
           'The workload charts use configured work type colors from Settings.',
           'The detail table Change column groups the selected entries by calendar month and renders a compact Chart.js trend bar for the row.',
@@ -1087,8 +1112,8 @@ const documentationSections = [
         metrics: [
           'Filtered people = visible people matching all selected departments, tags, employment types, compensation types, and people filters',
           'Filtered analytics entries = visible time entries where employee is in filtered people and From <= entry.date <= To + approved vacation/sick working days for filtered people from the Vacation module in the same date range',
-          'Vacation or sick leave hours = count(approved working days, excluding weekends and holidays) × 8',
-          'Monthly salary workload capacity = count(inclusive selected-period dates excluding Saturdays, Sundays, and Vacation-module holiday dates) × 8',
+          'Vacation or sick leave hours = count(approved working days, excluding weekends and holidays) × 8 × monthly capacity factor for monthly salary employees',
+          'Monthly salary workload capacity = count(inclusive selected-period dates excluding Saturdays, Sundays, and Vacation-module holiday dates) × 8 × monthly capacity factor',
           'Monthly salary Shortage workload hours = max(monthly salary workload capacity - recorded work hours - lunch break hours - approved vacation hours - approved sick leave hours - saved Undefined hours, 0)',
           'Monthly salary Overtime workload hours = max(recorded work hours + lunch break hours + approved vacation hours + approved sick leave hours + saved Undefined hours - monthly salary workload capacity, 0)',
           'Department work-type hours = Σ entry.hours for entries whose employee belongs to the department and entry.type matches the work type',
@@ -1096,12 +1121,15 @@ const documentationSections = [
           'Work-type share = work-type hours / total hours for the same department or user × 100',
           'Average share for variance = average(work-type share for the same work type across visible departments or users)',
           'Variance vs average = row work-type share - average share for that work type',
-          'Monthly salary compensation chart value = Σ workload entry hours where compensationRowForEntry(employee, entry).payType equals Monthly salary, including Shortage or Overtime when applicable',
+          'Monthly salary compensation chart value = Σ workload entry hours where compensationRowForEntry(employee, entry).payType equals Monthly salary or Monthly salary - reduced hours, including Shortage or Overtime when applicable',
+          'Monthly salary flow Capacity = Σ monthly salary workload segment hours across users in the selected scope',
+          'Monthly salary flow segment value = Σ monthly salary workload segment hours for the segment type',
           'Hourly rate compensation chart value = Σ original analytics entry hours where compensationRowForEntry(employee, entry).payType equals Hourly rate',
           'Project work compensation chart value = Σ paid non-break original time-entry hours where employee has a Project work row and entry.date is between Project from and Project to',
           'Stacked department workload chart value = original analytics entry hours for each visible department, excluding synthetic Shortage and Overtime entries',
           'Stacked workload axis maximum = the highest visible department or user total hours',
-          'Workload flow percent = work-type hours / total selected analytics hours × 100%',
+          'Workload flow floating bar = [remaining total after segment, remaining total before segment]',
+          'Workload flow percent label = segment original analytics hours / total selected analytics hours × 100%',
           'Trend bar value = row hours grouped by calendar month in the selected analytics period',
         ],
       },
@@ -1116,8 +1144,9 @@ const documentationSections = [
         ],
         specifics: [
           'Only paid, non-break time entries and approved vacation or sick leave working days are included in employee cost calculations.',
-          'Monthly salary rows distribute gross gross cost plus meal and transport allowances over monthly working days × 8 hours.',
-          'Vacation and sick leave use 8 hours per approved working day and use monthly gross gross cost only, without meal or transport allowances. The monthly divisor is the absence month working-day count after weekends and Vacation-module holidays are excluded.',
+          'Monthly salary rows distribute gross gross cost plus meal and transport allowances over monthly working days × 8 hours × Capacity percent.',
+          'Monthly salary - reduced hours changes the divisor and analytics capacity only. The entered gross gross cost and allowances are already considered adjusted budget values and are not reduced again.',
+          'Vacation and sick leave use 8 hours × Capacity percent per approved working day and use monthly gross gross cost only, without meal or transport allowances. The monthly divisor is the absence month working-day count after weekends and Vacation-module holidays are excluded, multiplied by Capacity percent.',
           'If salary rows are mapped to specific work types, vacation and sick leave use the first unmapped non-project row, or the first non-project row when no unmapped row exists.',
           'Hourly rows multiply matched entry hours by hourly rate and add configured meal and transport allowances once for each matched hourly row.',
           'Vacation and sick leave on hourly rows multiply 8 hours per working day by the hourly rate and do not add meal or transport allowances.',
@@ -1129,8 +1158,8 @@ const documentationSections = [
           'Allocated analytics cost = Σ employeeRuleCost(user, selected time entries + approved vacation/sick working-day entries, configured work types)',
           'Row cost = Σ employeeRuleCost(user, row work-type entries, configured work types) for entries included in that department or user row',
           'Cost per hour = row cost / max(row hours, 1)',
-          'Monthly entry cost = entry.hours × ((grossGrossCost + mealAllowance + transportAllowance) / max(monthlyWorkingDays × 8, 1))',
-          'Monthly vacation/sick cost = absenceWorkingDays × 8 × (grossGrossCost / max(monthWorkingDaysExcludingWeekendsAndHolidays × 8, 1))',
+          'Monthly entry cost = entry.hours × ((grossGrossCost + mealAllowance + transportAllowance) / max(monthlyWorkingDays × 8 × monthly capacity factor, 1))',
+          'Monthly vacation/sick cost = absenceWorkingDays × 8 × monthly capacity factor × (grossGrossCost / max(monthWorkingDaysExcludingWeekendsAndHolidays × 8 × monthly capacity factor, 1))',
           'Hourly entry cost = entry.hours × hourlyRate',
           'Hourly vacation/sick cost = absenceWorkingDays × 8 × hourlyRate',
           'Project visible cost = project daily cost × count(unique selected paid-entry dates inside the project period)',
@@ -1249,7 +1278,7 @@ const documentationSections = [
           'Documents metric = Σ person.docs for filtered visible people, where person.docs is refreshed from local document records linked by employee name when the employee is saved or when an employee document is added or deleted',
           'Employee record Documents count = count(local document records linked to the employee name)',
           'The employee table does not display employee cost. Employee cost is still calculated in the employee record and analytics views from visible paid time entries and employee compensation rows.',
-          'Monthly salary employee cost = Σ entry.hours × ((grossGrossCost + mealAllowance + transportAllowance) / max(monthlyWorkingDays × 8, 1)) for entries mapped to a monthly row',
+          'Monthly salary employee cost = Σ entry.hours × ((grossGrossCost + mealAllowance + transportAllowance) / max(monthlyWorkingDays × 8 × monthly capacity factor, 1)) for entries mapped to a monthly row',
           'Hourly rate employee cost = Σ entry.hours × hourlyRate for entries mapped to an hourly row + mealAllowance + transportAllowance once for each matched hourly row',
           'Project work employee cost = Σ ((projectValue / project calendar days) × unique visible paid-entry dates inside Project from and Project to)',
         ],
@@ -1326,7 +1355,8 @@ const documentationSections = [
           'Open Employees, then open the Rules subtab.',
           'Click Add employment type.',
           'Enter the employment type name.',
-          'Choose Monthly salary, Project work, or Hourly rate as the cost method.',
+          'Choose Monthly salary, Monthly salary - reduced hours, Project work, or Hourly rate as the cost method.',
+          'For a monthly salary method, set Capacity percent. Use 100 for full-time monthly salary or a lower percent such as 50 for reduced working time.',
           'Select whether the rule requires an employment contract, medical exam, and safety training.',
           'Save the rule, then assign that employment type on an employee profile.',
           'To configure document types, click Add document type.',
@@ -1338,9 +1368,11 @@ const documentationSections = [
           'Employment type names are required and must be unique.',
           'Document type names are required and must be unique.',
           'Monthly salary defaults to requiring employment contract, medical exam, and safety training.',
+          'Monthly salary - reduced hours also defaults to employment contract, medical exam, and safety training, and shows Capacity percent in the rule form and table.',
+          'Capacity percent reduces expected Analytics capacity hours and the monthly cost divisor. It does not reduce entered salary, allowances, gross gross cost, project value, or any budget value.',
           'Project work and Hourly rate default to requiring an employment contract only, but medical exam and safety training can be enabled manually.',
           'Rules assigned to employees cannot be deleted.',
-          'The Employment type rules table shows the rule name, pay type, three requirement rows for Employment contract, Medical exam, and Safety training with an icon showing whether each item is required, assigned employee count, and edit or delete actions when the user can manage rules.',
+          'The Employment type rules table shows the rule name, pay type, Capacity percent for monthly methods, three requirement rows for Employment contract, Medical exam, and Safety training with an icon showing whether each item is required, assigned employee count, and edit or delete actions when the user can manage rules.',
           'Deleting an unassigned rule asks for confirmation: Are you sure you want to delete this employment rule?',
           'Renaming a rule updates employees that used the old employment type name.',
           'Document types already used by documents cannot be deleted.',
@@ -1355,7 +1387,7 @@ const documentationSections = [
         metrics: [
           'Employees on a rule row = count(visible people where person.employment matches the rule name)',
           'Documents on a document type row = count(local document records where document.type matches the document type name)',
-          'Monthly salary cost = Σ entry.hours × ((grossGrossCost + mealAllowance + transportAllowance) / max(monthlyWorkingDays × 8, 1)) for entries mapped to a monthly compensation row',
+          'Monthly salary cost = Σ entry.hours × ((grossGrossCost + mealAllowance + transportAllowance) / max(monthlyWorkingDays × 8 × monthly capacity factor, 1)) for entries mapped to a monthly compensation row',
           'Hourly rate cost = Σ entry.hours × hourlyRate for entries mapped to an hourly compensation row + mealAllowance + transportAllowance once for each matched hourly row',
           'Project work cost = Σ ((projectValue / project calendar days) × unique visible paid-entry dates inside the project active date range)',
           'Open rule to-dos = required contract, medical exam, and safety training items that are missing from the employee profile or local document records',
@@ -1528,8 +1560,8 @@ const documentationSections = [
           {
             entity: 'employmentRuleItems',
             source: 'Employees > Rules > Employment type rules; initial sample data from employmentRules',
-            required: 'id, name, payType, requiresContract, requiresMedical, requiresSafety, cardFields',
-            links: 'Matched to employees.employment and compensationRows.employmentType; drives employee to-dos and compensation method context',
+            required: 'id, name, payType, monthlyCapacityPercent for monthly pay types, requiresContract, requiresMedical, requiresSafety, cardFields',
+            links: 'Matched to employees.employment and compensationRows.employmentType; drives employee to-dos, compensation method context, reduced monthly capacity, analytics capacity, and monthly cost divisors',
           },
           {
             entity: 'documentTypeItems',
@@ -2211,16 +2243,16 @@ function isoMonthBounds(dateValue = TODAY) {
   };
 }
 
-function monthlyWorkingHours(row) {
+function monthlyWorkingHours(row, capacityPercent = 100) {
   const workingDays = Number(row.monthlyWorkingDays) || workingDaysInMonth(TODAY);
-  return workingDays * 8;
+  return workingDays * 8 * (clampMonthlyCapacityPercent(capacityPercent) / 100);
 }
 
-function entryMonthlyWorkingHours(row, entry) {
+function entryMonthlyWorkingHours(row, entry, capacityPercent = 100) {
   if (entry?.absenceType && Number(entry.monthlyWorkingDays) > 0) {
-    return Number(entry.monthlyWorkingDays) * 8;
+    return Number(entry.monthlyWorkingDays) * 8 * (clampMonthlyCapacityPercent(capacityPercent) / 100);
   }
-  return monthlyWorkingHours(row);
+  return monthlyWorkingHours(row, capacityPercent);
 }
 
 function monthlyCompensationTotal(row) {
@@ -2239,7 +2271,7 @@ function employeeCompensationRows(employee) {
       workTypes: Array.isArray(row.workTypes)
         ? row.workTypes
         : (row.workType && ![employee.employment, 'Employment', 'Work'].includes(row.workType) ? [row.workType] : []),
-      payType: row.payType || 'Monthly salary',
+      payType: row.payType || PAY_TYPE_MONTHLY,
       grossSalary: Number(row.grossSalary) || 0,
       grossGrossCost: Number(row.grossGrossCost) || 0,
       mealAllowance: Number(row.mealAllowance) || 0,
@@ -2257,7 +2289,7 @@ function employeeCompensationRows(employee) {
     id: 1,
     employmentType: employee.employment || 'Employment type',
     workTypes: [],
-    payType: 'Monthly salary',
+    payType: PAY_TYPE_MONTHLY,
     grossSalary: 0,
     grossGrossCost: Number(employee.cost) || 0,
     mealAllowance: 0,
@@ -2275,6 +2307,27 @@ function employeeCompensationRows(employee) {
 function findEmploymentRule(employee, ruleItems) {
   const normalizedRules = normalizeEmploymentRules(ruleItems);
   return normalizedRules.find((rule) => rule.name === employee.employment) || normalizedRules[0];
+}
+
+function findEmploymentRuleByName(ruleName, ruleItems) {
+  const normalizedRules = normalizeEmploymentRules(ruleItems);
+  return normalizedRules.find((rule) => rule.name === ruleName);
+}
+
+function monthlyCapacityPercentForRule(rule) {
+  if (!rule || !isMonthlyPayType(rule.payType)) return 100;
+  return clampMonthlyCapacityPercent(rule.monthlyCapacityPercent, rule.payType === PAY_TYPE_MONTHLY_REDUCED ? 50 : 100);
+}
+
+function monthlyCapacityPercentForRow(row, employee, ruleItems) {
+  const rule = findEmploymentRuleByName(row?.employmentType, ruleItems)
+    || findEmploymentRuleByName(employee?.employment, ruleItems);
+  return monthlyCapacityPercentForRule(rule);
+}
+
+function employeeMonthlyCapacityPercent(employee, ruleItems) {
+  const monthlyRow = employeeCompensationRows(employee).find((row) => isMonthlyPayType(row.payType));
+  return monthlyCapacityPercentForRow(monthlyRow, employee, ruleItems);
 }
 
 function sumCompensationRows(rows, field, payType) {
@@ -2336,7 +2389,8 @@ function employeeRuleCost(employee, ruleItems, entries = [], configuredTypes = [
     }
     const monthlyTotal = entry.absenceType ? monthlyCompensationBaseCost(row) : monthlyCompensationTotal(row);
     if (!monthlyTotal) return sum;
-    return sum + ((monthlyTotal / Math.max(entryMonthlyWorkingHours(row, entry), 1)) * (Number(entry.hours) || 0));
+    const capacityPercent = monthlyCapacityPercentForRow(row, employee, ruleItems);
+    return sum + ((monthlyTotal / Math.max(entryMonthlyWorkingHours(row, entry, capacityPercent), 1)) * (Number(entry.hours) || 0));
   }, 0);
   const matchedHourlyRows = timeRows.filter((row) => (
     row.payType === PAY_TYPE_HOURLY
@@ -2349,7 +2403,7 @@ function employeeRuleCost(employee, ruleItems, entries = [], configuredTypes = [
   return timeCost + allowances + projectCost;
 }
 
-function absenceAnalyticsEntries(requests = [], rules = [], people = [], from, to) {
+function absenceAnalyticsEntries(requests = [], rules = [], people = [], from, to, employmentRules = []) {
   const holidayDates = holidayDateSet(rules);
   const peopleByName = new Map(people.map((person) => [person.name, person]));
   return requests
@@ -2371,13 +2425,14 @@ function absenceAnalyticsEntries(requests = [], rules = [], people = [], from, t
         })
         .map((date) => {
           const monthBounds = isoMonthBounds(date);
+          const capacityFactor = employeeMonthlyCapacityPercent(person, employmentRules) / 100;
           return {
             id: `absence-${request.id}-${date}`,
             employee: request.employee,
             department: person?.department || '',
             type: absenceTypeLabel(request.type),
             date,
-            hours: 8,
+            hours: 8 * capacityFactor,
             break: false,
             absenceType: request.type,
             monthlyWorkingDays: countWorkingDays(monthBounds.start, monthBounds.end, holidayDates),
@@ -2432,12 +2487,12 @@ function compareWorkloadSegmentNames(first, second) {
 }
 
 function hasMonthlySalaryRow(employee) {
-  return employeeCompensationRows(employee).some((row) => row.payType === PAY_TYPE_MONTHLY);
+  return employeeCompensationRows(employee).some((row) => isMonthlyPayType(row.payType));
 }
 
-function workloadCapacityHours(employee, from, to, absenceRules = []) {
+function workloadCapacityHours(employee, from, to, absenceRules = [], employmentRules = []) {
   if (!from || !to || !hasMonthlySalaryRow(employee)) return 0;
-  return countWorkingDays(from, to, holidayDateSet(absenceRules)) * 8;
+  return countWorkingDays(from, to, holidayDateSet(absenceRules)) * 8 * (employeeMonthlyCapacityPercent(employee, employmentRules) / 100);
 }
 
 function canCarryOvertime(entry) {
@@ -2480,7 +2535,7 @@ function splitOvertimeEntries(entries = [], overtimeHours = 0, person) {
   ];
 }
 
-function buildWorkloadEntries(entries = [], people = [], absenceRules = [], from, to) {
+function buildWorkloadEntries(entries = [], people = [], absenceRules = [], from, to, employmentRules = []) {
   const entriesByPerson = new Map();
   entries.forEach((entry) => {
     entriesByPerson.set(entry.employee, [...(entriesByPerson.get(entry.employee) || []), entry]);
@@ -2488,7 +2543,7 @@ function buildWorkloadEntries(entries = [], people = [], absenceRules = [], from
 
   return people.flatMap((person) => {
     const personEntries = entriesByPerson.get(person.name) || [];
-    const capacityHours = workloadCapacityHours(person, from, to, absenceRules);
+    const capacityHours = workloadCapacityHours(person, from, to, absenceRules, employmentRules);
     if (!capacityHours) return personEntries;
     const personHours = personEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
     if (personHours > capacityHours) {
@@ -2533,6 +2588,31 @@ function workloadSegmentsForEntries(entries = [], mode, configuredTypes = []) {
     });
 }
 
+function aggregateSegmentsForRows(rows = []) {
+  const hoursBySegment = new Map();
+  const colorBySegment = new Map();
+  rows.forEach((row) => {
+    row.segments.forEach((segment) => {
+      hoursBySegment.set(segment.typeName, (hoursBySegment.get(segment.typeName) || 0) + (Number(segment.hours) || 0));
+      colorBySegment.set(segment.typeName, segment.color);
+    });
+  });
+  const totalHours = Array.from(hoursBySegment.values()).reduce((sum, hours) => sum + hours, 0);
+  return Array.from(hoursBySegment.entries())
+    .map(([typeName, hours]) => ({
+      typeName,
+      hours,
+      share: totalHours ? (hours / totalHours) * 100 : 0,
+      color: colorBySegment.get(typeName) || workTypeColor(typeName),
+    }))
+    .filter((segment) => segment.hours > 0)
+    .sort((first, second) => {
+      const segmentOrder = compareWorkloadSegmentNames(first.typeName, second.typeName);
+      if (segmentOrder !== 0) return segmentOrder;
+      return second.hours - first.hours || first.typeName.localeCompare(second.typeName);
+    });
+}
+
 function isPaidWorkloadEntry(entry, configuredTypes = []) {
   const paidByType = new Map(configuredTypes.map((type) => [type.name, type.paid !== false]));
   return entry
@@ -2563,7 +2643,7 @@ function payTypeEntriesForChart(payType, analyticsEntries = [], workloadEntries 
   const sourceEntries = payType === PAY_TYPE_MONTHLY ? workloadEntries : analyticsEntries;
   return sourceEntries.filter((entry) => {
     const person = peopleByName.get(entry.employee);
-    return person && compensationRowForEntry(person, entry)?.payType === payType;
+    return person && payTypeMatchesAnalyticsGroup(payType, compensationRowForEntry(person, entry)?.payType);
   });
 }
 
@@ -2768,7 +2848,7 @@ function employeeRequirementItems(employee, ruleItems) {
     { label: 'Work start', value: compactValue(displayDate(employee.start)), tone: 'neutral', icon: CalendarClock },
   ];
 
-  if (payType === PAY_TYPE_MONTHLY) {
+  if (isMonthlyPayType(payType)) {
     items.push({
         label: 'Contract period',
       value: contractEnd,
@@ -4502,6 +4582,7 @@ function App() {
       id: form.id || Date.now(),
       name,
       payType: form.payType,
+      monthlyCapacityPercent: isMonthlyPayType(form.payType) ? clampMonthlyCapacityPercent(form.monthlyCapacityPercent, form.payType === PAY_TYPE_MONTHLY_REDUCED ? 50 : 100) : 100,
       requiresContract: Boolean(form.requiresContract),
       requiresMedical: Boolean(form.requiresMedical),
       requiresSafety: Boolean(form.requiresSafety),
@@ -6776,6 +6857,9 @@ function EmploymentRulesView({
               <div className="employment-rule-name" data-label="Rule">
                 <strong>{rule.name}</strong>
                 <span>{rule.payType}</span>
+                {isMonthlyPayType(rule.payType) && (
+                  <span>{monthlyCapacityPercentForRule(rule)}% capacity</span>
+                )}
               </div>
               <div className="employment-requirement-list" data-label="Requirements">
                 {requirements.map((requirement) => {
@@ -7247,7 +7331,7 @@ function EmployeeRecordSidebar({
                         <strong data-label="Employment type">{row.employmentType}</strong>
                         <span data-label="Work types">{row.payType === PAY_TYPE_PROJECT ? 'All paid work types' : (row.workTypes.length > 0 ? row.workTypes.join(', ') : 'All eligible work types')}</span>
                         <span data-label="Cost details">
-                          {row.payType === PAY_TYPE_MONTHLY && `${money(monthlyCompensationTotal(row))} monthly total`}
+                          {isMonthlyPayType(row.payType) && `${money(monthlyCompensationTotal(row))} monthly total`}
                           {row.payType === PAY_TYPE_HOURLY && `${money(row.hourlyRate)} / h · meal ${money(row.mealAllowance)} · transport ${money(row.transportAllowance)}`}
                           {row.payType === PAY_TYPE_PROJECT && `${row.projectName || 'Unnamed project'} · ${money(row.oneTimeAmount)}`}
                         </span>
@@ -7833,7 +7917,7 @@ function EmployeeModal({ mode, employee, role, primaryLeadDepartment, employees,
           </div>
           <div className="compensation-editor">
             {form.compensationRows.map((row) => {
-              const monthly = row.payType === PAY_TYPE_MONTHLY;
+              const monthly = isMonthlyPayType(row.payType);
               const hourly = row.payType === PAY_TYPE_HOURLY;
               return (
                 <div className={`compensation-editor-row ${row.payType === PAY_TYPE_PROJECT ? 'project-compensation-row' : ''}`} key={row.id}>
@@ -7963,6 +8047,7 @@ function EmploymentRuleModal({ mode, rule, existingRules, onClose, onSave }) {
     originalName: rule?.name || '',
     name: rule?.name || '',
     payType: rule?.payType || PAY_TYPE_MONTHLY,
+    monthlyCapacityPercent: clampMonthlyCapacityPercent(rule?.monthlyCapacityPercent, rule?.payType === PAY_TYPE_MONTHLY_REDUCED ? 50 : 100),
     requiresContract: rule?.requiresContract ?? true,
     requiresMedical: rule?.requiresMedical ?? true,
     requiresSafety: rule?.requiresSafety ?? true,
@@ -7974,14 +8059,18 @@ function EmploymentRuleModal({ mode, rule, existingRules, onClose, onSave }) {
     setForm((current) => {
       const next = { ...current, [field]: value };
       if (field === 'payType') {
-        if (value === PAY_TYPE_MONTHLY) {
+        if (isMonthlyPayType(value)) {
           next.requiresContract = true;
           next.requiresMedical = true;
           next.requiresSafety = true;
+          next.monthlyCapacityPercent = value === PAY_TYPE_MONTHLY_REDUCED
+            ? clampMonthlyCapacityPercent(current.monthlyCapacityPercent, 50)
+            : 100;
         } else {
           next.requiresContract = true;
           next.requiresMedical = false;
           next.requiresSafety = false;
+          next.monthlyCapacityPercent = 100;
         }
       }
       return next;
@@ -8007,6 +8096,18 @@ function EmploymentRuleModal({ mode, rule, existingRules, onClose, onSave }) {
             <span>Cost method</span>
             <SimpleDropdown value={form.payType} options={payTypeOptions} onChange={(value) => update('payType', value)} />
           </label>
+          {isMonthlyPayType(form.payType) && (
+            <label className="field modal-note">
+              <span>Capacity percent</span>
+              <input
+                type="number"
+                min="1"
+                max="100"
+                value={form.monthlyCapacityPercent}
+                onChange={(event) => update('monthlyCapacityPercent', event.target.value)}
+              />
+            </label>
+          )}
           <label className="toggle-line">
             <input type="checkbox" checked={form.requiresContract} onChange={(event) => update('requiresContract', event.target.checked)} />
             <span>Require employment contract</span>
@@ -8022,7 +8123,7 @@ function EmploymentRuleModal({ mode, rule, existingRules, onClose, onSave }) {
           <div className="rule-form-note modal-note">
             <ListChecks size={17} />
             <span>
-              Monthly salary defaults to contract, medical exam, and safety training. Employee cards use the selected cost method to choose the visible fields.
+              Monthly salary defaults to contract, medical exam, and safety training. Reduced hours changes capacity hours only; entered salary and budget values are not reduced again.
             </span>
           </div>
         </div>
@@ -8141,17 +8242,16 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
     return filteredPeopleNames.has(entry.employee) && afterFrom && beforeTo;
   }), [entries, filteredPeopleNames, normalizedFilters.from, normalizedFilters.to]);
   const periodAbsenceEntries = useMemo(() => (
-    absenceAnalyticsEntries(absenceRequests, absenceRules, filteredPeople, normalizedFilters.from, normalizedFilters.to)
-  ), [absenceRequests, absenceRules, filteredPeople, normalizedFilters.from, normalizedFilters.to]);
+    absenceAnalyticsEntries(absenceRequests, absenceRules, filteredPeople, normalizedFilters.from, normalizedFilters.to, employmentRules)
+  ), [absenceRequests, absenceRules, filteredPeople, normalizedFilters.from, normalizedFilters.to, employmentRules]);
   const analyticsEntries = useMemo(() => (
     [...periodEntries, ...periodAbsenceEntries]
   ), [periodEntries, periodAbsenceEntries]);
   const workloadEntries = useMemo(() => (
-    buildWorkloadEntries(analyticsEntries, filteredPeople, absenceRules, normalizedFilters.from, normalizedFilters.to)
-  ), [analyticsEntries, filteredPeople, absenceRules, normalizedFilters.from, normalizedFilters.to]);
+    buildWorkloadEntries(analyticsEntries, filteredPeople, absenceRules, normalizedFilters.from, normalizedFilters.to, employmentRules)
+  ), [analyticsEntries, filteredPeople, absenceRules, normalizedFilters.from, normalizedFilters.to, employmentRules]);
   const peopleByName = useMemo(() => new Map(filteredPeople.map((person) => [person.name, person])), [filteredPeople]);
   const totalHours = analyticsEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
-  const workloadTotalHours = workloadEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
   const absenceHours = periodAbsenceEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
   const analyticsPeriodLabel = normalizedFilters.from && normalizedFilters.to
     ? `${displayDate(normalizedFilters.from)} to ${displayDate(normalizedFilters.to)}`
@@ -8192,7 +8292,7 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
     const segments = workloadSegmentsForEntries(departmentEntries, workloadMode, configuredWorkTypes);
     return { label: department, meta: `${departmentPeople.size} user${departmentPeople.size === 1 ? '' : 's'}`, hours, cost, segments };
   }).filter((row) => row.hours > 0).sort((first, second) => second.hours - first.hours);
-  const payTypeWorkloads = payTypeOptions.map((payType) => {
+  const payTypeWorkloads = analyticsPayTypeOptions.map((payType) => {
     const payTypeEntries = payTypeEntriesForChart(payType.name, analyticsEntries, workloadEntries, peopleByName, configuredWorkTypes);
     const rows = filteredPeople.map((person) => {
       const personEntries = payTypeEntries.filter((entry) => entry.employee === person.name);
@@ -8200,7 +8300,7 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
         const entryPerson = peopleByName.get(entry.employee);
         if (entry.employee !== person.name || !entryPerson) return false;
         if (payType.name === PAY_TYPE_PROJECT) return projectRowsForEntry(entryPerson, entry, configuredWorkTypes).length > 0;
-        return compensationRowForEntry(entryPerson, entry)?.payType === payType.name;
+        return payTypeMatchesAnalyticsGroup(payType.name, compensationRowForEntry(entryPerson, entry)?.payType);
       });
       const hours = personEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
       const cost = employeeRuleCost(person, employmentRules, personAnalyticsEntries, configuredWorkTypes);
@@ -8213,10 +8313,10 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
       rows,
     };
   });
-  const flowRows = workloadSegmentsForEntries(workloadEntries, workloadMode, configuredWorkTypes)
+  const flowRows = workloadSegmentsForEntries(analyticsEntries, workloadMode, configuredWorkTypes)
     .map((segment) => ({
       ...segment,
-      share: workloadTotalHours ? (segment.hours / workloadTotalHours) * 100 : 0,
+      share: totalHours ? (segment.hours / totalHours) * 100 : 0,
     }));
   return (
     <div className="workspace analytics-workspace">
@@ -8322,7 +8422,7 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
           title="Workload flow"
           actions={<WorkloadModeToggle value={workloadMode} onChange={setWorkloadMode} />}
         />
-        <WorkloadFlowChart rows={flowRows} totalHours={workloadTotalHours} />
+        <WorkloadFlowChart rows={flowRows} totalHours={totalHours} variant="total" />
       </section>
 
       <section className="primary-panel analytics-table-panel">
@@ -8340,6 +8440,8 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
 
 function PayTypeWorkloadCharts({ groups }) {
   const monthlyRows = groups.find((group) => group.payType === PAY_TYPE_MONTHLY)?.rows || [];
+  const monthlyHours = monthlyRows.reduce((sum, row) => sum + (Number(row.hours) || 0), 0);
+  const monthlyFlowRows = aggregateSegmentsForRows(monthlyRows);
   const monthlySalaryChartHeight = `${Math.max(monthlyRows.length * 54 + 88, 260)}px`;
   return (
     <div className="analytics-paytype-grid">
@@ -8349,6 +8451,19 @@ function PayTypeWorkloadCharts({ groups }) {
             <span>{group.payType}</span>
           </div>
           <StackedWorkloadChart rows={group.rows} chartHeight={monthlySalaryChartHeight} emptyMessage={`No ${group.payType.toLowerCase()} users match the selected filters.`} />
+          {group.payType === PAY_TYPE_MONTHLY && (
+            <div className="analytics-paytype-flow">
+              <div className="analytics-paytype-head">
+                <span>Monthly salary flow</span>
+              </div>
+              <WorkloadFlowChart
+                rows={monthlyFlowRows}
+                totalHours={monthlyHours}
+                variant="capacity"
+                emptyMessage="No monthly salary workload flow is available for this period."
+              />
+            </div>
+          )}
         </article>
       ))}
     </div>
@@ -8491,24 +8606,109 @@ function StackedWorkloadChart({ rows, emptyMessage = 'No time entries match the 
   );
 }
 
-function WorkloadFlowChart({ rows, totalHours }) {
-  if (rows.length === 0) return <span className="empty-state">No workload flow is available for this period.</span>;
+function WorkloadFlowChart({ rows, totalHours, variant = 'cumulative', emptyMessage = 'No workload flow is available for this period.' }) {
+  if (rows.length === 0) return <span className="empty-state">{emptyMessage}</span>;
+  const flowBars = ['capacity', 'total'].includes(variant)
+    ? (() => {
+        let remainingHours = totalHours;
+        return [
+          {
+            label: variant === 'capacity' ? 'Capacity' : 'Total work',
+            hours: totalHours,
+            share: 100,
+            start: 0,
+            end: totalHours,
+            color: '#718096',
+            showPercent: false,
+          },
+          ...rows.map((row) => {
+            const start = remainingHours;
+            const end = Math.max(remainingHours - row.hours, 0);
+            remainingHours = end;
+            return {
+              label: row.typeName,
+              hours: row.hours,
+              share: row.share,
+              start,
+              end,
+              color: row.color,
+              showPercent: true,
+            };
+          }),
+        ];
+      })()
+    : (() => {
+        let cumulativeHours = 0;
+        return rows.map((row) => {
+          const start = cumulativeHours;
+          const end = cumulativeHours + row.hours;
+          cumulativeHours = end;
+          return {
+            label: row.typeName,
+            hours: row.hours,
+            share: row.share,
+            start,
+            end,
+            color: row.color,
+            showPercent: true,
+          };
+        });
+      })();
   const data = {
-    labels: ['Capacity', ...rows.map((row) => row.typeName)],
+    labels: flowBars.map((row) => row.label),
     datasets: [
       {
         label: 'Hours',
-        data: [totalHours, ...rows.map((row) => row.hours)],
-        backgroundColor: ['#718096', ...rows.map((row) => row.color)],
+        data: flowBars.map((row) => [Math.min(row.start, row.end), Math.max(row.start, row.end)]),
+        backgroundColor: flowBars.map((row) => row.color),
         borderWidth: 0,
         borderRadius: 3,
         borderSkipped: false,
+        minBarLength: 4,
         barPercentage: 0.58,
         categoryPercentage: 0.74,
       },
     ],
   };
-  const shareByLabel = new Map(rows.map((row) => [row.typeName, row.share]));
+  const flowConnectorPlugin = {
+    id: 'flowConnector',
+    afterDatasetsDraw(chart) {
+      const meta = chart.getDatasetMeta(0);
+      const { ctx, scales } = chart;
+      const bars = meta.data;
+      if (!bars?.length || !scales?.y) return;
+
+      ctx.save();
+      ctx.setLineDash([4, 5]);
+      ctx.strokeStyle = '#b7c3d4';
+      ctx.lineWidth = 1;
+      flowBars.slice(1).forEach((bar, index) => {
+        const previousElement = bars[index];
+        const currentElement = bars[index + 1];
+        if (!previousElement || !currentElement) return;
+        const y = scales.y.getPixelForValue(bar.start);
+        const previousRight = previousElement.x + ((previousElement.width || 0) / 2);
+        const currentLeft = currentElement.x - ((currentElement.width || 0) / 2);
+        ctx.beginPath();
+        ctx.moveTo(previousRight, y);
+        ctx.lineTo(currentLeft, y);
+        ctx.stroke();
+      });
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#4c5c70';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.font = '800 12px Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      flowBars.forEach((bar, index) => {
+        if (!bar.showPercent) return;
+        const element = bars[index];
+        if (!element) return;
+        const y = Math.min(element.y, element.base) - 8;
+        ctx.fillText(percent(bar.share, 2), element.x, y);
+      });
+      ctx.restore();
+    },
+  };
   const options = {
     responsive: true,
     maintainAspectRatio: false,
@@ -8526,6 +8726,7 @@ function WorkloadFlowChart({ rows, totalHours }) {
       },
       y: {
         beginAtZero: true,
+        suggestedMax: totalHours * 1.12,
         grid: { color: '#eef2f6', drawBorder: false, borderDash: [3, 4] },
         border: { display: false },
         ticks: {
@@ -8541,9 +8742,8 @@ function WorkloadFlowChart({ rows, totalHours }) {
         ...sharedChartPlugins.tooltip,
         callbacks: {
           label: (context) => {
-            const label = context.label;
-            const share = label === 'Capacity' ? 100 : shareByLabel.get(label) || 0;
-            return `${compactHours(context.parsed.y)} · ${percent(share)}`;
+            const bar = flowBars[context.dataIndex];
+            return `${compactHours(bar?.hours || 0)} · ${percent(bar?.share || 0)}`;
           },
         },
       },
@@ -8551,7 +8751,7 @@ function WorkloadFlowChart({ rows, totalHours }) {
   };
   return (
     <div className="chartjs-shell workload-flow-chart">
-      <Bar data={data} options={options} />
+      <Bar data={data} options={options} plugins={[flowConnectorPlugin]} />
     </div>
   );
 }

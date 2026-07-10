@@ -907,6 +907,10 @@
     @apply text-[12px] uppercase tracking-[0.08em] text-[#8a96a7];
   }
 
+  .analytics-paytype-flow {
+    @apply mt-5 border-t border-dashed border-line pt-4;
+  }
+
   .empty-chart-shell {
     @apply flex items-start;
   }
