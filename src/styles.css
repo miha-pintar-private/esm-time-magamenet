@@ -2593,12 +2593,23 @@
   }
 
   .compensation-project-name-field {
-    @apply md:col-span-2;
+    @apply md:col-start-1 md:col-span-4;
   }
 
-  .compensation-project-date-field,
-  .compensation-project-value-field {
+  .compensation-project-date-field {
     @apply min-w-0;
+  }
+
+  .compensation-project-from-field {
+    @apply md:col-start-1;
+  }
+
+  .compensation-project-to-field {
+    @apply md:col-start-2;
+  }
+
+  .compensation-project-value-field {
+    @apply min-w-0 md:col-start-3 md:col-span-2;
   }
 
   .employment-rules-panel {

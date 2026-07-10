@@ -1236,7 +1236,7 @@ const documentationSections = [
           'When an employee has more than one non-project compensation row, every non-project row must have at least one applicable work type selected so the app knows which cost applies to each entry.',
           'Monthly salary compensation rows let users enter gross salary, meal allowance, transport allowance, gross gross cost, and an optional note. Monthly hours are calculated automatically from the current month working days for cost calculations but are not shown in the employee form.',
           'Hourly rate rows show hourly rate, meal allowance, transport allowance, and note fields. Meal and transport values can be 0.',
-          'Project work rows use a dedicated edit layout: employment type, pay type, and work-type scope stay grouped at the top, project name uses a wider field, Project from, Project to, and project value share the next row, and the note spans the full row. Project work applies to all paid work types for time tracking and does not use a work type selector. Project name and a valid date range are required. At least one row remains in the form.',
+          'Project work rows use a dedicated edit layout: employment type, pay type, and work-type scope stay grouped at the top, project name uses a full-width field, Project from, Project to, and project value share the next row, and the note spans the full row. Project work applies to all paid work types for time tracking and does not use a work type selector. Project name and a valid date range are required. At least one row remains in the form.',
           'The selected employment type is matched to the Rules subtab and controls which compensation fields are shown in the employee form.',
           'If the selected rule requires medical exam or safety training and the employee is missing the matching dates, the employee table alert popover and record sidebar show an open to-do.',
           'If the selected rule requires an employment contract and neither the employee contract fields nor linked local document records show a contract, the employee table alert popover and record sidebar show an open to-do.',
@@ -7901,11 +7901,11 @@ function EmployeeModal({ mode, employee, role, primaryLeadDepartment, employees,
                         <span>Project name</span>
                         <input value={row.projectName} onChange={(event) => updateCompensationRow(row.id, 'projectName', event.target.value)} placeholder="Project name" />
                       </label>
-                      <label className="field compensation-project-date-field">
+                      <label className="field compensation-project-date-field compensation-project-from-field">
                         <span>Project from</span>
                         <input type="date" value={row.projectStartDate} onInput={(event) => updateCompensationRow(row.id, 'projectStartDate', event.target.value)} onChange={(event) => updateCompensationRow(row.id, 'projectStartDate', event.target.value)} />
                       </label>
-                      <label className="field compensation-project-date-field">
+                      <label className="field compensation-project-date-field compensation-project-to-field">
                         <span>Project to</span>
                         <input type="date" value={row.projectEndDate} onInput={(event) => updateCompensationRow(row.id, 'projectEndDate', event.target.value)} onChange={(event) => updateCompensationRow(row.id, 'projectEndDate', event.target.value)} />
                       </label>
