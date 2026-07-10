@@ -1072,7 +1072,10 @@ const documentationSections = [
           'Undefined can also come from saved time entries where the user selected the Undefined work type.',
           'Pending, rejected, and deleted absence requests are not included in Analytics workload or cost.',
           'Vacation and sick leave working days exclude Saturdays, Sundays, and configured holiday rules from the Vacation module.',
-          'Compensation-type workload charts classify each included entry by the employee compensation row that matches the entry work type. Each chart lists only users with hours that match that compensation type. Approved absence days use the first fallback non-project compensation row when available.',
+          'Compensation-type workload charts use the monthly salary workload model only for Monthly salary. Hourly rate and Project work charts are cumulative hour charts that grow with matching recorded hours rather than comparing hours to a capacity target.',
+          'Monthly salary chart entries classify each included entry by the employee compensation row that matches the entry work type. Approved absence days use the first fallback non-project compensation row when available.',
+          'Hourly rate chart entries use matching hourly compensation rows and original analytics entries, without Shortage or Overtime capacity segments.',
+          'Project work chart entries include paid, non-break recorded time entries inside a project row date range. Project work is not mapped to a specific work type, so a person with both hourly and project rows can appear in both charts when the same recorded hours are relevant to both arrangements.',
           'All analytics charts are rendered with Chart.js for consistent axes, legends, tooltips, and responsive sizing.',
           'The workload charts use configured work type colors from Settings.',
           'The detail table Change column groups the selected entries by calendar month and renders a compact Chart.js trend bar for the row.',
@@ -1091,7 +1094,9 @@ const documentationSections = [
           'Work-type share = work-type hours / total hours for the same department or user × 100',
           'Average share for variance = average(work-type share for the same work type across visible departments or users)',
           'Variance vs average = row work-type share - average share for that work type',
-          'Compensation-type workload chart value = Σ entry.hours where compensationRowForEntry(employee, entry).payType equals Monthly salary, Hourly rate, or Project work, grouped by matching user',
+          'Monthly salary compensation chart value = Σ workload entry hours where compensationRowForEntry(employee, entry).payType equals Monthly salary, including Shortage or Overtime when applicable',
+          'Hourly rate compensation chart value = Σ original analytics entry hours where compensationRowForEntry(employee, entry).payType equals Hourly rate',
+          'Project work compensation chart value = Σ paid non-break original time-entry hours where employee has a Project work row and entry.date is between Project from and Project to',
           'Stacked department workload chart value = work-type hours for each visible department',
           'Stacked workload axis maximum = the highest visible department or user total hours',
           'Workload flow percent = work-type hours / total selected analytics hours × 100%',
@@ -2524,6 +2529,40 @@ function workloadSegmentsForEntries(entries = [], mode, configuredTypes = []) {
       if (segmentOrder !== 0) return segmentOrder;
       return second.hours - first.hours || first.typeName.localeCompare(second.typeName);
     });
+}
+
+function isPaidWorkloadEntry(entry, configuredTypes = []) {
+  const paidByType = new Map(configuredTypes.map((type) => [type.name, type.paid !== false]));
+  return entry
+    && entry.syntheticWorkload !== true
+    && !entry.absenceType
+    && entry.break !== true
+    && paidByType.get(entry.type) !== false;
+}
+
+function projectRowsForEntry(employee, entry, configuredTypes = []) {
+  if (!isPaidWorkloadEntry(entry, configuredTypes)) return [];
+  return employeeCompensationRows(employee).filter((row) => (
+    row.payType === PAY_TYPE_PROJECT
+    && row.projectStartDate
+    && row.projectEndDate
+    && entry.date >= row.projectStartDate
+    && entry.date <= row.projectEndDate
+  ));
+}
+
+function payTypeEntriesForChart(payType, analyticsEntries = [], workloadEntries = [], peopleByName = new Map(), configuredTypes = []) {
+  if (payType === PAY_TYPE_PROJECT) {
+    return analyticsEntries.filter((entry) => {
+      const person = peopleByName.get(entry.employee);
+      return person && projectRowsForEntry(person, entry, configuredTypes).length > 0;
+    });
+  }
+  const sourceEntries = payType === PAY_TYPE_MONTHLY ? workloadEntries : analyticsEntries;
+  return sourceEntries.filter((entry) => {
+    const person = peopleByName.get(entry.employee);
+    return person && compensationRowForEntry(person, entry)?.payType === payType;
+  });
 }
 
 function sortedWorkTypeNames(entries = []) {
@@ -8153,15 +8192,14 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
     return { label: department, meta: `${departmentPeople.size} user${departmentPeople.size === 1 ? '' : 's'}`, hours, cost, segments };
   }).filter((row) => row.hours > 0).sort((first, second) => second.hours - first.hours);
   const payTypeWorkloads = payTypeOptions.map((payType) => {
-    const payTypeEntries = workloadEntries.filter((entry) => {
-      const person = peopleByName.get(entry.employee);
-      return person && compensationRowForEntry(person, entry)?.payType === payType.name;
-    });
+    const payTypeEntries = payTypeEntriesForChart(payType.name, analyticsEntries, workloadEntries, peopleByName, configuredWorkTypes);
     const rows = filteredPeople.map((person) => {
       const personEntries = payTypeEntries.filter((entry) => entry.employee === person.name);
       const personAnalyticsEntries = analyticsEntries.filter((entry) => {
         const entryPerson = peopleByName.get(entry.employee);
-        return entry.employee === person.name && entryPerson && compensationRowForEntry(entryPerson, entry)?.payType === payType.name;
+        if (entry.employee !== person.name || !entryPerson) return false;
+        if (payType.name === PAY_TYPE_PROJECT) return projectRowsForEntry(entryPerson, entry, configuredWorkTypes).length > 0;
+        return compensationRowForEntry(entryPerson, entry)?.payType === payType.name;
       });
       const hours = personEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
       const cost = employeeRuleCost(person, employmentRules, personAnalyticsEntries, configuredWorkTypes);
