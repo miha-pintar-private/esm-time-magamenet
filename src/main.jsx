@@ -367,7 +367,7 @@ function ensureSystemWorkTypes(types = []) {
 const PAY_TYPE_MONTHLY = 'Monthly salary';
 const PAY_TYPE_PROJECT = 'Project work';
 const PAY_TYPE_HOURLY = 'Hourly rate';
-const payTypeOptions = [PAY_TYPE_MONTHLY, PAY_TYPE_PROJECT, PAY_TYPE_HOURLY].map((name) => ({ name }));
+const payTypeOptions = [PAY_TYPE_MONTHLY, PAY_TYPE_HOURLY, PAY_TYPE_PROJECT].map((name) => ({ name }));
 const NEW_DOCUMENT_TYPE = 'Create new document type';
 
 const employmentRules = [
@@ -1045,15 +1045,15 @@ const documentationSections = [
       },
       {
         name: 'Department and user work-type analytics',
-        howItWorks: 'Analytics filters the active role scope by an independent date range plus optional department, tag, employment type, compensation type, and people filters, then shows how much time each department and user spent on every recorded work type plus approved vacation and sick leave working days. The page includes stacked workload-hour charts, a scope-level workload flow chart, pay-type workload charts, and detail tables for departments and users.',
+        howItWorks: 'Analytics filters the active role scope by an independent date range plus optional department, tag, employment type, compensation type, and people filters, then shows how much time each department and user spent on every recorded work type plus approved vacation and sick leave working days. The page starts with compensation-type workload charts, then includes a department workload chart, a scope-level workload flow chart, and detail tables for departments and users.',
         userSteps: [
           'Open Time Management, then open the Analytics subtab.',
           'Set From and To dates in the Analytics header, or click Last 30 days.',
           'Use Analytics scope filters to select one or more departments, tags, employment types, compensation types, or people.',
-          'Review Workload hours by user and Workload hours by department to compare stacked work-type hours.',
+          'Review Workload hours by compensation type to compare Monthly salary, Hourly rate, and Project work users in separate stacked charts.',
+          'Review Workload hours by department to compare stacked work-type hours by department.',
           'Use General or Detailed above each workload chart. General groups normal work entries under Work. Detailed splits normal work entries by work type. Lunch break, Vacation, Sick leave, Undefined, Shortage, and Overtime remain visible in both modes.',
           'Review Workload flow to see the selected scope split by work type.',
-          'Review Workload by pay type to compare Monthly salary, Project work, and Hourly rate hours for the selected filters.',
           'Use the Department analytics and User analytics tables to compare hours, percent of time, variance from average, allocated cost, cost per hour, and change over time.',
         ],
         specifics: [
@@ -1072,7 +1072,7 @@ const documentationSections = [
           'Undefined can also come from saved time entries where the user selected the Undefined work type.',
           'Pending, rejected, and deleted absence requests are not included in Analytics workload or cost.',
           'Vacation and sick leave working days exclude Saturdays, Sundays, and configured holiday rules from the Vacation module.',
-          'Pay-type workload charts classify each included entry by the employee compensation row that matches the entry work type. Approved absence days use the first fallback non-project compensation row when available.',
+          'Compensation-type workload charts classify each included entry by the employee compensation row that matches the entry work type. Each chart lists only users with hours that match that compensation type. Approved absence days use the first fallback non-project compensation row when available.',
           'All analytics charts are rendered with Chart.js for consistent axes, legends, tooltips, and responsive sizing.',
           'The workload charts use configured work type colors from Settings.',
           'The detail table Change column groups the selected entries by calendar month and renders a compact Chart.js trend bar for the row.',
@@ -1091,10 +1091,10 @@ const documentationSections = [
           'Work-type share = work-type hours / total hours for the same department or user × 100',
           'Average share for variance = average(work-type share for the same work type across visible departments or users)',
           'Variance vs average = row work-type share - average share for that work type',
-          'Stacked workload chart value = work-type hours for each visible department or user',
+          'Compensation-type workload chart value = Σ entry.hours where compensationRowForEntry(employee, entry).payType equals Monthly salary, Hourly rate, or Project work, grouped by matching user',
+          'Stacked department workload chart value = work-type hours for each visible department',
           'Stacked workload axis maximum = the highest visible department or user total hours',
           'Workload flow percent = work-type hours / total selected analytics hours × 100%',
-          'Pay-type chart value = Σ entry.hours where compensationRowForEntry(employee, entry).payType equals Monthly salary, Project work, or Hourly rate',
           'Trend bar value = row hours grouped by calendar month in the selected analytics period',
         ],
       },
@@ -8109,9 +8109,6 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
     buildWorkloadEntries(analyticsEntries, filteredPeople, absenceRules, normalizedFilters.from, normalizedFilters.to)
   ), [analyticsEntries, filteredPeople, absenceRules, normalizedFilters.from, normalizedFilters.to]);
   const peopleByName = useMemo(() => new Map(filteredPeople.map((person) => [person.name, person])), [filteredPeople]);
-  const workloadTypeNames = useMemo(() => (
-    Array.from(new Set(workloadEntries.map((entry) => workloadSegmentName(entry, workloadMode)))).filter(Boolean).sort(compareWorkloadSegmentNames)
-  ), [workloadEntries, workloadMode]);
   const totalHours = analyticsEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
   const workloadTotalHours = workloadEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
   const absenceHours = periodAbsenceEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
@@ -8144,14 +8141,6 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
     groupLabel: 'user',
     groupForEntry: (entry) => entry.employee,
   });
-  const userWorkload = filteredPeople.map((person) => {
-    const personEntries = workloadEntries.filter((entry) => entry.employee === person.name);
-    const personAnalyticsEntries = analyticsEntries.filter((entry) => entry.employee === person.name);
-    const hours = personEntries.reduce((sum, entry) => sum + (Number(entry.hours) || 0), 0);
-    const cost = employeeRuleCost(person, employmentRules, personAnalyticsEntries, configuredWorkTypes);
-    const segments = workloadSegmentsForEntries(personEntries, workloadMode, configuredWorkTypes);
-    return { label: person.name, meta: person.department, hours, cost, segments };
-  }).filter((row) => row.hours > 0).sort((first, second) => second.hours - first.hours);
   const departmentWorkload = departmentNames.map((department) => {
     const departmentPeople = new Set(filteredPeople.filter((person) => person.department === department).map((person) => person.name));
     const departmentEntries = workloadEntries.filter((entry) => departmentPeople.has(entry.employee));
@@ -8270,13 +8259,13 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
         </div>
       </section>
 
-      <section className="primary-panel analytics-chart-panel">
+      <section className="primary-panel analytics-chart-panel analytics-paytype-panel">
         <ChartHeading
-          kicker={workloadTypeNames.join(' / ') || 'No workload'}
-          title="Workload hours by user"
+          kicker="Monthly salary / Hourly rate / Project work"
+          title="Workload hours by compensation type"
           actions={<WorkloadModeToggle value={workloadMode} onChange={setWorkloadMode} />}
         />
-        <StackedWorkloadChart rows={userWorkload} />
+        <PayTypeWorkloadCharts groups={payTypeWorkloads} />
       </section>
 
       <section className="primary-panel analytics-chart-panel">
@@ -8297,25 +8286,6 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
         <WorkloadFlowChart rows={flowRows} totalHours={workloadTotalHours} />
       </section>
 
-      <section className="primary-panel analytics-paytype-panel">
-        <ChartHeading
-          kicker="Monthly salary / Project work / Hourly rate"
-          title="Workload by pay type"
-          actions={<WorkloadModeToggle value={workloadMode} onChange={setWorkloadMode} />}
-        />
-        <div className="analytics-paytype-grid">
-          {payTypeWorkloads.map((group) => (
-            <article className="analytics-paytype-section" key={group.payType}>
-              <div className="analytics-paytype-head">
-                <span>{group.payType}</span>
-                <strong>{compactHours(group.hours)}</strong>
-              </div>
-              <StackedWorkloadChart rows={group.rows} emptyMessage={`No ${group.payType.toLowerCase()} entries match the selected filters.`} />
-            </article>
-          ))}
-        </div>
-      </section>
-
       <section className="primary-panel analytics-table-panel">
         <ChartHeading kicker="Department analytics" title="Hours, share, variance, cost, and change" />
         <AnalyticsDetailTable rows={departmentRows} firstColumn="Department" />
@@ -8325,6 +8295,22 @@ function AnalyticsView({ role, activePlatform, people, entries, absenceRequests,
         <ChartHeading kicker="User analytics" title="Hours, share, variance, cost, and change" />
         <AnalyticsDetailTable rows={userRows} firstColumn="User" />
       </section>
+    </div>
+  );
+}
+
+function PayTypeWorkloadCharts({ groups }) {
+  return (
+    <div className="analytics-paytype-grid">
+      {groups.map((group) => (
+        <article className="analytics-paytype-section" key={group.payType}>
+          <div className="analytics-paytype-head">
+            <span>{group.payType}</span>
+            <strong>{compactHours(group.hours)}</strong>
+          </div>
+          <StackedWorkloadChart rows={group.rows} emptyMessage={`No ${group.payType.toLowerCase()} users match the selected filters.`} />
+        </article>
+      ))}
     </div>
   );
 }
