@@ -8104,11 +8104,11 @@ function EmploymentRuleModal({ mode, rule, existingRules, onClose, onSave }) {
                 <span
                   className="info-tooltip"
                   tabIndex="0"
-                  aria-label="Capacity percent means how much of full-time capacity the person works. 50 means 50 percent of full-time. 30 means 30 percent, not 70 percent. Salary, allowances, and budget values are not reduced again."
+                  aria-label="Capacity percent means how much of full-time the person works. 30 means they work 30 percent of full-time."
                 >
                   <Info size={14} />
                   <span className="info-tooltip-content" role="tooltip">
-                    Capacity percent means how much of full-time capacity the person works. 50 means 50% of full-time. 30 means 30%, not 70%. Salary, allowances, and budget values are already adjusted and are not reduced again.
+                    Capacity percent means how much of full-time the person works. 30 means they work 30% of full-time.
                   </span>
                 </span>
               </span>
