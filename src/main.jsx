@@ -381,6 +381,7 @@ const employmentRules = [
     name: 'Full-time permanent',
     payType: PAY_TYPE_MONTHLY,
     requiresContract: true,
+    requiresNda: true,
     requiresMedical: true,
     requiresSafety: true,
     cardFields: ['contract', 'medical', 'safety', 'cost'],
@@ -390,6 +391,7 @@ const employmentRules = [
     name: 'Fixed-term',
     payType: PAY_TYPE_MONTHLY,
     requiresContract: true,
+    requiresNda: true,
     requiresMedical: true,
     requiresSafety: true,
     cardFields: ['contract', 'medical', 'safety', 'cost'],
@@ -399,6 +401,7 @@ const employmentRules = [
     name: 'Trial period',
     payType: PAY_TYPE_MONTHLY,
     requiresContract: true,
+    requiresNda: true,
     requiresMedical: true,
     requiresSafety: true,
     cardFields: ['contract', 'medical', 'safety', 'cost'],
@@ -408,6 +411,7 @@ const employmentRules = [
     name: 'Service contract',
     payType: PAY_TYPE_PROJECT,
     requiresContract: true,
+    requiresNda: true,
     requiresMedical: false,
     requiresSafety: false,
     cardFields: ['contract', 'projectAmount', 'hours', 'cost'],
@@ -417,6 +421,7 @@ const employmentRules = [
     name: 'Sole proprietor',
     payType: PAY_TYPE_HOURLY,
     requiresContract: true,
+    requiresNda: true,
     requiresMedical: false,
     requiresSafety: false,
     cardFields: ['hourlyRate', 'hours', 'contract', 'cost'],
@@ -426,6 +431,7 @@ const employmentRules = [
     name: 'Side work',
     payType: PAY_TYPE_HOURLY,
     requiresContract: true,
+    requiresNda: true,
     requiresMedical: false,
     requiresSafety: false,
     cardFields: ['hourlyRate', 'hours', 'contract', 'cost'],
@@ -435,6 +441,7 @@ const employmentRules = [
     name: 'Permanent',
     payType: PAY_TYPE_MONTHLY,
     requiresContract: true,
+    requiresNda: true,
     requiresMedical: true,
     requiresSafety: true,
     cardFields: ['contract', 'medical', 'safety', 'cost'],
@@ -443,10 +450,11 @@ const employmentRules = [
 
 const documentTypeRules = [
   { id: 1, name: 'Contract', requiresDocumentDate: true, requiresStartDate: true, requiresEndDate: true },
-  { id: 2, name: 'Annex', requiresDocumentDate: true, requiresStartDate: true, requiresEndDate: false },
-  { id: 3, name: 'Medical', requiresDocumentDate: true, requiresStartDate: false, requiresEndDate: true },
-  { id: 4, name: 'Safety', requiresDocumentDate: true, requiresStartDate: false, requiresEndDate: true },
-  { id: 5, name: 'Other', requiresDocumentDate: true, requiresStartDate: false, requiresEndDate: false },
+  { id: 2, name: 'NDA', requiresDocumentDate: true, requiresStartDate: true, requiresEndDate: true },
+  { id: 3, name: 'Annex', requiresDocumentDate: true, requiresStartDate: true, requiresEndDate: false },
+  { id: 4, name: 'Medical', requiresDocumentDate: true, requiresStartDate: false, requiresEndDate: true },
+  { id: 5, name: 'Safety', requiresDocumentDate: true, requiresStartDate: false, requiresEndDate: true },
+  { id: 6, name: 'Other', requiresDocumentDate: true, requiresStartDate: false, requiresEndDate: false },
 ];
 
 function normalizeEmploymentRules(items) {
@@ -456,6 +464,7 @@ function normalizeEmploymentRules(items) {
     payType: [PAY_TYPE_MONTHLY, PAY_TYPE_MONTHLY_REDUCED, PAY_TYPE_PROJECT, PAY_TYPE_HOURLY].includes(rule.payType) ? rule.payType : PAY_TYPE_MONTHLY,
     monthlyCapacityPercent: clampMonthlyCapacityPercent(rule.monthlyCapacityPercent, rule.payType === PAY_TYPE_MONTHLY_REDUCED ? 50 : 100),
     requiresContract: rule.requiresContract !== false,
+    requiresNda: rule.requiresNda !== false,
     requiresMedical: Boolean(rule.requiresMedical),
     requiresSafety: Boolean(rule.requiresSafety),
     cardFields: Array.isArray(rule.cardFields) && rule.cardFields.length > 0
@@ -465,13 +474,18 @@ function normalizeEmploymentRules(items) {
 }
 
 function normalizeDocumentTypeRules(items) {
-  return (Array.isArray(items) && items.length > 0 ? items : documentTypeRules).map((rule, index) => ({
+  const sourceItems = Array.isArray(items) && items.length > 0 ? items : documentTypeRules;
+  const normalizedItems = sourceItems.map((rule, index) => ({
     id: rule.id || index + 1,
     name: rule.name || 'Document type',
     requiresDocumentDate: rule.requiresDocumentDate !== false,
     requiresStartDate: Boolean(rule.requiresStartDate),
     requiresEndDate: Boolean(rule.requiresEndDate),
   })).filter((rule) => rule.name);
+  if (!normalizedItems.some((rule) => rule.name.trim().toLowerCase() === 'nda')) {
+    normalizedItems.splice(1, 0, { id: 'system-nda', name: 'NDA', requiresDocumentDate: true, requiresStartDate: true, requiresEndDate: true });
+  }
+  return normalizedItems;
 }
 
 function defaultRuleCardFields(payType) {
@@ -1213,7 +1227,7 @@ const documentationSections = [
           'Use the tabs at the top of the sidebar to switch between employee record sections. Management and team leads can open Overview, Documents, Comments, and Archive / delete user; Operations users can open Overview and Documents.',
           'Management and team leads can edit the profile from the sidebar and save the employee.',
           'In the employee form User info section, enter the full name, then Address, Post number, and City on one row, Personal ID / EMŠO and Tax number on one row, and Work email, Phone number, Private email, and Annual vacation allowance.',
-          'Then enter department, role level, tags, contract from and contract to dates, medical exam completion date, safety training completion and expiry dates, and compensation rows.',
+          'Then enter department, role level, tags, contract and NDA from/to dates, medical exam completion date, safety training completion and expiry dates, and compensation rows.',
           'Use Add row in Compensation rows to add another work arrangement. Select the employment type from the Rules list; the pay type and visible compensation fields follow that rule. For Monthly salary and Hourly rate rows, set Valid from and leave Valid until empty when the arrangement has no planned end date. For Project work rows, set Project from and Project to.',
           'Open Documents, click Add document, drop a file onto the upload area or click it to choose a file from the system file picker, enter the document title, choose or create a document type, complete the required document dates, and save the document record.',
           'Management and team leads can open Comments, enter an internal note, and click Add comment to store it on the employee record.',
@@ -1236,18 +1250,19 @@ const documentationSections = [
           'Management users can choose the employee department and can assign Management, Team Lead, or Operations role level.',
           'The employee add/edit form uses a compact four-column desktop layout with shorter inputs, separated section dividers with vertical padding above and below the upper dividers, smaller section headers, and row-based compliance fields so identity, department, contract, compliance, and compensation fields stay easier to scan. On narrow screens the fields collapse into a single-column layout.',
           'The employee table is intentionally limited to initials, name, department, role level, and employment type so operational scanning stays clean.',
-          'Open rule to-dos and contract end-date notices in the employee table appear only as an alert icon next to the employee name. The popover lists the exact missing setup items or contract date notice and stays visible only while the pointer is on the icon or popover.',
-          'Contract end-date notices appear 14 days before the Contract to date in both the employee table alert popover and the employee record Work setup list. On the Contract to date and after it, the notice becomes a critical red notice stating that the contract ended.',
+          'Open rule to-dos and contract or NDA end-date notices in the employee table appear only as an alert icon next to the employee name. The popover lists the exact missing setup items or date notice and stays visible only while the pointer is on the icon or popover.',
+          'Contract and NDA end-date notices appear 14 days before their respective end dates in both the employee table alert popover and the employee record Work setup list. On or after an end date, the notice becomes a critical red notice stating that the agreement ended.',
           'The role level is shown as a compact pill in the employee table. The employee record sidebar uses a separate Active or Inactive status pill.',
           'The employee record sidebar uses a compact detail layout with smaller text, icons, avatar, rows, tabs, and spacing. It shows the employee summary, active or inactive status, role, department, employment type, Contract from date, rule pay type, and segmentation tags.',
           'The employee record does not have a separate Vacation tab. The Overview tab identity table shows the employee annual vacation allowance in days.',
           'The Overview tab identity table shows Address, Post number, City, EMŠO / Personal ID, Tax number, Private email, and Annual vacation allowance. Name, role, department, employment type, work email, phone number, Contract from date, pay type, and segmentation tags stay in the employee record sidebar so the Overview tab does not duplicate sidebar data.',
           'Address, Post number, City, Work email, Phone number, and Private email are optional fields stored directly on the employee record. Existing local employee records can remain blank until edited.',
           'For compatibility with older local records, the app still keeps a combined address value generated from Address, Post number, and City.',
-          'The Overview tab Work setup list is a flat divided status list driven by the employee employment rule pay type. Monthly salary employees show the contract period and, when the rule requires them, Medical exam and Safety training details. Hourly rate and Project work employees show the contract period. Displayed employee record dates use day-month-year format.',
+          'The Overview tab Work setup list is a flat divided status list driven by the employee employment rule pay type. It shows NDA status whenever the rule requires it, alongside the contract period and any required medical exam and safety training details. Displayed employee record dates use day-month-year format.',
           'The Overview tab Compensation setup uses a flat divided table without an extra panel frame. It shows each compensation row by employment type, validity period, work types, cost details, and project period; on narrow screens the same fields stack with labels. Rows active today are marked Active and sorted first.',
-          'The Contract and compliance form section is split into separate rows for Contract, Medical, and Safety training. Row controls align vertically so the Contract from field, Contract to field, and No end date button scan as one row.',
+          'The Contract and compliance form section is split into separate rows for Contract, NDA, Medical, and Safety training. Row controls align vertically so the Contract and NDA from/to fields and No end date buttons scan as rows.',
           'The Contract row stores Contract from and Contract to dates. Contract from is also saved as the employee start date for employee table, sidebar, and older local records that still read the start field. Turning on No end date clears Contract to, disables that date input, and saves the contract as indefinite. Turning the button off restores an editable Contract to date seeded from Contract from, the employee start date, or today.',
+          'The NDA row stores NDA from and NDA to dates. Turning on No end date clears NDA to and records an indefinite confidentiality agreement. An uploaded NDA document also fulfils the NDA requirement, even when NDA dates are not entered in the employee form.',
           'Medical exam stores only the date the employee completed the exam in the Medical row. If the completed date is empty, the form shows a red inline warning with an alert icon under the date input.',
           'Safety training stores the completion date and the valid-until date in the Safety training row. If the completed date is empty, the form shows a red inline warning with an alert icon under the completed date input.',
           'The Comments tab stores internal employee comments with comment text, author, and local date. It is visible only to Management and team lead users.',
@@ -1255,7 +1270,7 @@ const documentationSections = [
           'Archived employees are excluded from operational views, time-entry employee selectors, manual unlock selectors, tracker user scope, analytics people metrics, correction reviewer scopes, department people counts, and tag people counts.',
           'Archived employees remain available in the Employees list only when the Status filter is set to Archived users or All users, and they open in the sidebar with an Inactive status.',
           'Archiving an employee stops that employee\'s active timer if one is running and clears matching active table person filters.',
-          'The Documents tab lists local document records linked by employee name. It is intended for contracts, annexes, medical certificates, safety certificates, and other important employee files.',
+          'The Documents tab lists local document records linked by employee name. It is intended for contracts, NDAs, annexes, medical certificates, safety certificates, and other important employee files.',
           'Management and team leads can add document records from the Documents tab. Operations users can view documents but cannot add or delete them.',
           'Each document record stores title, employee name, document type, document date, start date, valid-until date, status, uploaded file name, file type, file size, local file data, and upload date. The visible date fields depend on the selected document type rule.',
           'The employee Documents add form uses compact upload, title, type, date, and action controls so the date fields stay visually small inside the sidebar.',
@@ -1374,7 +1389,7 @@ const documentationSections = [
           'Enter the employment type name.',
           'Choose Monthly salary, Monthly salary - reduced hours, Project work, or Hourly rate as the cost method.',
           'For Monthly salary - reduced hours, set Capacity percent, such as 50 for half-time work.',
-          'Select whether the rule requires an employment contract, medical exam, and safety training.',
+          'Select whether the rule requires an employment contract, NDA, medical exam, and safety training.',
           'Save the rule, then assign that employment type on an employee profile.',
           'To configure document types, click Add document type.',
           'Enter the document type name and select whether that type requires Document date, Start date, or Valid until date.',
@@ -1384,12 +1399,12 @@ const documentationSections = [
           'Rules are hidden for Operations users.',
           'Employment type names are required and must be unique.',
           'Document type names are required and must be unique.',
-          'Monthly salary defaults to requiring employment contract, medical exam, and safety training.',
-          'Monthly salary - reduced hours also defaults to employment contract, medical exam, and safety training, and shows Capacity percent in the rule form and table. Standard Monthly salary keeps 100% capacity and does not show the Capacity percent field in the form.',
+          'Monthly salary defaults to requiring employment contract, NDA, medical exam, and safety training.',
+          'Monthly salary - reduced hours also defaults to employment contract, NDA, medical exam, and safety training, and shows Capacity percent in the rule form and table. Standard Monthly salary keeps 100% capacity and does not show the Capacity percent field in the form.',
           'Capacity percent reduces expected Analytics capacity hours and the monthly cost divisor. It does not reduce entered salary, allowances, gross gross cost, project value, or any budget value.',
-          'Project work and Hourly rate default to requiring an employment contract only, but medical exam and safety training can be enabled manually.',
+          'Project work and Hourly rate default to requiring an employment contract and NDA, but medical exam and safety training can be enabled manually.',
           'Rules assigned to employees cannot be deleted.',
-          'The Employment type rules table shows the rule name, pay type, Capacity percent for monthly methods, three requirement rows for Employment contract, Medical exam, and Safety training with an icon showing whether each item is required, assigned employee count, and edit or delete actions when the user can manage rules.',
+          'The Employment type rules table shows the rule name, pay type, Capacity percent for monthly methods, four requirement rows for Employment contract, NDA, Medical exam, and Safety training with an icon showing whether each item is required, assigned employee count, and edit or delete actions when the user can manage rules.',
           'Deleting an unassigned rule asks for confirmation: Are you sure you want to delete this employment rule?',
           'Renaming a rule updates employees that used the old employment type name.',
           'Document types already used by documents cannot be deleted.',
@@ -1407,7 +1422,7 @@ const documentationSections = [
           'Monthly salary cost = Σ entry.hours × ((grossGrossCost + mealAllowance + transportAllowance) / max(monthlyWorkingDays × 8 × monthly capacity factor, 1)) for entries mapped to a monthly compensation row',
           'Hourly rate cost = Σ entry.hours × hourlyRate for entries mapped to an hourly compensation row + mealAllowance + transportAllowance once for each matched hourly row',
           'Project work cost = Σ ((projectValue / project calendar days) × unique visible paid-entry dates inside the project active date range)',
-          'Open rule to-dos = required contract, medical exam, and safety training items that are missing from the employee profile or local document records',
+          'Open rule to-dos = required contract, NDA, medical exam, and safety training items that are missing from the employee profile or local document records',
         ],
       },
       {
@@ -1529,7 +1544,7 @@ const documentationSections = [
           {
             entity: 'employees',
             source: 'Employee database; initial sample data from people',
-            required: 'id, name, level, department, employment, contract dates, contact fields, tags, compensationRows with validFrom and optional validUntil for monthly or hourly rows and projectStartDate/projectEndDate for project rows, vacationDaysAvailable, archived status',
+            required: 'id, name, level, department, employment, contract and NDA dates, contact fields, tags, compensationRows with validFrom and optional validUntil for monthly or hourly rows and projectStartDate/projectEndDate for project rows, vacationDaysAvailable, archived status',
             links: 'Referenced by entries.employee, documents.employee, absenceRequests.employee, corrections.employee, correctionWindows.employee, rolePeople, department leads, activeSession.employee',
           },
           {
@@ -1559,7 +1574,7 @@ const documentationSections = [
           {
             entity: 'employmentRuleItems',
             source: 'Employees > Rules > Employment type rules; initial sample data from employmentRules',
-            required: 'id, name, payType, monthlyCapacityPercent for monthly pay types, requiresContract, requiresMedical, requiresSafety, cardFields',
+            required: 'id, name, payType, monthlyCapacityPercent for monthly pay types, requiresContract, requiresNda, requiresMedical, requiresSafety, cardFields',
             links: 'Matched to employees.employment and compensationRows.employmentType; drives employee to-dos, compensation method context, reduced monthly capacity, analytics capacity, and monthly cost divisors',
           },
           {
@@ -2183,6 +2198,15 @@ function contractPeriodLabel(employee) {
   return 'Not specified';
 }
 
+function ndaPeriodLabel(employee) {
+  const from = employee.ndaStartDate || '';
+  const to = employee.ndaEndDate || '';
+  if (from && to) return `${displayDate(from)} to ${displayDate(to)}`;
+  if (from) return `${displayDate(from)} to no end date`;
+  if (to) return `Until ${displayDate(to)}`;
+  return 'Not signed';
+}
+
 function employeeContractEndNotice(employee) {
   const contractEndDate = employee.contractEndDate || firstIsoDate(employee.contractValidity || employee.contract);
   const daysUntilContractEnd = isoDateDiffDays(TODAY, contractEndDate);
@@ -2194,6 +2218,19 @@ function employeeContractEndNotice(employee) {
     text: daysUntilContractEnd <= 0
       ? `Contract ended on ${displayDate(contractEndDate)}`
       : `Contract ends in ${daysUntilContractEnd} day${daysUntilContractEnd === 1 ? '' : 's'} on ${displayDate(contractEndDate)}`,
+  };
+}
+
+function employeeNdaEndNotice(employee) {
+  const daysUntilNdaEnd = isoDateDiffDays(TODAY, employee.ndaEndDate);
+  if (daysUntilNdaEnd === null || daysUntilNdaEnd > 14) return null;
+  return {
+    date: employee.ndaEndDate,
+    daysUntilEnd: daysUntilNdaEnd,
+    tone: daysUntilNdaEnd <= 0 ? 'critical' : 'warning',
+    text: daysUntilNdaEnd <= 0
+      ? `NDA ended on ${displayDate(employee.ndaEndDate)}`
+      : `NDA ends in ${daysUntilNdaEnd} day${daysUntilNdaEnd === 1 ? '' : 's'} on ${displayDate(employee.ndaEndDate)}`,
   };
 }
 
@@ -3010,18 +3047,30 @@ function hasEmployeeContract(employee, documents) {
   return Boolean(hasContractField || hasContractDocument);
 }
 
+function hasEmployeeNda(employee, documents) {
+  const hasNdaFields = Boolean(employee.ndaStartDate);
+  const hasNdaDocument = documents.some((document) => (
+    document.employee === employee.name
+    && ['nda', 'non-disclosure', 'non disclosure', 'confidentiality agreement'].some((word) => `${document.type} ${document.title}`.toLowerCase().includes(word))
+  ));
+  return hasNdaFields || hasNdaDocument;
+}
+
 function employeeRuleTasks(employee, documents, ruleItems) {
   const rule = findEmploymentRule(employee, ruleItems);
   if (!rule) return [{ text: 'Assign an employment rule', tone: 'warning' }];
   const tasks = [];
   const contractEndNotice = employeeContractEndNotice(employee);
+  const ndaEndNotice = employeeNdaEndNotice(employee);
   if (rule.requiresContract && !hasEmployeeContract(employee, documents)) tasks.push({ text: 'Add employment contract', tone: 'warning' });
+  if (rule.requiresNda && !hasEmployeeNda(employee, documents)) tasks.push({ text: 'Add signed NDA', tone: 'warning' });
   if (contractEndNotice) {
     tasks.push({
       text: contractEndNotice.text,
       tone: contractEndNotice.tone,
     });
   }
+  if (ndaEndNotice) tasks.push({ text: ndaEndNotice.text, tone: ndaEndNotice.tone });
   if (rule.requiresMedical && !employee.medicalExamDate) tasks.push({ text: 'Complete medical exam', tone: 'warning' });
   if (rule.requiresSafety && (!employee.safetyTrainingDate || !employee.safetyValidUntil)) tasks.push({ text: 'Complete safety training', tone: 'warning' });
   return tasks;
@@ -3032,6 +3081,7 @@ function employeeCardFacts(employee, documents, ruleItems, entries = [], configu
   const rows = employeeCompensationRows(employee);
   const fieldValues = {
     contract: { label: 'Contract', value: contractPeriodLabel(employee) },
+    nda: { label: 'NDA', value: ndaPeriodLabel(employee) },
     medical: { label: 'Medical', value: complianceDateSummary(employee.medicalExamDate) },
     safety: { label: 'Safety', value: employee.safetyTrainingDate ? `${complianceDateSummary(employee.safetyTrainingDate)}${employee.safetyValidUntil ? ` · until ${displayDate(employee.safetyValidUntil)}` : ''}` : 'Not completed' },
     cost: { label: 'Cost', value: money(employeeRuleCost(employee, ruleItems, entries, configuredTypes)) },
@@ -3091,6 +3141,8 @@ function employeeRequirementItems(employee, ruleItems) {
   const payType = rule?.payType || PAY_TYPE_MONTHLY;
   const contractEnd = contractPeriodLabel(employee);
   const contractEndNotice = employeeContractEndNotice(employee);
+  const ndaEnd = ndaPeriodLabel(employee);
+  const ndaEndNotice = employeeNdaEndNotice(employee);
   const items = [
     { label: 'Work start', value: compactValue(displayDate(employee.start)), tone: 'neutral', icon: CalendarClock },
   ];
@@ -3121,15 +3173,23 @@ function employeeRequirementItems(employee, ruleItems) {
         icon: employee.safetyTrainingDate ? ShieldCheck : AlertCircle,
       });
     }
-    return items;
+  } else {
+    items.push({
+      label: 'Work end',
+      value: contractEnd,
+      tone: contractEnd === 'Not specified' ? 'warning' : 'neutral',
+      icon: CalendarClock,
+    });
   }
-
-  items.push({
-    label: 'Work end',
-    value: contractEnd,
-    tone: contractEnd === 'Not specified' ? 'warning' : 'neutral',
-    icon: CalendarClock,
-  });
+  if (rule?.requiresNda) {
+    items.push({
+      label: 'NDA',
+      value: ndaEnd,
+      detail: ndaEndNotice?.text || (employee.ndaStartDate ? 'Confidentiality agreement signed' : ''),
+      tone: ndaEndNotice?.tone || (employee.ndaStartDate ? 'success' : 'warning'),
+      icon: ndaEndNotice ? AlertCircle : (employee.ndaStartDate ? ShieldCheck : AlertCircle),
+    });
+  }
   return items;
 }
 
@@ -4025,6 +4085,8 @@ function App() {
       contractEndDate,
       contract: contractPeriodLabel({ contractStartDate, contractEndDate, start: startDate }),
       contractValidity: contractEndDate,
+      ndaStartDate: form.ndaStartDate,
+      ndaEndDate: form.ndaEndDate,
       medicalExamDate: form.medicalExamDate,
       medicalValidUntil: '',
       safetyTrainingDate: form.safetyTrainingDate,
@@ -4830,6 +4892,7 @@ function App() {
       payType: form.payType,
       monthlyCapacityPercent: isMonthlyPayType(form.payType) ? clampMonthlyCapacityPercent(form.monthlyCapacityPercent, form.payType === PAY_TYPE_MONTHLY_REDUCED ? 50 : 100) : 100,
       requiresContract: Boolean(form.requiresContract),
+      requiresNda: Boolean(form.requiresNda),
       requiresMedical: Boolean(form.requiresMedical),
       requiresSafety: Boolean(form.requiresSafety),
       cardFields: defaultRuleCardFields(form.payType),
@@ -7058,6 +7121,7 @@ function EmploymentRulesView({
           const assignedPeople = people.filter((person) => person.employment === rule.name);
           const requirements = [
             { label: 'Employment contract', required: rule.requiresContract },
+            { label: 'NDA', required: rule.requiresNda },
             { label: 'Medical exam', required: rule.requiresMedical },
             { label: 'Safety training', required: rule.requiresSafety },
           ];
@@ -7845,6 +7909,8 @@ function EmployeeModal({ mode, employee, role, primaryLeadDepartment, employees,
     start: employee?.start || TODAY,
     contractStartDate: employee?.contractStartDate || employee?.start || TODAY,
     contractEndDate: initialContractEnd,
+    ndaStartDate: employee?.ndaStartDate || '',
+    ndaEndDate: employee?.ndaEndDate || '',
     medicalExamDate: employee?.medicalExamDate || '',
     safetyTrainingDate: employee?.safetyTrainingDate || '',
     safetyValidUntil: employee?.safetyValidUntil || '',
@@ -7869,6 +7935,7 @@ function EmployeeModal({ mode, employee, role, primaryLeadDepartment, employees,
     && (!row.validFrom || (row.validUntil && row.validUntil < row.validFrom))
   ));
   const hasNoContractEndDate = !form.contractEndDate;
+  const hasNoNdaEndDate = !form.ndaEndDate;
   const canSave = Boolean(form.name.trim() && form.department && form.level) && !duplicateName && !hasInvalidProjectRows && !hasInvalidCompensationValidityRows;
   const compensationEmploymentOptions = normalizedEmploymentRules.map((rule) => ({ name: rule.name, meta: rule.payType }));
   const compensationWorkTypeOptions = workTypes
@@ -7899,6 +7966,13 @@ function EmployeeModal({ mode, employee, role, primaryLeadDepartment, employees,
     setForm((current) => ({
       ...current,
       contractEndDate: current.contractEndDate ? '' : (current.contractStartDate || current.start || TODAY),
+    }));
+  }
+
+  function toggleNdaEndDateMode() {
+    setForm((current) => ({
+      ...current,
+      ndaEndDate: current.ndaEndDate ? '' : (current.ndaStartDate || current.contractStartDate || current.start || TODAY),
     }));
   }
 
@@ -8068,7 +8142,7 @@ function EmployeeModal({ mode, employee, role, primaryLeadDepartment, employees,
           <section className="employee-form-section">
             <div className="employee-form-section-head">
               <h3>Contract and compliance</h3>
-              <p>Only contract dates, medical completion, and safety training dates are entered here.</p>
+              <p>Enter contract and NDA dates, medical completion, and safety training dates here.</p>
             </div>
             <div className="employee-compliance-rows">
               <div className="employee-compliance-row">
@@ -8089,6 +8163,28 @@ function EmployeeModal({ mode, employee, role, primaryLeadDepartment, employees,
                   type="button"
                   aria-pressed={hasNoContractEndDate}
                   onClick={toggleContractEndDateMode}
+                >
+                  No end date
+                </button>
+              </div>
+              <div className="employee-compliance-row">
+                <div className="employee-compliance-type">
+                  <strong>NDA</strong>
+                  <span>Confidentiality agreement</span>
+                </div>
+                <label className="field">
+                  <span>NDA from</span>
+                  <input type="date" value={form.ndaStartDate} onInput={(event) => update('ndaStartDate', event.target.value)} onChange={(event) => update('ndaStartDate', event.target.value)} />
+                </label>
+                <label className="field">
+                  <span>NDA to</span>
+                  <input type="date" value={form.ndaEndDate} disabled={hasNoNdaEndDate} onInput={(event) => update('ndaEndDate', event.target.value)} onChange={(event) => update('ndaEndDate', event.target.value)} />
+                </label>
+                <button
+                  className={`employee-end-date-toggle ${hasNoNdaEndDate ? 'active' : ''}`}
+                  type="button"
+                  aria-pressed={hasNoNdaEndDate}
+                  onClick={toggleNdaEndDateMode}
                 >
                   No end date
                 </button>
@@ -8285,6 +8381,7 @@ function EmploymentRuleModal({ mode, rule, existingRules, onClose, onSave }) {
     payType: rule?.payType || PAY_TYPE_MONTHLY,
     monthlyCapacityPercent: clampMonthlyCapacityPercent(rule?.monthlyCapacityPercent, rule?.payType === PAY_TYPE_MONTHLY_REDUCED ? 50 : 100),
     requiresContract: rule?.requiresContract ?? true,
+    requiresNda: rule?.requiresNda ?? true,
     requiresMedical: rule?.requiresMedical ?? true,
     requiresSafety: rule?.requiresSafety ?? true,
   });
@@ -8297,6 +8394,7 @@ function EmploymentRuleModal({ mode, rule, existingRules, onClose, onSave }) {
       if (field === 'payType') {
         if (isMonthlyPayType(value)) {
           next.requiresContract = true;
+          next.requiresNda = true;
           next.requiresMedical = true;
           next.requiresSafety = true;
           next.monthlyCapacityPercent = value === PAY_TYPE_MONTHLY_REDUCED
@@ -8304,6 +8402,7 @@ function EmploymentRuleModal({ mode, rule, existingRules, onClose, onSave }) {
             : 100;
         } else {
           next.requiresContract = true;
+          next.requiresNda = true;
           next.requiresMedical = false;
           next.requiresSafety = false;
           next.monthlyCapacityPercent = 100;
@@ -8361,6 +8460,10 @@ function EmploymentRuleModal({ mode, rule, existingRules, onClose, onSave }) {
             <span>Require employment contract</span>
           </label>
           <label className="toggle-line">
+            <input type="checkbox" checked={form.requiresNda} onChange={(event) => update('requiresNda', event.target.checked)} />
+            <span>Require NDA</span>
+          </label>
+          <label className="toggle-line">
             <input type="checkbox" checked={form.requiresMedical} onChange={(event) => update('requiresMedical', event.target.checked)} />
             <span>Require medical exam</span>
           </label>
@@ -8371,7 +8474,7 @@ function EmploymentRuleModal({ mode, rule, existingRules, onClose, onSave }) {
           <div className="rule-form-note modal-note">
             <ListChecks size={17} />
             <span>
-              Monthly salary defaults to contract, medical exam, and safety training. Reduced hours changes capacity hours only; entered salary and budget values are not reduced again.
+              Monthly salary defaults to contract, NDA, medical exam, and safety training. Reduced hours changes capacity hours only; entered salary and budget values are not reduced again.
             </span>
           </div>
         </div>
